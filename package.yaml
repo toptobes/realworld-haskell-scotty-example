@@ -1,0 +1,66 @@
+name: realworld-hs
+version: 0.1.0.0
+synopsis: Scotty impl of https://github.com/gothinkster/realworld
+license: MIT
+author: toptobes
+extra-source-files:
+  - LICENSE
+  - README.md
+  - CODE_OF_CONDUCT.md
+
+language: GHC2021
+
+ghc-options:
+  - -Wall
+  - -Wno-orphans
+  - -O1
+
+default-extensions:
+  - LambdaCase
+  - OverloadedStrings
+  - BlockArguments
+
+dependencies:
+  - name: base
+    version: ">=4.16.4.0"
+    mixin:
+      - hiding (Prelude)
+  - name: relude
+    version: ">=1.2.0.0"
+    mixin:
+      - (Relude as Prelude)
+      - ""
+  - scotty
+  - wai-extra
+  - stm
+  - mtl
+  - unliftio
+  - aeson
+  - http-types
+  - time
+  - jose
+  - selda
+  - selda-postgresql
+  - resource-pool
+
+library:
+  source-dirs: src
+
+executables:
+  app:
+    main: Main.hs
+    source-dirs: app
+    dependencies: realworld-hs
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options: 
+      - -threaded 
+      - -O0
+    dependencies:
+      - hspec
+      - QuickCheck
+      - realworld-hs
+    build-tools: hspec-discover

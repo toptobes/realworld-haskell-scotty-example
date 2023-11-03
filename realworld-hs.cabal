@@ -1,0 +1,128 @@
+cabal-version: 2.0
+
+-- This file has been generated from package.yaml by hpack version 0.35.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:               realworld-hs
+version:            0.1.0.0
+synopsis:           Scotty impl of https://github.com/gothinkster/realworld
+author:             toptobes
+maintainer:         toptobes
+license:            MIT
+license-file:       LICENSE
+build-type:         Simple
+extra-source-files:
+      LICENSE
+      README.md
+      CODE_OF_CONDUCT.md
+
+library
+    exposed-modules:
+          Conduit
+    other-modules:
+          Paths_realworld_hs
+    autogen-modules:
+          Paths_realworld_hs
+    hs-source-dirs:
+          src
+    default-extensions:
+          LambdaCase
+          OverloadedStrings
+          BlockArguments
+    ghc-options: -Wall -Wno-orphans -O1
+    build-depends:
+          aeson
+        , base >=4.16.4.0
+        , http-types
+        , jose
+        , mtl
+        , relude >=1.2.0.0
+        , resource-pool
+        , scotty
+        , selda
+        , selda-postgresql
+        , stm
+        , time
+        , unliftio
+        , wai-extra
+    mixins:
+          base hiding (Prelude)
+        , relude (Relude as Prelude)
+        , relude 
+    default-language: GHC2021
+
+executable app
+    main-is: Main.hs
+    other-modules:
+          Paths_realworld_hs
+    autogen-modules:
+          Paths_realworld_hs
+    hs-source-dirs:
+          app
+    default-extensions:
+          LambdaCase
+          OverloadedStrings
+          BlockArguments
+    ghc-options: -Wall -Wno-orphans -O1
+    build-depends:
+          aeson
+        , base >=4.16.4.0
+        , http-types
+        , jose
+        , mtl
+        , realworld-hs
+        , relude >=1.2.0.0
+        , resource-pool
+        , scotty
+        , selda
+        , selda-postgresql
+        , stm
+        , time
+        , unliftio
+        , wai-extra
+    mixins:
+          base hiding (Prelude)
+        , relude (Relude as Prelude)
+        , relude 
+    default-language: GHC2021
+
+test-suite spec
+    type: exitcode-stdio-1.0
+    main-is: Spec.hs
+    other-modules:
+          Paths_realworld_hs
+    autogen-modules:
+          Paths_realworld_hs
+    hs-source-dirs:
+          test
+    default-extensions:
+          LambdaCase
+          OverloadedStrings
+          BlockArguments
+    ghc-options: -Wall -Wno-orphans -O1 -threaded -O0
+    build-tool-depends:
+          hspec-discover:hspec-discover
+    build-depends:
+          QuickCheck
+        , aeson
+        , base >=4.16.4.0
+        , hspec
+        , http-types
+        , jose
+        , mtl
+        , realworld-hs
+        , relude >=1.2.0.0
+        , resource-pool
+        , scotty
+        , selda
+        , selda-postgresql
+        , stm
+        , time
+        , unliftio
+        , wai-extra
+    mixins:
+          base hiding (Prelude)
+        , relude (Relude as Prelude)
+        , relude 
+    default-language: GHC2021
