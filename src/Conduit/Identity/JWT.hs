@@ -2,7 +2,7 @@ module Conduit.Identity.JWT where
 
 import Conduit.Features.Account.Types (UserID, unUserID)
 import Data.Time.Clock.POSIX (getPOSIXTime)
-import Web.JWT (EncodeSigner, JWTClaimsSet(..), VerifySigner, numericDate, stringOrURI, toVerify)
+import Web.JWT (EncodeSigner, JWTClaimsSet (..), VerifySigner, numericDate, stringOrURI, toVerify)
 
 newtype Seconds = Seconds { unSeconds :: Int }
   deriving (Show)

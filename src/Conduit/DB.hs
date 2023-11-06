@@ -8,7 +8,8 @@ import Conduit.Features.Account.DB (usersTable)
 import Data.Pool (Pool, defaultPoolConfig, newPool)
 import Database.Selda (MonadSelda, tryCreateTable)
 import Database.Selda.Backend (SeldaConnection)
-import Database.Selda.PostgreSQL (PG, PGConnectInfo(..), pgOpen, seldaClose, withPostgreSQL)
+import Database.Selda.PostgreSQL (PG, PGConnectInfo (..), pgOpen, seldaClose, withPostgreSQL)
+import Database.Selda.Unsafe (rawStm)
 
 type DBPool = Pool (SeldaConnection PG)
 
@@ -37,4 +38,5 @@ initSelda ConnectionOps {..} = do
 
 initTables :: MonadSelda m => m ()
 initTables = do
+  rawStm "drop table users"
   tryCreateTable usersTable

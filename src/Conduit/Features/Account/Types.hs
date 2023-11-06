@@ -1,10 +1,10 @@
 module Conduit.Features.Account.Types where
 
-import Data.Aeson (ToJSON (toJSON), object, (.=))
+import Data.Aeson (FromJSON, ToJSON (toJSON), object, (.=))
 import Data.Aeson.Types (Value)
 
-newtype UserID = UserID { unUserID :: Int } 
-  deriving newtype (Show, Read, ToJSON)
+newtype UserID = UserID { unUserID :: Int64 } 
+  deriving newtype (Show, Read, ToJSON, Num)
 
 data UserAuth = UserAuth
   { userEmail :: Text
@@ -27,7 +27,7 @@ instance ToJSON UserAuth where
 newtype InUserObj a = InUserObj
   { user :: a
   } deriving (Show, Generic)
-    deriving anyclass (ToJSON)
+    deriving anyclass (FromJSON, ToJSON)
 
 data UserProfile = UserProfile
   { userName     :: Text
@@ -48,4 +48,4 @@ instance ToJSON UserProfile where
 newtype InProfileObj a = InProfileObj
   { profile :: a
   } deriving (Show, Generic)
-    deriving anyclass (ToJSON)
+    deriving anyclass (FromJSON, ToJSON)

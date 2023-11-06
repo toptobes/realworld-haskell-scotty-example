@@ -3,15 +3,15 @@
 module Conduit.Features.Account.Actions.RegisterUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.Features.Account.Types (UserAuth(..), UserID(..))
+import Conduit.Features.Account.DB (UserTable (..), usersTable)
+import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth (..), UserID (..))
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
-import Data.Aeson (FromJSON)
-import Web.Scotty.Trans (ScottyT, json, jsonData, post)
-import Database.Selda (insertWithPK, fromId, def)
+import Conduit.Identity.Password (HashedPassword (..), PasswordGen (..), UnsafePassword)
 import Conduit.Utils ((-.))
-import Conduit.Features.Account.DB (usersTable, UserTable(..))
+import Data.Aeson (FromJSON)
+import Database.Selda (def, fromId, insertWithPK)
 import Database.Selda.Backend (MonadSelda)
-import Conduit.Identity.Password (HashedPassword(..), UnsafePassword, PasswordGen(..))
+import Web.Scotty.Trans (ScottyT, json, jsonData, post)
 
 data RegisterUserAction = RegisterUserAction
   { username :: Text
@@ -21,11 +21,10 @@ data RegisterUserAction = RegisterUserAction
 
 handleUserRegistration :: ScottyT AppM ()
 handleUserRegistration = post "/api/users" do
-  action <- jsonData @RegisterUserAction
-  user <- liftApp $ registerUser action
-  json user
+  (InUserObj action) <- jsonData
+  json =<< liftApp (registerUser action)
 
-registerUser :: (PasswordGen m, CreateUser m, AuthTokenGen m) => RegisterUserAction -> m UserAuth
+registerUser :: (PasswordGen m, CreateUser m, AuthTokenGen m) => RegisterUserAction -> m (InUserObj UserAuth)
 registerUser RegisterUserAction {..} = do
   hashedPass <- hashPassword password
 
@@ -37,7 +36,7 @@ registerUser RegisterUserAction {..} = do
 
   token <- mkAuthToken userID
 
-  pure UserAuth
+  pure $ InUserObj UserAuth
     { userToken = token
     , userName  = username
     , userEmail = email
@@ -59,6 +58,6 @@ instance (Monad m, MonadSelda m) => CreateUser m where
   createUser UserInfo {..} = insertWithPK usersTable [user] <&> fromId -. fromIntegral -. UserID 
     where 
       user = UserTable 
-        { userID = def,      userName = userName,   userPass = userPass.getHashedPassword
-        , userBio = Nothing, userEmail = userEmail, userImage = Nothing 
+        { user_id = def, email = userEmail,   image = Nothing 
+        , bio = Nothing, username = userName, password = userPass.getHashedPassword
         }

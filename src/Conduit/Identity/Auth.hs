@@ -2,9 +2,9 @@
 
 module Conduit.Identity.Auth where
 
-import Conduit.App.Has (Has(..), grab)
+import Conduit.App.Has (Has (..), grab)
 import Conduit.Features.Account.Types (UserID)
-import Conduit.Identity.JWT (JWTInfo(..), jwtExpTime, mkClaims)
+import Conduit.Identity.JWT (JWTInfo (..), jwtExpTime, mkClaims)
 import Conduit.Utils ((-.))
 import Data.Text
 import Network.HTTP.Types (status403)

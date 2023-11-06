@@ -129,6 +129,7 @@ test-suite spec
     type: exitcode-stdio-1.0
     main-is: Spec.hs
     other-modules:
+          Conduit.Identity.Password
           Paths_realworld_hs
     autogen-modules:
           Paths_realworld_hs

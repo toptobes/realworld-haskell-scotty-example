@@ -1,18 +1,19 @@
 module Conduit.Features.Account.DB where
 
-import Database.Selda (Attr((:-)), SqlRow, Table, table, autoPrimary)
+import Database.Selda (Attr ((:-)), SqlRow, Table, autoPrimary, table, unique)
 import Database.Selda.SqlType (ID)
 
 data UserTable = UserTable
-  { userID    :: ID UserTable
-  , userName  :: Text
-  , userPass  :: Text
-  , userEmail :: Text
-  , userBio   :: Maybe Text
-  , userImage :: Maybe Text
+  { user_id  :: ID UserTable
+  , username :: Text
+  , password :: Text
+  , email    :: Text
+  , bio      :: Maybe Text
+  , image    :: Maybe Text
   } deriving (Generic, SqlRow)
   
 usersTable :: Table UserTable
 usersTable = table "users" 
-  [ #userID :- autoPrimary
+  [ #user_id :- autoPrimary
+  , #email   :- unique
   ]

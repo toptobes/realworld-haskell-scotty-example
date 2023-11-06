@@ -1,10 +1,10 @@
 module Conduit where
 
-import Conduit.App.Env (Env(..), EnvType(..))
+import Conduit.App.Env (Env (..), EnvType (..))
 import Conduit.App.Monad (runAppM)
-import Conduit.DB (ConnectionOps(..), initSelda)
+import Conduit.DB (ConnectionOps (..), initSelda)
 import Conduit.Features.Account qualified as Account
-import Conduit.Identity.JWT (Seconds(..), mkJWTInfo)
+import Conduit.Identity.JWT (Seconds (..), mkJWTInfo)
 import Network.Wai.Middleware.RequestLogger
 import Relude.Unsafe qualified as Unsafe
 import Web.JWT (hmacSecret)

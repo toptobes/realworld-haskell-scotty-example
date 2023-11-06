@@ -7,17 +7,17 @@ module Conduit.Identity.Password
   , hashPasswordWithSalt
   ) where
 
-import Crypto.KDF.Argon2 qualified as Argon
-import Crypto.KDF.Argon2 (Options(..), defaultOptions, Variant(..))
-import Crypto.Random (MonadRandom (getRandomBytes))
-import Data.ByteArray (Bytes, convert)
 import Crypto.Error (throwCryptoErrorIO)
-import Data.ByteString.Base64 (encodeBase64, decodeBase64)
+import Crypto.KDF.Argon2 (Options (..), Variant (..), defaultOptions)
+import Crypto.KDF.Argon2 qualified as Argon
+import Crypto.Random (MonadRandom (getRandomBytes))
+import Data.Aeson (FromJSON)
+import Data.ByteArray (Bytes, convert)
+import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Text (splitOn)
 import Relude.Unsafe as Unsafe
 import UnliftIO (stringException)
 import UnliftIO.Exception (throwIO)
-import Data.Aeson (FromJSON)
 
 newtype HashedPassword = HashedPassword { getHashedPassword :: Text }
   deriving newtype (Eq)
