@@ -20,6 +20,20 @@ extra-source-files:
 library
     exposed-modules:
           Conduit
+          Conduit.App.Env
+          Conduit.App.Has
+          Conduit.App.Monad
+          Conduit.DB
+          Conduit.Features.Account
+          Conduit.Features.Account.Actions.GetUser
+          Conduit.Features.Account.Actions.LoginUser
+          Conduit.Features.Account.Actions.RegisterUser
+          Conduit.Features.Account.DB
+          Conduit.Features.Account.Types
+          Conduit.Identity.Auth
+          Conduit.Identity.JWT
+          Conduit.Identity.Password
+          Conduit.Utils
     other-modules:
           Paths_realworld_hs
     autogen-modules:
@@ -30,12 +44,24 @@ library
           LambdaCase
           OverloadedStrings
           BlockArguments
-    ghc-options: -Wall -Wno-orphans -O1
+          RecordWildCards
+          OverloadedRecordDot
+          OverloadedLabels
+          DuplicateRecordFields
+          DeriveAnyClass
+          DerivingStrategies
+          FunctionalDependencies
+          UnicodeSyntax
+          LinearTypes
+    ghc-options: -Wall -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
+        , base64
+        , cryptonite
         , http-types
-        , jose
+        , jwt
+        , memory
         , mtl
         , relude >=1.2.0.0
         , resource-pool
@@ -64,12 +90,24 @@ executable app
           LambdaCase
           OverloadedStrings
           BlockArguments
-    ghc-options: -Wall -Wno-orphans -O1
+          RecordWildCards
+          OverloadedRecordDot
+          OverloadedLabels
+          DuplicateRecordFields
+          DeriveAnyClass
+          DerivingStrategies
+          FunctionalDependencies
+          UnicodeSyntax
+          LinearTypes
+    ghc-options: -Wall -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
+        , base64
+        , cryptonite
         , http-types
-        , jose
+        , jwt
+        , memory
         , mtl
         , realworld-hs
         , relude >=1.2.0.0
@@ -100,16 +138,28 @@ test-suite spec
           LambdaCase
           OverloadedStrings
           BlockArguments
-    ghc-options: -Wall -Wno-orphans -O1 -threaded -O0
+          RecordWildCards
+          OverloadedRecordDot
+          OverloadedLabels
+          DuplicateRecordFields
+          DeriveAnyClass
+          DerivingStrategies
+          FunctionalDependencies
+          UnicodeSyntax
+          LinearTypes
+    ghc-options: -Wall -Wno-unrecognised-pragmas -O1 -threaded -O0
     build-tool-depends:
           hspec-discover:hspec-discover
     build-depends:
           QuickCheck
         , aeson
         , base >=4.16.4.0
+        , base64
+        , cryptonite
         , hspec
         , http-types
-        , jose
+        , jwt
+        , memory
         , mtl
         , realworld-hs
         , relude >=1.2.0.0

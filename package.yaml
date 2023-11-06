@@ -12,13 +12,23 @@ language: GHC2021
 
 ghc-options:
   - -Wall
-  - -Wno-orphans
+  # - -Wno-orphans
+  - -Wno-unrecognised-pragmas
   - -O1
 
 default-extensions:
   - LambdaCase
   - OverloadedStrings
   - BlockArguments
+  - RecordWildCards
+  - OverloadedRecordDot
+  - OverloadedLabels
+  - DuplicateRecordFields
+  - DeriveAnyClass
+  - DerivingStrategies
+  - FunctionalDependencies
+  - UnicodeSyntax
+  - LinearTypes
 
 dependencies:
   - name: base
@@ -38,10 +48,13 @@ dependencies:
   - aeson
   - http-types
   - time
-  - jose
   - selda
   - selda-postgresql
   - resource-pool
+  - jwt
+  - cryptonite
+  - memory
+  - base64
 
 library:
   source-dirs: src
