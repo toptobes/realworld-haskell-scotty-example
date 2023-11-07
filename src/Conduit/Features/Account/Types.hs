@@ -1,6 +1,6 @@
 module Conduit.Features.Account.Types where
 
-import Data.Aeson (FromJSON, ToJSON (toJSON), object, (.=))
+import Data.Aeson (FromJSON, ToJSON(toJSON), object, (.=))
 import Data.Aeson.Types (Value)
 
 newtype UserID = UserID { unUserID :: Int64 } 

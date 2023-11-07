@@ -3,33 +3,39 @@
 module Conduit.Features.Account.Actions.GetUser where
 
 import Prelude hiding (get)
-import Conduit.App.Monad (AppM, liftApp)
+import Conduit.App.Monad (AppM)
+import Conduit.DB (catchErrorInto)
 import Conduit.Features.Account.DB (usersTable)
-import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth (..), UserID (..))
-import Conduit.Identity.Auth (AuthedUser (..), unJWT, withAuth)
-import Database.Selda (MonadSelda, query, restrict, select, (!), (.==), (:*:) (..))
+import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled)
+import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID(..))
+import Conduit.Identity.Auth (AuthedUser(..), withAuth)
+import Database.Selda (MonadSelda, query, restrict, select, (!), (.==), (:*:)(..))
 import Database.Selda qualified as S
-import UnliftIO (stringException)
-import UnliftIO.Exception (throwIO)
+import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, get, json)
 
 handleGetUser :: ScottyT AppM ()
-handleGetUser = get "/" $ withAuth (liftApp . getUser >=> json)
+handleGetUser = get "/api/user" $ withAuth \user -> do
+  userAuth <- tryGetUser user
+  withAccountErrorsHandled userAuth $
+    json . InUserObj
 
-getUser :: (AquireUser m) => AuthedUser -> m (InUserObj UserAuth)
-getUser AuthedUser {..} = do
-  user <- findUserById authedUserID
+tryGetUser :: (AcquireUser m) => AuthedUser -> m (Either AccountError UserAuth)
+tryGetUser AuthedUser {..} = do
+  maybeUserInfo <- findUserById authedUserID
+  pure $ getUser authedToken <$> maybeUserInfo
 
-  pure $ InUserObj UserAuth
-    { userToken = authedToken.unJWT
-    , userName  = user.userName
-    , userEmail = user.userEmail
-    , userBio   = user.userBio
-    , userImage = user.userImage
-    }
+getUser :: Text -> UserInfo -> UserAuth
+getUser token user = UserAuth
+  { userToken = token
+  , userName  = user.userName
+  , userEmail = user.userEmail
+  , userBio   = user.userBio
+  , userImage = user.userImage
+  }
 
-class (Monad m) => AquireUser m where
-  findUserById :: UserID -> m UserInfo
+class (Monad m) => AcquireUser m where
+  findUserById :: UserID -> m (Either AccountError  UserInfo)
 
 data UserInfo = UserInfo
   { userName  :: !Text
@@ -38,17 +44,19 @@ data UserInfo = UserInfo
   , userImage :: !(Maybe Text)
   }
 
-instance (Monad m, MonadSelda m) => AquireUser m where
-  findUserById :: UserID -> m UserInfo
-  findUserById (UserID userID) = do
-    let userIDCol = S.literal $ S.toId userID
+instance (Monad m, MonadUnliftIO m, MonadSelda m) => AcquireUser m where
+  findUserById :: UserID -> m (Either AccountError  UserInfo)
+  findUserById userID = runExceptT do
+    let userIDCol = S.literal $ S.toId userID.unUserID
 
-    extractUserInfo =<< query do
+    result <- ExceptT $ catchErrorInto SomeSQLError $ query do
       u <- select usersTable
       restrict (u ! #user_id .== userIDCol)
       pure (u ! #username :*: u ! #email :*: u ! #bio :*: u ! #image)
 
-extractUserInfo :: (MonadIO m) => [Text :*: Text :*: Maybe Text :*: Maybe Text] -> m UserInfo
-extractUserInfo [] = liftIO . throwIO $ stringException "go away"
+    ExceptT . pure $ extractUserInfo result
+
+extractUserInfo :: [Text :*: Text :*: Maybe Text :*: Maybe Text] -> Either AccountError UserInfo
+extractUserInfo [] = Left UserNotFoundEx
 extractUserInfo [name :*: email :*: bio :*: image] = pure $ UserInfo name email bio image
-extractUserInfo _ = error "should never happen b/c of unique email restriction"
+extractUserInfo _ = error "should never happen b/c of unique user_id restriction"

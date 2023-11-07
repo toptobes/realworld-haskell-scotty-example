@@ -35,3 +35,9 @@ instance MonadSelda AppM where
     pool <- grab @DBPool
     let runAction = withResource pool $ pure . action
     join $ liftIO runAction
+
+instance MonadSelda (ActionT AppM) where
+  type Backend (ActionT AppM) = PG
+  
+  withConnection :: (SeldaConnection PG -> (ActionT AppM) a) -> (ActionT AppM) a
+  withConnection = withConnection

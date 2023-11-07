@@ -1,7 +1,6 @@
 module Conduit.Features.Account.DB where
 
-import Database.Selda (Attr ((:-)), SqlRow, Table, autoPrimary, table, unique)
-import Database.Selda.SqlType (ID)
+import Database.Selda
 
 data UserTable = UserTable
   { user_id  :: ID UserTable
@@ -14,6 +13,17 @@ data UserTable = UserTable
   
 usersTable :: Table UserTable
 usersTable = table "users" 
-  [ #user_id :- autoPrimary
-  , #email   :- unique
+  [ #user_id  :- autoPrimary
+  , #username :- unique
+  , #email    :- unique
+  ]
+
+data FollowsTable = FollowsTable
+  { followee_id :: ID UserTable
+  , follower_id :: ID UserTable
+  } deriving (Generic, SqlRow)
+
+followsTable :: Table FollowsTable
+followsTable = table "follows" 
+  [ (#followee_id :+ #follower_id) :- primary
   ]

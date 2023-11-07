@@ -29,6 +29,7 @@ default-extensions:
   - FunctionalDependencies
   - UnicodeSyntax
   - LinearTypes
+  - DataKinds
 
 dependencies:
   - name: base

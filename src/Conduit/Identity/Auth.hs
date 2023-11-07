@@ -12,12 +12,12 @@ import Relude.Extra (dup)
 import Web.JWT (VerifySigner, claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, sub)
 import Web.Scotty.Trans (ActionT, header, status)
 
-newtype AuthedJWT = AuthedJWT 
-  { unJWT :: Text 
-  }
+-- newtype AuthedJWT = AuthedJWT 
+--   { unJWT :: Text 
+--   }
 
 data AuthedUser = AuthedUser
-  { authedToken  :: !AuthedJWT
+  { authedToken  :: !Text
   , authedUserID :: !UserID
   }
 
@@ -30,7 +30,7 @@ maybeWithAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (Maybe AuthedUse
 maybeWithAuth handler = do
   authHeader <- header "Authorization"
   JWTInfo {..} <- lift $ grab @JWTInfo
-  handler $ tryGetSubjectFromJWT authHeader jwtVerifySigner
+  handler $ tryMakeAuthedUser authHeader jwtVerifySigner
 
 class (Monad m) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
@@ -42,17 +42,17 @@ instance (Monad m, MonadIO m, MonadReader c m, Has JWTInfo c) => AuthTokenGen m 
     claims' <- liftIO $ mkClaims jwtExpTime userID
     pure $ encodeSigned jwtEncodeSigner mempty claims'
 
-tryGetSubjectFromJWT :: (ToText a) => Maybe a -> VerifySigner -> Maybe AuthedUser
-tryGetSubjectFromJWT authHeader verifySigner = authHeader 
+tryMakeAuthedUser :: (ToText a) => Maybe a -> VerifySigner -> Maybe AuthedUser
+tryMakeAuthedUser authHeader verifySigner = authHeader 
   <&> toText
   >>= extractToken
   <&> dup
-   -. bimap AuthedJWT (tryGetSubjectFromJWT' verifySigner)
+   -. second (tryGetSubjectFromJWT verifySigner)
   >>= sequence
   <&> uncurry AuthedUser
 
-tryGetSubjectFromJWT' :: VerifySigner -> Text -> Maybe UserID
-tryGetSubjectFromJWT' verifySigner token = token
+tryGetSubjectFromJWT :: VerifySigner -> Text -> Maybe UserID
+tryGetSubjectFromJWT verifySigner token = token
    & decodeAndVerifySignature verifySigner
   <&> claims
   >>= sub
