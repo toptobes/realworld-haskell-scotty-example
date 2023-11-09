@@ -24,14 +24,16 @@ library
           Conduit.App.Has
           Conduit.App.Monad
           Conduit.DB
-          Conduit.Features.Account
+          Conduit.Features.Account.Actions.FollowUser
           Conduit.Features.Account.Actions.GetProfile
           Conduit.Features.Account.Actions.GetUser
           Conduit.Features.Account.Actions.LoginUser
           Conduit.Features.Account.Actions.RegisterUser
+          Conduit.Features.Account.Actions.UnfollowUser
           Conduit.Features.Account.Actions.UpdateUser
           Conduit.Features.Account.DB
           Conduit.Features.Account.Errors
+          Conduit.Features.Account.Handlers
           Conduit.Features.Account.Types
           Conduit.Identity.Auth
           Conduit.Identity.JWT

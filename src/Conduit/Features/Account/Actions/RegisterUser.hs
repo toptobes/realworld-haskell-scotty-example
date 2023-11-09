@@ -28,7 +28,7 @@ handleUserRegistration = post "/api/users" do
     json . InUserObj
 
 registerUser :: (PasswordGen m, CreateUser m, AuthTokenGen m) => RegisterUserAction -> m (Either AccountError UserAuth)
-registerUser RegisterUserAction {..} = runExceptT $ do
+registerUser RegisterUserAction {..} = runExceptT do
   hashedPass <- lift $ hashPassword password
 
   userID <- ExceptT $ createUser UserInfo

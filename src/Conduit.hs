@@ -3,7 +3,7 @@ module Conduit where
 import Conduit.App.Env (Env(..), EnvType(..))
 import Conduit.App.Monad (runAppM)
 import Conduit.DB (ConnectionOps(..), mkDBPool, runMigrations, resetTables)
-import Conduit.Features.Account qualified as Account
+import Conduit.Features.Account.Handlers qualified as Account
 import Conduit.Identity.JWT (Seconds(..), mkJWTInfo)
 import Network.Wai.Middleware.RequestLogger
 import Relude.Unsafe qualified as Unsafe

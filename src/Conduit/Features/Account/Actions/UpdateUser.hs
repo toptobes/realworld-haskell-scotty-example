@@ -33,17 +33,9 @@ handleUpdateUser = put "/api/user" $ withAuth \user -> do
 
 tryUpdateUser :: (PasswordGen m, AuthTokenGen m, AcquireUser m, UpdateUser m) => AuthedUser -> UpdateUserAction -> m (Either AccountError UserAuth)
 tryUpdateUser user@AuthedUser {..} action = runExceptT do
-  (authToken, maybeNewPW) <- lift $ mkNewSecurityDetails user action.password
-
+  maybeNewPW <- mapM (lift . hashPassword) action.password
   ExceptT $ updateUser authedUserID $ mkToUpdate action maybeNewPW
-  ExceptT $ tryGetUser user { authedToken = authToken }
-
-mkNewSecurityDetails :: (AuthTokenGen m, PasswordGen m) => AuthedUser -> Maybe UnsafePassword -> m (Text, Maybe HashedPassword)
-mkNewSecurityDetails user Nothing = pure (user.authedToken, Nothing)
-mkNewSecurityDetails user (Just unsafePass) = do
-  hashedPass <- hashPassword unsafePass
-  token <- mkAuthToken user.authedUserID
-  pure (token, Just hashedPass)
+  ExceptT $ tryGetUser user
 
 mkToUpdate :: UpdateUserAction -> Maybe HashedPassword -> ToUpdate
 mkToUpdate UpdateUserAction {..} hashed = ToUpdate username hashed email bio image

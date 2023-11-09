@@ -9,10 +9,9 @@ import Conduit.Utils ((-.))
 import Data.Text
 import Network.HTTP.Types (status403)
 import Relude.Extra (dup)
-import Web.JWT (claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, sub, JWTClaimsSet)
+import Web.JWT (claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, JWTClaimsSet(..), numericDate)
 import Web.Scotty.Trans (ActionT, header, status)
-import Data.Time.Clock.POSIX (getPOSIXTime)
-import Data.Time (NominalDiffTime)
+import Data.Time.Clock.POSIX (getPOSIXTime, POSIXTime)
 
 -- newtype AuthedJWT = AuthedJWT 
 --   { unJWT :: Text 
@@ -24,7 +23,7 @@ data AuthedUser = AuthedUser
   } deriving (Eq, Show)
 
 withAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (AuthedUser -> ActionT m ()) -> ActionT m ()
-withAuth handler = maybeWithAuth \case
+withAuth handler = maybeWithAuth $ \case
   Just user -> handler user
   Nothing -> status status403
 
@@ -32,7 +31,8 @@ maybeWithAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (Maybe AuthedUse
 maybeWithAuth handler = do
   authHeader <- header "Authorization"
   jwtInfo <- lift $ grab @JWTInfo
-  handler $ authHeader >>= tryMakeAuthedUser jwtInfo
+  currTime <- liftIO getPOSIXTime
+  handler $ authHeader >>= tryMakeAuthedUser jwtInfo currTime
 
 class (Monad m) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
@@ -44,23 +44,24 @@ instance (Monad m, MonadIO m, MonadReader c m, Has JWTInfo c) => AuthTokenGen m 
     currTime <- liftIO getPOSIXTime
     pure $ makeAuthTokenPure jwtInfo currTime userID
 
-makeAuthTokenPure :: JWTInfo -> NominalDiffTime -> UserID -> Text
+makeAuthTokenPure :: JWTInfo -> POSIXTime -> UserID -> Text
 makeAuthTokenPure JWTInfo {..} currTime userID =
   let claims' = mkClaims currTime jwtExpTime userID
    in encodeSigned jwtEncodeSigner mempty claims'
 
-tryMakeAuthedUser :: (ToText a) => JWTInfo -> a -> Maybe AuthedUser
-tryMakeAuthedUser jwtInfo authHeader = authHeader 
+tryMakeAuthedUser :: (ToText a) => JWTInfo -> POSIXTime -> a -> Maybe AuthedUser
+tryMakeAuthedUser jwtInfo time authHeader  = authHeader 
    &  toText
    &  extractToken
   <&> dup
-   -. second (tryGetSubjectFromJWT jwtInfo)
+   -. second (tryGetSubjectFromJWT jwtInfo time)
   >>= sequence
   <&> uncurry AuthedUser
 
-tryGetSubjectFromJWT :: JWTInfo -> Text -> Maybe UserID
-tryGetSubjectFromJWT jwtInfo token = token
+tryGetSubjectFromJWT :: JWTInfo -> POSIXTime -> Text -> Maybe UserID
+tryGetSubjectFromJWT jwtInfo time token = token
    &  tryGetClaims jwtInfo
+  >>= \clms -> guard (clms.exp > numericDate time) $> clms
   >>= sub
   <&> stringOrURIToText
    -. toString
@@ -73,5 +74,5 @@ tryGetClaims JWTInfo {..} token = token
 
 extractToken :: Text -> Maybe Text
 extractToken str = case splitOn " " str of
-  ["Authorization:", "Token", token] -> Just token
+  ["Token", token] -> Just token
   _ -> Nothing

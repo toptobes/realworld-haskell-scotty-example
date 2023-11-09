@@ -22,7 +22,7 @@ withAccountErrorsHandled (Right a) action = action a
 handleAccountErr :: DBError -> AccountError
 handleAccountErr (UniquenessError "username") = UsernameTakenEx
 handleAccountErr (UniquenessError "email") = EmailTakenEx
-handleAccountErr (UniquenessError _) = error "should never happen; no other uniqueness constraints"
+handleAccountErr (UniquenessError _) = error "should never happen; no other uniqueness constraints exist"
 handleAccountErr err = SomeDBEx err
 
 -- I would put this in DB.hs but I cba to break the dependency cycle...
@@ -31,5 +31,5 @@ mapMaybeDBResult err f dbResult = do
   result <- handleAccountErr `first` dbResult
   f <$> maybeToRight err result
 
-mapDBResult :: (Bifunctor f) => (c -> d) -> f DBError c -> f AccountError d
+mapDBResult :: (a -> b) -> Either DBError a -> Either AccountError b
 mapDBResult = bimap handleAccountErr

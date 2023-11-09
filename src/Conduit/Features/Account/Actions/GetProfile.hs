@@ -5,7 +5,7 @@ module Conduit.Features.Account.Actions.GetProfile where
 import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB (runDB))
-import Conduit.Features.Account.DB (Follow, User(..), userID2sqlKey)
+import Conduit.Features.Account.DB (Follow, User(..), userID2sqlKey, sqlKey2userID)
 import Conduit.Features.Account.Errors (AccountError(..), mapMaybeDBResult, withAccountErrorsHandled)
 import Conduit.Features.Account.Types (InUserObj (InUserObj), UserID(..), UserProfile(..))
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
@@ -16,12 +16,12 @@ import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 handleGetProfile :: ScottyT AppM ()
 handleGetProfile = get "/api/profiles/:username" $ maybeWithAuth \user -> do
   userName <- captureParam "username"
-  profile <- liftApp $ tryGetUser userName user
+  profile <- liftApp $ tryGetUserProfile userName user
   withAccountErrorsHandled profile $
     json . InUserObj
 
-tryGetUser :: (MonadIO m, AcquireUser m) => Text -> Maybe AuthedUser -> m (Either AccountError UserProfile)
-tryGetUser userName currUser =
+tryGetUserProfile :: (AcquireUser m) => Text -> Maybe AuthedUser -> m (Either AccountError UserProfile)
+tryGetUserProfile userName currUser =
   let userID = currUser <&> authedUserID
    in fmap makeProfile <$> findUserByName userName userID
 
@@ -37,7 +37,8 @@ class (Monad m) => AcquireUser m where
   findUserByName :: Text -> Maybe UserID -> m (Either AccountError UserInfo)
 
 data UserInfo = UserInfo
-  { userName     :: !Text
+  { userID       :: !UserID
+  , userName     :: !Text
   , userBio      :: !(Maybe Text)
   , userImage    :: !(Maybe Text)
   , userFollowed :: !Bool
@@ -59,8 +60,9 @@ instance (Monad m, MonadUnliftIO m, MonadIO m, MonadDB m) => AcquireUser m where
       pure (u :& f)
 
 mkUserInfo :: (Entity User :& Maybe (Entity Follow)) -> UserInfo
-mkUserInfo ((Entity _ user) :& (isJust -> followed)) = UserInfo
-  { userName  = user.userUsername
+mkUserInfo ((Entity userID user) :& (isJust -> followed)) = UserInfo
+  { userID    = sqlKey2userID userID
+  , userName  = user.userUsername
   , userBio   = user.userBio
   , userImage = user.userImage
   , userFollowed = followed

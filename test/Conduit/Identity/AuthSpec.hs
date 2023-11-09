@@ -41,7 +41,7 @@ spec = do
 
   describe "tryMakeAuthedUser" do
     it "works? idk lol" do
-      let header = "Authorization: Token " <> commonToken
+      let header = "Token " <> commonToken
           user = tryMakeAuthedUser jwtInfo header
 
       Just (AuthedUser commonToken commonUserID) == user `shouldBe` True
