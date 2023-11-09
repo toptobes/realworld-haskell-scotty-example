@@ -1,6 +1,6 @@
 module Conduit.Identity.JWT where
 
-import Conduit.Features.Account.Types (UserID, unUserID)
+import Conduit.Features.Account.Types (UserID, unID)
 import Web.JWT (EncodeSigner, JWTClaimsSet (..), VerifySigner, numericDate, stringOrURI, toVerify)
 import Data.Time (NominalDiffTime)
 
@@ -21,6 +21,6 @@ mkClaims :: NominalDiffTime -> Seconds -> UserID -> JWTClaimsSet
 mkClaims currTime (Seconds ttl) userID = mempty
   { iss = stringOrURI "conduit-api"
   , aud = Left <$> stringOrURI "conduit-client"
-  , sub = stringOrURI $ show userID.unUserID
+  , sub = stringOrURI $ show userID.unID
   , exp = numericDate $ currTime + fromIntegral ttl
   }

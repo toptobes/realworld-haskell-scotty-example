@@ -1,13 +1,14 @@
-{-# LANGUAGE MonoLocalBinds, UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Actions.GetProfile where
+module Conduit.Features.Account.User.GetProfile where
 
 import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB (runDB))
+import Conduit.Errors (FeatureErrorHandler(..), mapMaybeDBResult)
 import Conduit.Features.Account.DB (Follow, User(..), userID2sqlKey, sqlKey2userID)
-import Conduit.Features.Account.Errors (AccountError(..), mapMaybeDBResult, withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InUserObj (InUserObj), UserID(..), UserProfile(..))
+import Conduit.Features.Account.Errors (AccountError(..))
+import Conduit.Features.Account.Types (UserID(..), UserProfile(..), inProfileObj)
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
 import Database.Esqueleto.Experimental (Entity(..), from, just, leftJoin, on, selectOne, table, val, where_, (&&.), (:&)(..), (==.), (?.), (^.))
 import UnliftIO (MonadUnliftIO)
@@ -16,12 +17,12 @@ import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 handleGetProfile :: ScottyT AppM ()
 handleGetProfile = get "/api/profiles/:username" $ maybeWithAuth \user -> do
   userName <- captureParam "username"
-  profile <- liftApp $ tryGetUserProfile userName user
-  withAccountErrorsHandled profile $
-    json . InUserObj
+  profile <- liftApp $ getUserProfile userName user
+  withFeatureErrorsHandled profile $
+    json . inProfileObj
 
-tryGetUserProfile :: (AcquireUser m) => Text -> Maybe AuthedUser -> m (Either AccountError UserProfile)
-tryGetUserProfile userName currUser =
+getUserProfile :: (AcquireUser m) => Text -> Maybe AuthedUser -> m (Either AccountError UserProfile)
+getUserProfile userName currUser =
   let userID = currUser <&> authedUserID
    in fmap makeProfile <$> findUserByName userName userID
 

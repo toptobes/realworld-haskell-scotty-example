@@ -17,11 +17,25 @@ import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Text (splitOn)
 import Relude.Unsafe as Unsafe
 
+{-
+I'm tempted to switch to an approach like so, but I'm sure all the other haskellers would frown upon me for not making illegal states
+as impossible as possible :(
+
+```
+  data Password
+    = HashedPassword Text
+    | UnsafePassword Text
+    
+  getHashed (HashedPassword hash) = hash
+  getHashed _ = error "Attempt to unwrap a hashed password" -- failfast since this should never happen in properly constructured system
+```
+-}
+
 newtype HashedPassword = HashedPassword { getHashed :: Text }
   deriving newtype (Eq)
 
 newtype UnsafePassword = UnsafePassword { getUnsafe :: Text }
-  deriving newtype (Read, FromJSON)
+  deriving newtype (FromJSON)
 
 class (Monad m) => PasswordGen m where
   hashPassword :: UnsafePassword -> m HashedPassword

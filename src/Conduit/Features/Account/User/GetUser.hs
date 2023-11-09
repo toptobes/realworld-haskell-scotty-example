@@ -1,13 +1,14 @@
-{-# LANGUAGE MonoLocalBinds, UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Actions.GetUser where
+module Conduit.Features.Account.User.GetUser where
 
 import Prelude hiding (get)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB(..))
+import Conduit.Errors (FeatureErrorHandler(..), mapMaybeDBResult)
 import Conduit.Features.Account.DB (EntityField(..), User(..))
-import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled, mapMaybeDBResult)
-import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID(..))
+import Conduit.Features.Account.Errors (AccountError(..))
+import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthedUser(..), withAuth)
 import Data.Aeson (ToJSON)
 import Database.Esqueleto.Experimental (Entity(..), from, selectOne, table, valkey, where_, (==.), (^.))
@@ -17,8 +18,8 @@ import Web.Scotty.Trans (ScottyT, get, json)
 handleGetUser :: ScottyT AppM ()
 handleGetUser = get "/api/user" $ withAuth \user -> do
   userAuth <- liftApp $ tryGetUser user
-  withAccountErrorsHandled userAuth $
-    json . InUserObj
+  withFeatureErrorsHandled userAuth $
+    json . inUserObj
 
 tryGetUser :: (AcquireUser m) => AuthedUser -> m (Either AccountError UserAuth)
 tryGetUser AuthedUser {..} = do
@@ -49,7 +50,7 @@ instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
   findUserById userID = mapMaybeDBResult UserNotFoundEx mkUserInfo <$> runDB do
     selectOne $ do
       u <- from table
-      where_ (u ^. UserId ==. valkey userID.unUserID)
+      where_ (u ^. UserId ==. valkey userID.unID)
       pure u
 
 mkUserInfo :: Entity User -> UserInfo

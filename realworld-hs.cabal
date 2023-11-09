@@ -24,17 +24,34 @@ library
           Conduit.App.Has
           Conduit.App.Monad
           Conduit.DB
-          Conduit.Features.Account.Actions.FollowUser
-          Conduit.Features.Account.Actions.GetProfile
-          Conduit.Features.Account.Actions.GetUser
-          Conduit.Features.Account.Actions.LoginUser
-          Conduit.Features.Account.Actions.RegisterUser
-          Conduit.Features.Account.Actions.UnfollowUser
-          Conduit.Features.Account.Actions.UpdateUser
+          Conduit.Errors
           Conduit.Features.Account.DB
           Conduit.Features.Account.Errors
+          Conduit.Features.Account.Follows.FollowUser
+          Conduit.Features.Account.Follows.UnfollowUser
           Conduit.Features.Account.Handlers
           Conduit.Features.Account.Types
+          Conduit.Features.Account.User.GetProfile
+          Conduit.Features.Account.User.GetUser
+          Conduit.Features.Account.User.LoginUser
+          Conduit.Features.Account.User.RegisterUser
+          Conduit.Features.Account.User.UpdateUser
+          Conduit.Features.Articles.Articles.CreateArticle
+          Conduit.Features.Articles.Articles.DeleteArticle
+          Conduit.Features.Articles.Articles.FeedArticles
+          Conduit.Features.Articles.Articles.GetArticle
+          Conduit.Features.Articles.Articles.ListArticles
+          Conduit.Features.Articles.Articles.UpdateArticle
+          Conduit.Features.Articles.Comments.AddComment
+          Conduit.Features.Articles.Comments.DeleteComment
+          Conduit.Features.Articles.Comments.GetComments
+          Conduit.Features.Articles.DB
+          Conduit.Features.Articles.Errors
+          Conduit.Features.Articles.Favorites.FavoriteArticle
+          Conduit.Features.Articles.Favorites.UnfavoriteArticle
+          Conduit.Features.Articles.Handlers
+          Conduit.Features.Articles.Tags.GetTags
+          Conduit.Features.Articles.Types
           Conduit.Identity.Auth
           Conduit.Identity.JWT
           Conduit.Identity.Password

@@ -1,6 +1,4 @@
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE QuasiQuotes, TemplateHaskell, UndecidableInstances #-}
 
 module Conduit.Features.Account.DB where
 
@@ -29,4 +27,4 @@ sqlKey2userID :: (ToBackendKey SqlBackend a) => Key a -> UserID
 sqlKey2userID = UserID . fromSqlKey
 
 userID2sqlKey :: (ToBackendKey SqlBackend a) => UserID -> Key a
-userID2sqlKey = toSqlKey . unUserID
+userID2sqlKey = toSqlKey . unID

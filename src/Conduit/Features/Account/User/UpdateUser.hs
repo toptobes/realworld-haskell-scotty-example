@@ -1,20 +1,22 @@
-{-# LANGUAGE MonoLocalBinds, UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Actions.UpdateUser where
+module Conduit.Features.Account.User.UpdateUser where
 
 import Prelude hiding (put)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB(..))
-import Conduit.Features.Account.Actions.GetUser (AcquireUser, tryGetUser)
-import Conduit.Features.Account.DB (EntityField (UserBio, UserEmail, UserImage, UserPassword, UserUsername))
-import Conduit.Features.Account.Errors (AccountError(..), mapDBResult, withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID(..))
+import Conduit.Errors (FeatureErrorHandler(..), mapDBError)
+import Conduit.Features.Account.User.GetUser (AcquireUser, tryGetUser)
+import Conduit.Features.Account.DB (EntityField(..))
+import Conduit.Features.Account.Errors (AccountError(..))
+import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..), AuthedUser (..), withAuth)
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword)
 import Data.Aeson (FromJSON)
 import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.), (^.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, put)
+import Conduit.Utils (InObj(InObj))
 
 data UpdateUserAction = UpdateUserAction
   { username :: Maybe Text
@@ -26,10 +28,10 @@ data UpdateUserAction = UpdateUserAction
 
 handleUpdateUser :: ScottyT AppM ()
 handleUpdateUser = put "/api/user" $ withAuth \user -> do
-  (InUserObj action) <- jsonData
+  (InObj _ action) <- jsonData
   userAuth <- liftApp (tryUpdateUser user action)
-  withAccountErrorsHandled userAuth $
-    json . InUserObj
+  withFeatureErrorsHandled userAuth $
+    json . inUserObj
 
 tryUpdateUser :: (PasswordGen m, AuthTokenGen m, AcquireUser m, UpdateUser m) => AuthedUser -> UpdateUserAction -> m (Either AccountError UserAuth)
 tryUpdateUser user@AuthedUser {..} action = runExceptT do
@@ -53,11 +55,11 @@ data ToUpdate = ToUpdate
 
 instance (Monad m, MonadUnliftIO m, MonadDB m) => UpdateUser m where
   updateUser :: UserID -> ToUpdate -> m (Either AccountError ())
-  updateUser userID ToUpdate {..} = mapDBResult id <$> runDB do
+  updateUser userID ToUpdate {..} = mapDBError <$> runDB do
     update $ \u -> do
       whenJust userName  \new -> set u [ UserUsername =. val new           ]
       whenJust userPass  \new -> set u [ UserPassword =. val new.getHashed ]
       whenJust userEmail \new -> set u [ UserEmail    =. val new           ]
       whenJust userBio   \new -> set u [ UserBio      =. val (Just new) ]
       whenJust userImage \new -> set u [ UserImage    =. val (Just new) ]
-      where_ (u ^. #id ==. valkey userID.unUserID)
+      where_ (u ^. #id ==. valkey userID.unID)

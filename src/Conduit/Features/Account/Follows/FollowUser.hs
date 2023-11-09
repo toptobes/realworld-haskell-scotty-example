@@ -1,13 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Actions.FollowUser where
+module Conduit.Features.Account.Follows.FollowUser where
 
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB(..))
-import Conduit.Features.Account.Actions.GetProfile (AcquireUser(..), makeProfile, userID)
+import Conduit.Errors (FeatureErrorHandler(..), mapDBError)
+import Conduit.Features.Account.User.GetProfile (AcquireUser(..), makeProfile, userID)
 import Conduit.Features.Account.DB (Follow(..), userID2sqlKey)
-import Conduit.Features.Account.Errors (AccountError, mapDBResult, withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InProfileObj(..), UserID, UserProfile(..))
+import Conduit.Features.Account.Errors (AccountError)
+import Conduit.Features.Account.Types (UserID, UserProfile(..), inProfileObj)
 import Conduit.Identity.Auth (AuthedUser(..), withAuth)
 import Database.Esqueleto.Experimental (insert_)
 import UnliftIO (MonadUnliftIO)
@@ -17,8 +18,8 @@ handleUserFollow :: ScottyT AppM ()
 handleUserFollow = post "/api/profiles/:username/follow" $ withAuth \followee -> do
   follower <- captureParam "username"
   profile <- liftApp (tryFollowUser follower followee.authedUserID)
-  withAccountErrorsHandled profile $
-    json . InProfileObj
+  withFeatureErrorsHandled profile $
+    json . inProfileObj
 
 tryFollowUser :: (AcquireUser m, CreateFollow m) => Text -> UserID -> m (Either AccountError UserProfile)
 tryFollowUser followerName followeeID = runExceptT do
@@ -33,5 +34,5 @@ class (Monad m) => CreateFollow m where
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateFollow m where
   addFollow :: UserID -> UserID -> m (Either AccountError ())
-  addFollow (userID2sqlKey -> follower) (userID2sqlKey -> followee) = mapDBResult id <$> runDB do 
+  addFollow (userID2sqlKey -> follower) (userID2sqlKey -> followee) = mapDBError <$> runDB do 
     insert_ $ Follow follower followee

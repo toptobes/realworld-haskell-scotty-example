@@ -1,6 +1,7 @@
 module Conduit.Features.Account.Errors where
 
 import Conduit.DB (DBError(..))
+import Conduit.Errors (FeatureErrorHandler(..))
 import Network.HTTP.Types (status400, status403, status404, status500)
 import Web.Scotty.Trans (ActionT, status)
 
@@ -10,6 +11,13 @@ data AccountError
   | EmailTakenEx
   | UserUnauthorizedEx
   | SomeDBEx DBError
+
+instance FeatureErrorHandler AccountError where
+  withFeatureErrorsHandled :: (MonadIO m) => Either AccountError a -> (a -> ActionT m ()) -> ActionT m ()
+  withFeatureErrorsHandled = withAccountErrorsHandled
+
+  handleDBError :: DBError -> AccountError
+  handleDBError = handleAccountErr
 
 withAccountErrorsHandled :: (MonadIO m) => Either AccountError a -> (a -> ActionT m ()) -> ActionT m ()
 withAccountErrorsHandled (Left UserNotFoundEx)     _ = status status404
@@ -24,12 +32,3 @@ handleAccountErr (UniquenessError "username") = UsernameTakenEx
 handleAccountErr (UniquenessError "email") = EmailTakenEx
 handleAccountErr (UniquenessError _) = error "should never happen; no other uniqueness constraints exist"
 handleAccountErr err = SomeDBEx err
-
--- I would put this in DB.hs but I cba to break the dependency cycle...
-mapMaybeDBResult :: AccountError -> (a -> b) -> Either DBError (Maybe a) -> Either AccountError b
-mapMaybeDBResult err f dbResult = do
-  result <- handleAccountErr `first` dbResult
-  f <$> maybeToRight err result
-
-mapDBResult :: (a -> b) -> Either DBError a -> Either AccountError b
-mapDBResult = bimap handleAccountErr

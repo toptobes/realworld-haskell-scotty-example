@@ -1,12 +1,13 @@
-{-# LANGUAGE MonoLocalBinds, UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Actions.LoginUser where
+module Conduit.Features.Account.User.LoginUser where
 
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB (MonadDB(..))
+import Conduit.Errors (FeatureErrorHandler(..), mapMaybeDBResult)
 import Conduit.Features.Account.DB (EntityField (UserEmail), User(..), sqlKey2userID)
-import Conduit.Features.Account.Errors (AccountError(..), mapMaybeDBResult, withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID)
+import Conduit.Features.Account.Errors (AccountError(..))
+import Conduit.Features.Account.Types (UserAuth(..), UserID, inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword, testPassword)
 import Data.Aeson (FromJSON)
@@ -14,6 +15,7 @@ import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, where_
 import Database.Esqueleto.Experimental.From (table)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, post)
+import Conduit.Utils (InObj(InObj))
 
 data LoginUserAction = LoginUserAction
   { password :: UnsafePassword
@@ -22,10 +24,10 @@ data LoginUserAction = LoginUserAction
 
 handleUserLogin :: ScottyT AppM ()
 handleUserLogin = post "/api/users/login" do
-  (InUserObj action) <- jsonData
+  (InObj _ action) <- jsonData
   userAuth <- liftApp (tryLoginUser action)
-  withAccountErrorsHandled userAuth $
-    json . InUserObj
+  withFeatureErrorsHandled userAuth $
+    json . inUserObj
 
 tryLoginUser :: (MonadIO m, AcquireUser m, AuthTokenGen m) => LoginUserAction -> m (Either AccountError UserAuth)
 tryLoginUser LoginUserAction {..} = runExceptT do

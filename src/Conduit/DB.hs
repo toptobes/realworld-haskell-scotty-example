@@ -18,6 +18,7 @@ import Database.PostgreSQL.Simple (SqlError(..))
 import UnliftIO.Exception (catch)
 import Data.List (stripPrefix)
 import Conduit.Utils ((-.))
+import Data.Time (UTCTime(..), fromGregorian, secondsToDiffTime)
 
 type DBPool = ConnectionPool
 
@@ -86,3 +87,6 @@ extractKeyField str = do
   rest <- stripPrefix "Key (" str
   let (keyField, _) = break (== ')') rest
   Just keyField
+
+zeroTime :: UTCTime
+zeroTime = UTCTime (fromGregorian 1 0 0) (secondsToDiffTime 0)
