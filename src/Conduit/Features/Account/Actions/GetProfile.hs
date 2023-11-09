@@ -2,25 +2,23 @@
 
 module Conduit.Features.Account.Actions.GetProfile where
 
-import Prelude hiding (get)
-import Conduit.App.Monad (AppM)
-import Conduit.DB (catchErrorInto)
-import Conduit.Features.Account.DB (followsTable, usersTable)
-import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InProfileObj (InProfileObj), UserID(..), UserProfile(..))
+import Prelude hiding (get, on)
+import Conduit.App.Monad (AppM, liftApp)
+import Conduit.DB (MonadDB (runDB))
+import Conduit.Features.Account.DB (Follow, User(..), userID2sqlKey)
+import Conduit.Features.Account.Errors (AccountError(..), mapMaybeDBResult, withAccountErrorsHandled)
+import Conduit.Features.Account.Types (InUserObj (InUserObj), UserID(..), UserProfile(..))
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
-import Conduit.Utils ((-.))
-import Database.Selda (MonadSelda, Set(..), from, query, select, suchThat, (!), (.==), (:*:)(..))
-import Database.Selda qualified as S
+import Database.Esqueleto.Experimental (Entity(..), from, just, leftJoin, on, selectOne, table, val, where_, (&&.), (:&)(..), (==.), (?.), (^.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 
 handleGetProfile :: ScottyT AppM ()
 handleGetProfile = get "/api/profiles/:username" $ maybeWithAuth \user -> do
   userName <- captureParam "username"
-  profile <- tryGetUser userName user
+  profile <- liftApp $ tryGetUser userName user
   withAccountErrorsHandled profile $
-    json . InProfileObj
+    json . InUserObj
 
 tryGetUser :: (MonadIO m, AcquireUser m) => Text -> Maybe AuthedUser -> m (Either AccountError UserProfile)
 tryGetUser userName currUser =
@@ -45,41 +43,25 @@ data UserInfo = UserInfo
   , userFollowed :: !Bool
   }
 
-instance (Monad m, MonadUnliftIO m, MonadSelda m) => AcquireUser m where
+instance (Monad m, MonadUnliftIO m, MonadIO m, MonadDB m) => AcquireUser m where
   findUserByName :: Text -> Maybe UserID -> m (Either AccountError UserInfo)
-  findUserByName name maybeUserID = runExceptT do
-    let maybeUserIDCol = S.literal . S.toId . unUserID <$> maybeUserID
-        nameCol = S.text name
+  findUserByName name userID = mapMaybeDBResult UserNotFoundEx mkUserInfo <$> runDB do
+    selectOne $ do
+      (u :& f) <- from $ 
+        table @User
+          `leftJoin` 
+        table @Follow
+          `on` \(u :& f) ->
+            just (u ^. #id) ==. f ?. #followerID &&. f ?. #followeeID ==. val (userID <&> userID2sqlKey)
 
-    result <- ExceptT $ catchErrorInto SomeSQLError $ query do
-      u <- select usersTable `suchThat` (! #username) -. (.== nameCol)
+      where_ (u ^. #username ==. val name)
 
-      let checkIfFollows userIDCol =
-           let followers = #follower_id `from` select followsTable `suchThat` (! #followee_id) -. (.== userIDCol)
-            in (u ! #user_id) `isIn` followers
+      pure (u :& f)
 
-      let isFollower = maybe S.false checkIfFollows maybeUserIDCol
-
-      pure (u ! #username :*: u ! #bio :*: u ! #image :*: isFollower)
-
-    ExceptT . pure $ extractUserInfo result
-
-extractUserInfo :: [Text :*: Maybe Text :*: Maybe Text :*: Bool] -> Either AccountError UserInfo
-extractUserInfo [] = Left UserNotFoundEx
-extractUserInfo [name :*: bio :*: image :*: followed] = pure $ UserInfo name bio image followed
-extractUserInfo _ = error "should never happen b/c of unique name restriction"
-
--- Might swap out the above for just raw SQL; I don't like how the generated SQL is looking. Smth like this?
--- SELECT
---   u.username,
---   u.bio,
---   u.image,
---   CASE
---     WHEN f.follower_id IS NOT NULL THEN TRUE
---     ELSE FALSE
---   END AS following
--- FROM
---   users u
---   LEFT JOIN follows f ON u.user_id = f.followee_id AND f.follower_id = 'querying_user_id'
--- WHERE
---   u.username = 'queried_user_name';
+mkUserInfo :: (Entity User :& Maybe (Entity Follow)) -> UserInfo
+mkUserInfo ((Entity _ user) :& (isJust -> followed)) = UserInfo
+  { userName  = user.userUsername
+  , userBio   = user.userBio
+  , userImage = user.userImage
+  , userFollowed = followed
+  }

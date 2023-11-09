@@ -1,10 +1,10 @@
 module Conduit where
 
-import Conduit.App.Env (Env (..), EnvType (..))
+import Conduit.App.Env (Env(..), EnvType(..))
 import Conduit.App.Monad (runAppM)
-import Conduit.DB (ConnectionOps (..), initSelda)
+import Conduit.DB (ConnectionOps(..), mkDBPool, runMigrations, resetTables)
 import Conduit.Features.Account qualified as Account
-import Conduit.Identity.JWT (Seconds (..), mkJWTInfo)
+import Conduit.Identity.JWT (Seconds(..), mkJWTInfo)
 import Network.Wai.Middleware.RequestLogger
 import Relude.Unsafe qualified as Unsafe
 import Web.JWT (hmacSecret)
@@ -17,21 +17,26 @@ main = do
 
   putStrLn $ fold ["Running in '", show env.envType, "'"]
 
+  when (env.envType == Development) do
+    runMigrations env.envDBPool
+    resetTables env.envDBPool
+
   scottyT 3000 runAppToIO do
     middleware $ loggerFor env.envType
     applicationHandlers
   where
     defaultEnv = Env
-      <$> initSelda getConnOps
+      <$> mkDBPool getConnOps
       <*> getJWTInfo
       <*> getEnvType
 
     getEnvType = lookupEnv "RW_ENVTYPE" <&> maybe Development Unsafe.read
 
     getConnOps = ConnectionOps
-      { connStr  = "postgres://postgres:postgres@localhost:5432/realworld"
-      , connLife = 10
-      , connMax  = 1
+      { connStr  = "host=localhost port=5432 user=postgres password=postgres dbname=realworld"
+      , connSize = 4
+      , connStripes = 1
+      , connTimeout = 60
       }
 
     getJWTInfo = mkJWTInfo

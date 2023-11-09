@@ -3,15 +3,15 @@
 module Conduit.Features.Account.Actions.LoginUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB (catchErrorInto)
-import Conduit.Features.Account.DB (UserTable, usersTable)
-import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled)
+import Conduit.DB (MonadDB(..))
+import Conduit.Features.Account.DB (EntityField (UserEmail), User(..), sqlKey2userID)
+import Conduit.Features.Account.Errors (AccountError(..), mapMaybeDBResult, withAccountErrorsHandled)
 import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword, testPassword)
 import Data.Aeson (FromJSON)
-import Database.Selda (ID, MonadSelda, fromId, query, restrict, select, (!), (.==), (:*:)(..))
-import Database.Selda qualified as S
+import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, where_, (==.), (^.))
+import Database.Esqueleto.Experimental.From (table)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, post)
 
@@ -58,25 +58,25 @@ data UserInfo = UserInfo
   { userID    :: !UserID
   , userName  :: !Text
   , userEmail :: !Text
-  , userPass  :: HashedPassword
+  , userPass  :: !HashedPassword
   , userBio   :: !(Maybe Text)
   , userImage :: !(Maybe Text)
   }
 
-instance (Monad m, MonadUnliftIO m, MonadSelda m) => AcquireUser m where
+instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
   findUserByEmail :: Text -> m (Either AccountError UserInfo)
-  findUserByEmail email = runExceptT do
-    let emailCol = S.text email
+  findUserByEmail email = mapMaybeDBResult UserNotFoundEx mkUserInfo <$> runDB do
+    selectOne $ do
+      u <- from table
+      where_ (u ^. UserEmail ==. val email)
+      pure u
 
-    result <- ExceptT $ catchErrorInto SomeSQLError $ query do
-      u <- select usersTable
-      restrict (u ! #email .== emailCol)
-      pure (u ! #user_id :*: u ! #username :*: u ! #email :*: u ! #password :*: u ! #bio :*: u ! #image)
-
-    ExceptT . pure $ extractUserInfo result
-
-extractUserInfo :: [ID UserTable :*: Text :*: Text :*: Text :*: Maybe Text :*: Maybe Text] -> Either AccountError UserInfo
-extractUserInfo [] = Left UserNotFoundEx
-extractUserInfo [userID :*: name :*: email :*: password :*: bio :*: image] = 
-  pure $ UserInfo (fromIntegral $ fromId userID) name email (HashedPassword password) bio image
-extractUserInfo _ = error "should never happen b/c of unique email restriction"
+mkUserInfo :: Entity User -> UserInfo
+mkUserInfo (Entity userID user) = UserInfo
+  { userID = sqlKey2userID userID
+  , userName  = user.userUsername
+  , userPass  = user.userPassword & HashedPassword
+  , userEmail = user.userEmail
+  , userBio   = user.userBio
+  , userImage = user.userImage
+  }

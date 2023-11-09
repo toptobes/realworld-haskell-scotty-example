@@ -3,18 +3,16 @@
 module Conduit.Features.Account.Actions.UpdateUser where
 
 import Prelude hiding (put)
-import Conduit.App.Monad (AppM, MonadApp (liftApp))
-import Conduit.DB (catchErrorInto)
+import Conduit.App.Monad (AppM, liftApp)
+import Conduit.DB (MonadDB(..))
 import Conduit.Features.Account.Actions.GetUser (AcquireUser, tryGetUser)
-import Conduit.Features.Account.DB (usersTable)
-import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled)
-import Conduit.Features.Account.Types (InUserObj(InUserObj), UserAuth(..), UserID(..))
-import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken), AuthedUser(..), withAuth)
+import Conduit.Features.Account.DB (EntityField (UserBio, UserEmail, UserImage, UserPassword, UserUsername))
+import Conduit.Features.Account.Errors (AccountError(..), mapDBResult, withAccountErrorsHandled)
+import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID(..))
+import Conduit.Identity.Auth (AuthTokenGen(..), AuthedUser (..), withAuth)
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword)
 import Data.Aeson (FromJSON)
-import Database.Selda (Assignment((:=)), MonadSelda, update_, with, (!), (.==))
-import Database.Selda qualified as S
-import Relude.Unsafe as Unsafe
+import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.), (^.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, put)
 
@@ -61,24 +59,13 @@ data ToUpdate = ToUpdate
   , userImage :: Maybe Text
   }
 
-instance (Monad m, MonadUnliftIO m, MonadSelda m) => UpdateUser m where
+instance (Monad m, MonadUnliftIO m, MonadDB m) => UpdateUser m where
   updateUser :: UserID -> ToUpdate -> m (Either AccountError ())
-  updateUser userID ToUpdate {..} = runExceptT do
-    let userIDCol = S.literal $ S.toId userID.unUserID
-        unsafePass = getHashedPassword <$> userPass
-
- -- relies heavily on laziness but luckily I'm the laziest person I know
-    let updates = filter (isNothing . fst)
-          [ (userName,   #username := S.text (Unsafe.fromJust userName))
-          , (unsafePass, #password := S.text (Unsafe.fromJust unsafePass))
-          , (userEmail,  #email    := S.text (Unsafe.fromJust userEmail))
-          , (userBio,    #bio      := S.just (S.text $ Unsafe.fromJust userBio))
-          , (userImage,  #image    := S.just (S.text $ Unsafe.fromJust userImage))
-          ]
-    
-    ExceptT $ catchErrorInto SomeSQLError $ update_ usersTable
-      (\u -> u ! #user_id .== userIDCol)
-      (\u -> u `with` (updates <&> snd))
-
-filterCorresponding :: [Maybe a] -> [b] -> [b]
-filterCorresponding maybes bs = [b | (Just _, b) <- zip maybes bs]
+  updateUser userID ToUpdate {..} = mapDBResult id <$> runDB do
+    update $ \u -> do
+      whenJust userName  \new -> set u [ UserUsername =. val new           ]
+      whenJust userPass  \new -> set u [ UserPassword =. val new.getHashed ]
+      whenJust userEmail \new -> set u [ UserEmail    =. val new           ]
+      whenJust userBio   \new -> set u [ UserBio      =. val (Just new) ]
+      whenJust userImage \new -> set u [ UserImage    =. val (Just new) ]
+      where_ (u ^. #id ==. valkey userID.unUserID)

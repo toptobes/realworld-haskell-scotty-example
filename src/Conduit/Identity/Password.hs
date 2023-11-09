@@ -4,7 +4,6 @@ module Conduit.Identity.Password
   ( HashedPassword(..)
   , UnsafePassword(..)
   , PasswordGen(..)
-  , hashPasswordWithSalt
   , testPassword
   ) where
 
@@ -18,10 +17,10 @@ import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Text (splitOn)
 import Relude.Unsafe as Unsafe
 
-newtype HashedPassword = HashedPassword { getHashedPassword :: Text }
+newtype HashedPassword = HashedPassword { getHashed :: Text }
   deriving newtype (Eq)
 
-newtype UnsafePassword = UnsafePassword { getUnsafePassword :: Text }
+newtype UnsafePassword = UnsafePassword { getUnsafe :: Text }
   deriving newtype (Read, FromJSON)
 
 class (Monad m) => PasswordGen m where
@@ -55,7 +54,7 @@ hashPasswordWithSalt :: UnsafePassword -> ByteString -> HashedPassword
 hashPasswordWithSalt (UnsafePassword password) salt =
   let digest = Argon.hash @_ @Bytes @Bytes argonOptions (text2bytes password) (convert salt) 32 & \case
         CryptoPassed digest' -> digest'
-        CryptoFailed err -> error $ show err
+        CryptoFailed err -> error $ show err -- I believe that all of the CryptoErrors are deeper rooted issues and should fail-fast
    in mkHashedPassword (convert digest) salt
 
 mkHashedPassword :: ByteString -> ByteString -> HashedPassword

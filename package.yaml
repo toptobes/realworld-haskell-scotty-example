@@ -30,6 +30,9 @@ default-extensions:
   - UnicodeSyntax
   - LinearTypes
   - DataKinds
+  - TypeFamilies
+  - GADTs
+  - ViewPatterns
 
 dependencies:
   - name: base
@@ -49,13 +52,15 @@ dependencies:
   - aeson
   - http-types
   - time
-  - selda
-  - selda-postgresql
   - resource-pool
   - jwt
   - cryptonite
   - memory
   - base64
+  - esqueleto
+  - persistent
+  - persistent-postgresql
+  - postgresql-simple
 
 library:
   source-dirs: src

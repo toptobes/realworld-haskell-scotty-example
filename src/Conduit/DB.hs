@@ -1,3 +1,5 @@
+{-# LANGUAGE UndecidableInstances #-}
+
 module Conduit.DB
   -- ( ConnectionOps(..)
   -- , DBPool
@@ -7,73 +9,80 @@ module Conduit.DB
   -- ) 
   where
 
-import Conduit.Features.Account.DB (usersTable, followsTable)
-import Data.Pool (Pool, defaultPoolConfig, newPool)
-import Database.Selda (MonadSelda, tryCreateTable, SeldaError)
-import Database.Selda.Backend (SeldaConnection)
-import Database.Selda.PostgreSQL (PG, PGConnectInfo (..), pgOpen, seldaClose, withPostgreSQL)
-import Database.Selda.Unsafe (rawStm)
-import Database.Selda qualified as S
-import UnliftIO.Exception (catch)
+import Conduit.App.Has (Has, grab)
+import Database.Persist.Postgresql (PostgresConf(..))
 import UnliftIO (MonadUnliftIO)
+import Database.Esqueleto.Experimental (ConnectionPool, SqlPersistT, runSqlPool, createPoolConfig, rawExecute, runMigration)
+import Conduit.Features.Account.DB (migrateAccountTables)
+import Database.PostgreSQL.Simple (SqlError(..))
+import UnliftIO.Exception (catch)
+import Data.List (stripPrefix)
+import Conduit.Utils ((-.))
 
-type DBPool = Pool (SeldaConnection PG)
+type DBPool = ConnectionPool
+
+class (Monad m) => MonadDB m where
+  runDB :: SqlPersistT m a -> m (Either DBError a)
+
+instance (Monad m, MonadUnliftIO m, MonadReader c m, Has DBPool c) => MonadDB m where
+  runDB :: SqlPersistT m a -> m (Either DBError a)
+  runDB fn = grab @DBPool >>= runSqlPool fn -. catchSqlError
 
 data ConnectionOps = ConnectionOps
-  { connStr  :: !Text
-  , connLife :: !Double
-  , connMax  :: !Int
+  { connStr     :: !Text
+  , connSize    :: !Int
+  , connTimeout :: !Int
+  , connStripes :: !Int
+  } deriving (Read)
+
+mkPoolConfig :: ConnectionOps -> PostgresConf
+mkPoolConfig ConnectionOps {..} = PostgresConf
+  { pgConnStr         = fromString $ toString connStr
+  , pgPoolSize        = connSize
+  , pgPoolIdleTimeout = fromIntegral connTimeout
+  , pgPoolStripes     = connStripes
   }
 
-initSelda :: ConnectionOps -> IO DBPool
-initSelda ConnectionOps {..} = do
-  withPostgreSQL connInfo initTables
+mkDBPool :: (MonadIO m) => ConnectionOps -> m ConnectionPool
+mkDBPool = liftIO . createPoolConfig . mkPoolConfig
 
-  newPool $ defaultPoolConfig 
-    seldaOpen
-    seldaClose 
-    connLife 
-    connMax 
-  where
-    connInfo = PGConnectionString
-      { pgConnectionString = connStr
-      , pgSchema = Nothing
-      }
+dropTables :: (MonadUnliftIO m) => DBPool -> m ()
+dropTables pool = flip runSqlPool pool do
+  rawExecute "drop table if exists \"user\" cascade" []
+  rawExecute "drop table if exists \"follow\"" []
 
-    seldaOpen = pgOpen connInfo
+resetTables :: (MonadUnliftIO m) => DBPool -> m ()
+resetTables pool = flip runSqlPool pool do
+  rawExecute "truncate \"user\" cascade" []
+  rawExecute "truncate \"follow\" cascade" []
 
-initTables :: MonadSelda m => m ()
-initTables = do
-  rawStm "drop table users"
-  tryCreateTable usersTable
-  rawStm "drop table follows"
-  tryCreateTable followsTable
+runMigrations :: (MonadUnliftIO m) => DBPool -> m ()
+runMigrations pool = flip runSqlPool pool do
+  runMigration migrateAccountTables
 
-toSeldaMaybe :: (MonadUnliftIO m, MonadSelda m) => m a -> m (Maybe a)
-toSeldaMaybe stmt = catch @_ @SeldaError
-  (Just <$> stmt)
-  (pure . const Nothing)
-
-catchSQLError :: (MonadUnliftIO m, MonadSelda m) => m a -> m (Either SQLError a)
-catchSQLError stmt = catch @_ @SeldaError
-  (Right <$> stmt)
-  (pure . Left . selda2sqlError)
-
-catchErrorInto :: (MonadUnliftIO m, MonadSelda m) => e -> m a -> m (Either e a)
-catchErrorInto err stmt = catch @_ @SeldaError
-  (Right <$> stmt)
-  (pure . Left . const err)
-
-data SQLError
-  = SomeSQLError    Text
+data DBError
+  = SomeDBError SqlError
   | UniquenessError Text
-  | DBError         Text
-  | UnsafeError     Text
+  deriving (Show)
 
-selda2sqlError :: SeldaError -> SQLError
-selda2sqlError (S.DbError     err) = DBError      $ toText err
-selda2sqlError (S.UnsafeError err) = UnsafeError  $ toText err
-selda2sqlError (S.SqlError    err) = SomeSQLError $ toText err
+catchSqlError :: (MonadUnliftIO m) => m a -> m (Either DBError a)
+catchSqlError stmt = catch @_ @SqlError
+  (Right <$> stmt)
+  (pure . Left . mapSqlError)
 
--- Split on newlines, second to last line, check for username or email via regex?
--- ERROR: duplicate key value violates unique constraint \"users_username_key\"\n DETAIL: Key (username)=(name) already exists.\n"
+mapSqlError :: SqlError -> DBError
+mapSqlError err
+  | err.sqlState == "23505" = UniquenessError ""
+  | otherwise = SomeDBError err
+
+-- SqlError {sqlState = "23505", sqlExecStatus = FatalError, sqlErrorMsg = "duplicate key value violates unique constraint \"unique_username\"", sqlErrorDetail = "Key (username)=(username) already exists.", sqlErrorHint = ""}
+
+extractUniquenessViolation :: SqlError -> Text
+extractUniquenessViolation = toText . extractViolatedColName . decodeUtf8 . sqlErrorDetail
+  where extractViolatedColName = extractKeyField -. fromMaybe (error "")
+
+extractKeyField :: String -> Maybe String
+extractKeyField str = do
+  rest <- stripPrefix "Key (" str
+  let (keyField, _) = break (== ')') rest
+  Just keyField

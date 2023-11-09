@@ -8,14 +8,14 @@ data EnvType = Production | Development
   deriving (Show, Eq, Read)
 
 data Env = Env
-  { envPGPool  :: !DBPool
+  { envDBPool  :: !DBPool
   , envJWTInfo :: !JWTInfo
   , envType    :: !EnvType
   }
 
 instance Has DBPool Env where
   obtain :: Env -> DBPool
-  obtain = envPGPool
+  obtain = envDBPool
   {-# INLINE obtain #-}
 
 instance Has JWTInfo Env where

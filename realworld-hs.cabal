@@ -57,21 +57,26 @@ library
           UnicodeSyntax
           LinearTypes
           DataKinds
+          TypeFamilies
+          GADTs
+          ViewPatterns
     ghc-options: -Wall -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
         , base64
         , cryptonite
+        , esqueleto
         , http-types
         , jwt
         , memory
         , mtl
+        , persistent
+        , persistent-postgresql
+        , postgresql-simple
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , selda
-        , selda-postgresql
         , stm
         , time
         , unliftio
@@ -104,22 +109,27 @@ executable app
           UnicodeSyntax
           LinearTypes
           DataKinds
+          TypeFamilies
+          GADTs
+          ViewPatterns
     ghc-options: -Wall -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
         , base64
         , cryptonite
+        , esqueleto
         , http-types
         , jwt
         , memory
         , mtl
+        , persistent
+        , persistent-postgresql
+        , postgresql-simple
         , realworld-hs
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , selda
-        , selda-postgresql
         , stm
         , time
         , unliftio
@@ -134,7 +144,8 @@ test-suite spec
     type: exitcode-stdio-1.0
     main-is: Spec.hs
     other-modules:
-          Conduit.Identity.Password
+          Conduit.Identity.AuthSpec
+          Conduit.Identity.PasswordSpec
           Paths_realworld_hs
     autogen-modules:
           Paths_realworld_hs
@@ -154,6 +165,9 @@ test-suite spec
           UnicodeSyntax
           LinearTypes
           DataKinds
+          TypeFamilies
+          GADTs
+          ViewPatterns
     ghc-options: -Wall -Wno-unrecognised-pragmas -O1 -threaded -O0
     build-tool-depends:
           hspec-discover:hspec-discover
@@ -163,17 +177,19 @@ test-suite spec
         , base >=4.16.4.0
         , base64
         , cryptonite
+        , esqueleto
         , hspec
         , http-types
         , jwt
         , memory
         , mtl
+        , persistent
+        , persistent-postgresql
+        , postgresql-simple
         , realworld-hs
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , selda
-        , selda-postgresql
         , stm
         , time
         , unliftio

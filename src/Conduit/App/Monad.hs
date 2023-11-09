@@ -3,12 +3,6 @@
 module Conduit.App.Monad where
 
 import Conduit.App.Env (Env)
-import Conduit.App.Has (grab)
-import Conduit.DB (DBPool)
-import Data.Pool (withResource)
-import Database.Selda
-import Database.Selda.Backend
-import Database.Selda.PostgreSQL (PG)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ActionT)
 
@@ -26,18 +20,3 @@ instance MonadApp AppM where
 instance MonadApp (ActionT AppM) where
   liftApp :: AppM a -> ActionT AppM a
   liftApp = lift
-
-instance MonadSelda AppM where
-  type Backend AppM = PG
-
-  withConnection :: (SeldaConnection PG -> AppM a) -> AppM a
-  withConnection action = do
-    pool <- grab @DBPool
-    let runAction = withResource pool $ pure . action
-    join $ liftIO runAction
-
-instance MonadSelda (ActionT AppM) where
-  type Backend (ActionT AppM) = PG
-  
-  withConnection :: (SeldaConnection PG -> (ActionT AppM) a) -> (ActionT AppM) a
-  withConnection = withConnection

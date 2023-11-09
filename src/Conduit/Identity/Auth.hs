@@ -9,8 +9,10 @@ import Conduit.Utils ((-.))
 import Data.Text
 import Network.HTTP.Types (status403)
 import Relude.Extra (dup)
-import Web.JWT (VerifySigner, claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, sub)
+import Web.JWT (claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, sub, JWTClaimsSet)
 import Web.Scotty.Trans (ActionT, header, status)
+import Data.Time.Clock.POSIX (getPOSIXTime)
+import Data.Time (NominalDiffTime)
 
 -- newtype AuthedJWT = AuthedJWT 
 --   { unJWT :: Text 
@@ -19,7 +21,7 @@ import Web.Scotty.Trans (ActionT, header, status)
 data AuthedUser = AuthedUser
   { authedToken  :: !Text
   , authedUserID :: !UserID
-  }
+  } deriving (Eq, Show)
 
 withAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (AuthedUser -> ActionT m ()) -> ActionT m ()
 withAuth handler = maybeWithAuth \case
@@ -29,8 +31,8 @@ withAuth handler = maybeWithAuth \case
 maybeWithAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (Maybe AuthedUser -> ActionT m ()) -> ActionT m ()
 maybeWithAuth handler = do
   authHeader <- header "Authorization"
-  JWTInfo {..} <- lift $ grab @JWTInfo
-  handler $ tryMakeAuthedUser authHeader jwtVerifySigner
+  jwtInfo <- lift $ grab @JWTInfo
+  handler $ authHeader >>= tryMakeAuthedUser jwtInfo
 
 class (Monad m) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
@@ -38,27 +40,36 @@ class (Monad m) => AuthTokenGen m where
 instance (Monad m, MonadIO m, MonadReader c m, Has JWTInfo c) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
   mkAuthToken userID = do
-    JWTInfo {..} <- grab @JWTInfo
-    claims' <- liftIO $ mkClaims jwtExpTime userID
-    pure $ encodeSigned jwtEncodeSigner mempty claims'
+    jwtInfo <- grab @JWTInfo
+    currTime <- liftIO getPOSIXTime
+    pure $ makeAuthTokenPure jwtInfo currTime userID
 
-tryMakeAuthedUser :: (ToText a) => Maybe a -> VerifySigner -> Maybe AuthedUser
-tryMakeAuthedUser authHeader verifySigner = authHeader 
-  <&> toText
-  >>= extractToken
+makeAuthTokenPure :: JWTInfo -> NominalDiffTime -> UserID -> Text
+makeAuthTokenPure JWTInfo {..} currTime userID =
+  let claims' = mkClaims currTime jwtExpTime userID
+   in encodeSigned jwtEncodeSigner mempty claims'
+
+tryMakeAuthedUser :: (ToText a) => JWTInfo -> a -> Maybe AuthedUser
+tryMakeAuthedUser jwtInfo authHeader = authHeader 
+   &  toText
+   &  extractToken
   <&> dup
-   -. second (tryGetSubjectFromJWT verifySigner)
+   -. second (tryGetSubjectFromJWT jwtInfo)
   >>= sequence
   <&> uncurry AuthedUser
 
-tryGetSubjectFromJWT :: VerifySigner -> Text -> Maybe UserID
-tryGetSubjectFromJWT verifySigner token = token
-   & decodeAndVerifySignature verifySigner
-  <&> claims
+tryGetSubjectFromJWT :: JWTInfo -> Text -> Maybe UserID
+tryGetSubjectFromJWT jwtInfo token = token
+   &  tryGetClaims jwtInfo
   >>= sub
   <&> stringOrURIToText
    -. toString
   >>= readMaybe
+
+tryGetClaims :: JWTInfo -> Text -> Maybe JWTClaimsSet
+tryGetClaims JWTInfo {..} token = token
+   &  decodeAndVerifySignature jwtVerifySigner
+  <&> claims
 
 extractToken :: Text -> Maybe Text
 extractToken str = case splitOn " " str of

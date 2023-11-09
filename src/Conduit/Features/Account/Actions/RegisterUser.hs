@@ -3,16 +3,14 @@
 module Conduit.Features.Account.Actions.RegisterUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB (catchErrorInto)
-import Conduit.Features.Account.DB (UserTable(..), usersTable)
-import Conduit.Features.Account.Errors (AccountError(..), withAccountErrorsHandled)
+import Conduit.DB (MonadDB(..))
+import Conduit.Features.Account.DB (User(..), sqlKey2userID)
+import Conduit.Features.Account.Errors (AccountError(..), mapDBResult, withAccountErrorsHandled)
 import Conduit.Features.Account.Types (InUserObj (InUserObj), UserAuth(..), UserID(..))
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword)
-import Conduit.Utils ((-.))
 import Data.Aeson (FromJSON)
-import Database.Selda (def, fromId, insertWithPK)
-import Database.Selda.Backend (MonadSelda)
+import Database.Esqueleto.Experimental (PersistStoreWrite (insert))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, post)
 
@@ -58,11 +56,7 @@ data UserInfo = UserInfo
   , userEmail :: !Text
   }
 
-instance (Monad m, MonadSelda m, MonadUnliftIO m) => CreateUser m where
+instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateUser m where
   createUser :: UserInfo -> m (Either AccountError UserID)
-  createUser UserInfo {..} = catchErrorInto DetailTakenEx $ insertWithPK usersTable [user] <&> fromId -. fromIntegral -. UserID
-    where
-      user = UserTable
-        { user_id = def, email = userEmail,   image = Nothing
-        , bio = Nothing, username = userName, password = userPass.getHashedPassword
-        }
+  createUser UserInfo {..} = mapDBResult sqlKey2userID <$> runDB do
+    insert (User userName userPass.getHashed userEmail mempty mempty)

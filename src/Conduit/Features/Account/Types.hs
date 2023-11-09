@@ -4,7 +4,7 @@ import Data.Aeson (FromJSON, ToJSON(toJSON), object, (.=))
 import Data.Aeson.Types (Value)
 
 newtype UserID = UserID { unUserID :: Int64 } 
-  deriving newtype (Show, Read, ToJSON, Num)
+  deriving newtype (Show, Read, Eq, ToJSON)
 
 data UserAuth = UserAuth
   { userEmail :: Text
