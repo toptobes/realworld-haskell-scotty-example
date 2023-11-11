@@ -29,6 +29,7 @@ library
           Conduit.DB.Utils
           Conduit.Features.Account.DB
           Conduit.Features.Account.Errors
+          Conduit.Features.Account.Exports.FindFollowersByID
           Conduit.Features.Account.Exports.FindProfileByID
           Conduit.Features.Account.Follows.FollowUser
           Conduit.Features.Account.Follows.UnfollowUser
@@ -102,6 +103,7 @@ library
         , resource-pool
         , scotty
         , stm
+        , text
         , time
         , unliftio
         , wai-extra
@@ -156,6 +158,7 @@ executable app
         , resource-pool
         , scotty
         , stm
+        , text
         , time
         , unliftio
         , wai-extra
@@ -218,6 +221,7 @@ test-suite spec
         , resource-pool
         , scotty
         , stm
+        , text
         , time
         , unliftio
         , wai-extra

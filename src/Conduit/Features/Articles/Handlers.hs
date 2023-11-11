@@ -9,6 +9,7 @@ import Conduit.Features.Articles.Favorites.FavoriteArticle   (handleArticleFavor
 import Conduit.Features.Articles.Favorites.UnfavoriteArticle (handleArticleUnfavorite)
 import Conduit.Features.Articles.Articles.UpdateArticle      (handleArticleUpdate)
 import Conduit.Features.Articles.Articles.DeleteArticle      (handleArticleDelete)
+import Conduit.Features.Articles.Articles.ListArticles       (handleGetArticles)
 
 handlers :: ScottyT AppM ()
 handlers = fold
@@ -18,4 +19,5 @@ handlers = fold
   , handleArticleUnfavorite
   , handleArticleUpdate
   , handleArticleDelete
+  , handleGetArticles
   ]

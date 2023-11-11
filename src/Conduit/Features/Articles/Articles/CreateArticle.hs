@@ -56,4 +56,4 @@ data ArticleInfo = ArticleInfo
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateArticle m where
   insertArticle :: ArticleInfo -> m (Either ArticleError ArticleID)
   insertArticle ArticleInfo {..} = mapDBResult sqlKey2ID <$> runDB do
-    insert (mkArticle (id2sqlKey author) slug.unSlug title desc body tags)
+    insert (mkArticle (id2sqlKey author) slug.unSlug title desc body (tags ?: []))

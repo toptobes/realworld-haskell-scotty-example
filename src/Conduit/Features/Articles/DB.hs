@@ -7,7 +7,7 @@ import Conduit.DB.Utils (zeroTime, suchThat)
 import Conduit.Features.Account.DB (UserId)
 import Conduit.Features.Articles.Types (ArticleID(..))
 import Data.Time (UTCTime)
-import Database.Esqueleto.Experimental (Key, PersistEntity(..), SqlPersistT, rawExecute, from, table, (==.), valkey, (&&.), selectOne)
+import Database.Esqueleto.Experimental (Key, PersistEntity(..), SqlPersistT, rawExecute, from, table, (==.), valkey, (&&.), selectOne,)
 import Database.Esqueleto.Experimental qualified as E
 import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 import Data.FileEmbed (embedFile)
@@ -17,23 +17,23 @@ import Conduit.DB.Errors (authorizationSqlError)
 
 share [mkPersist sqlSettings, mkMigrate "migrateArticleTables"] [persistLowerCase|
   Article
-    author  UserId
+    author  UserId  OnDeleteCascade
     slug     Text
     title    Text
     desc     Text
     body     Text
-    tags    [Text]  Maybe
+    tags    [Text]
     created UTCTime default=now()
     updated UTCTime default=now()
     UniqueSlug slug
 
   Favorite
-    user UserId
-    article ArticleId
+    user    UserId    OnDeleteCascade
+    article ArticleId OnDeleteCascade
     Primary article user
 
   Comment
-    author  UserId
+    author  UserId OnDeleteCascade
     body    Text
     created UTCTime default=now()
     updated UTCTime default=now()
@@ -46,7 +46,7 @@ createArticleFunctions = rawExecute fns [] where
     , $(embedFile "sql/articles/set_timestamps.sql")
     ]
 
-mkArticle :: UserId -> Text -> Text -> Text -> Text -> Maybe [Text] -> Article
+mkArticle :: UserId -> Text -> Text -> Text -> Text -> [Text] -> Article
 mkArticle author slug title desc body tags = Article author slug title desc body tags zeroTime zeroTime
 
 instance SqlKey Article ArticleID where

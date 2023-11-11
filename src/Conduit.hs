@@ -2,15 +2,15 @@ module Conduit where
 
 import Conduit.App.Env (Env(..), EnvType(..))
 import Conduit.App.Monad (runAppM)
+import Conduit.DB.Init (ConnectionOps(..), initDB, mkDBPool)
 import Conduit.Features.Account.Handlers qualified as Account
 import Conduit.Features.Articles.Handlers qualified as Articles
 import Conduit.Identity.JWT (Seconds(..), mkJWTInfo)
+import Network.HTTP.Types (status500)
 import Network.Wai.Middleware.RequestLogger
 import Relude.Unsafe qualified as Unsafe
 import Web.JWT (hmacSecret)
-import Web.Scotty.Trans (middleware, scottyT, defaultHandler, status, Handler (Handler))
-import Conduit.DB.Init (ConnectionOps(..), mkDBPool, initDB)
-import Network.HTTP.Types (status500)
+import Web.Scotty.Trans (Handler (Handler), defaultHandler, middleware, scottyT, status)
 
 main :: IO ()
 main = do

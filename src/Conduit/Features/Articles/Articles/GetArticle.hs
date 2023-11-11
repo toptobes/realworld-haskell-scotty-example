@@ -4,18 +4,19 @@ module Conduit.Features.Articles.Articles.GetArticle where
 
 import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..), SqlKey (id2sqlKey, sqlKey2ID))
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
+import Conduit.DB.Types (MonadDB(..), SqlKey (id2sqlKey, sqlKey2ID))
+import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile, findUserProfileByID)
 import Conduit.Features.Account.Types (UserID, UserProfile)
 import Conduit.Features.Articles.DB (Article(..), Favorite)
 import Conduit.Features.Articles.Errors (ArticleError(..))
+import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID, OneArticle(..), Slug(..), inArticleObj)
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
-import Database.Esqueleto.Experimental (Entity(..), Value(..), count, from, groupBy, just, leftJoin, on, selectOne, table, val, where_, (&&.), (:&)(..), (==.))
+import Database.Esqueleto.Experimental (Entity(..), Value(..), exists, from, just, selectOne, subSelectCount, table, val, where_, (&&.), (==.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, get, json)
-import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 
 handleGetArticle :: ScottyT AppM ()
 handleGetArticle = get "/api/articles/:slug" $ maybeWithAuth \user -> do
@@ -42,21 +43,22 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticle m where
   findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError (UserID, MkOneArticle))
   findArticleByID articleID userID = mapMaybeDBResult ArticleNotFoundEx mkArticleInfo <$> runDB do
     selectOne $ do
-      (a :& f) <- from $
-        table @Article
-          `leftJoin`
-        table @Favorite
-          `on` \(a :& f) ->
-            (just a.id ==. f.article) &&. (f.user ==. val (userID <&> id2sqlKey))
+      a <- from $ table @Article
 
       where_ (a.id ==. val (id2sqlKey articleID))
 
-      groupBy (a.id, f.user, f.article)
+      let favorited = exists $ void $ from (table @Favorite) 
+            `suchThat` \f' -> 
+              (a.id ==. f'.article) &&. (just f'.user ==. val (userID <&> id2sqlKey))
 
-      pure (a, f, count f.article)
+      let numFavs = subSelectCount $ from (table @Favorite)
+            `suchThat` \f' -> 
+              a.id ==. f'.article
 
-mkArticleInfo :: (Entity Article, Maybe a, Value Int) -> (UserID, MkOneArticle)
-mkArticleInfo (Entity _ Article {..}, isJust -> favorited, Value numFavs) =
+      pure (a, favorited, numFavs)
+
+mkArticleInfo :: (Entity Article, Value Bool, Value Int) -> (UserID, MkOneArticle)
+mkArticleInfo (Entity _ Article {..}, Value favorited, Value numFavs) =
   ( sqlKey2ID articleAuthor
   , \profile -> OneArticle
       { numFavs = numFavs,     slug      = Slug articleSlug

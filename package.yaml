@@ -62,6 +62,7 @@ dependencies:
   - persistent-postgresql
   - postgresql-simple
   - file-embed
+  - text
 
 library:
   source-dirs: src

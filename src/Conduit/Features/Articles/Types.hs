@@ -25,7 +25,7 @@ data OneArticle = OneArticle
   , title     :: Text
   , desc      :: Text
   , body      :: Text
-  , tags      :: Maybe [Text]
+  , tags      :: [Text]
   , favorited :: Bool
   , numFavs   :: Int
   , created   :: UTCTime
@@ -50,13 +50,13 @@ instance ToJSON OneArticle where
 inArticleObj :: obj -> InObj obj
 inArticleObj = InObj "article"
 
-newtype ManyArticles = MultipleArticles
+newtype ManyArticles = ManyArticles
   { articles :: [OneArticle]
   } deriving (Show)
 
 instance ToJSON ManyArticles where
   toJSON :: ManyArticles -> Value
-  toJSON MultipleArticles {..} = object
+  toJSON ManyArticles {..} = object
     [ "articles" .= articles
     , "articlesCount" .= length articles
     ]
