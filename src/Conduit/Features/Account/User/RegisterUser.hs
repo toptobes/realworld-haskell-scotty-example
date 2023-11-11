@@ -3,9 +3,9 @@
 module Conduit.Features.Account.User.RegisterUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB (MonadDB(..))
-import Conduit.Errors (FeatureErrorHandler(..), mapDBResult)
-import Conduit.Features.Account.DB (User(..), sqlKey2userID)
+import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
+import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..))
@@ -60,5 +60,5 @@ data UserInfo = UserInfo
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateUser m where
   insertUser :: UserInfo -> m (Either AccountError UserID)
-  insertUser UserInfo {..} = mapDBResult sqlKey2userID <$> runDB do
+  insertUser UserInfo {..} = mapDBResult sqlKey2ID <$> runDB do
     insert (User userName userPass.getHashed userEmail mempty mempty)

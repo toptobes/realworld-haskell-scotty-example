@@ -2,13 +2,15 @@ module Conduit where
 
 import Conduit.App.Env (Env(..), EnvType(..))
 import Conduit.App.Monad (runAppM)
-import Conduit.DB (ConnectionOps(..), mkDBPool, runMigrations, resetTables)
 import Conduit.Features.Account.Handlers qualified as Account
+import Conduit.Features.Articles.Handlers qualified as Articles
 import Conduit.Identity.JWT (Seconds(..), mkJWTInfo)
 import Network.Wai.Middleware.RequestLogger
 import Relude.Unsafe qualified as Unsafe
 import Web.JWT (hmacSecret)
-import Web.Scotty.Trans (middleware, scottyT)
+import Web.Scotty.Trans (middleware, scottyT, defaultHandler, status, Handler (Handler))
+import Conduit.DB.Init (ConnectionOps(..), mkDBPool, initDB)
+import Network.HTTP.Types (status500)
 
 main :: IO ()
 main = do
@@ -18,10 +20,12 @@ main = do
   putStrLn $ fold ["Running in '", show env.envType, "'"]
 
   when (env.envType == Development) do
-    runMigrations env.envDBPool
-    resetTables env.envDBPool
+    initDB env.envDBPool
 
   scottyT 3000 runAppToIO do
+    defaultHandler $ Handler \(e :: SomeException) -> do
+      print e >> status status500
+    
     middleware $ loggerFor env.envType
     applicationHandlers
   where
@@ -49,4 +53,5 @@ main = do
 
     applicationHandlers = fold
       [ Account.handlers
+      , Articles.handlers
       ]

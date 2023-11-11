@@ -3,8 +3,10 @@
 module Conduit.Features.Account.DB where
 
 import Conduit.Features.Account.Types (UserID(..))
-import Database.Esqueleto.Experimental (PersistEntity(..), SqlBackend, ToBackendKey, fromSqlKey, toSqlKey)
+import Database.Esqueleto.Experimental (Key)
+import Database.Esqueleto.Experimental qualified as E
 import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
+import Conduit.DB.Types (SqlKey(..))
 
 share [mkPersist sqlSettings, mkMigrate "migrateAccountTables"] [persistLowerCase|
   User
@@ -23,8 +25,9 @@ share [mkPersist sqlSettings, mkMigrate "migrateAccountTables"] [persistLowerCas
     Primary followeeID followerID
 |]
 
-sqlKey2userID :: (ToBackendKey SqlBackend a) => Key a -> UserID
-sqlKey2userID = UserID . fromSqlKey
+instance SqlKey User UserID where
+  sqlKey2ID :: Key User -> UserID
+  sqlKey2ID = UserID . E.fromSqlKey
 
-userID2sqlKey :: (ToBackendKey SqlBackend a) => UserID -> Key a
-userID2sqlKey = toSqlKey . unID
+  id2sqlKey :: UserID -> Key User
+  id2sqlKey = E.toSqlKey . unID

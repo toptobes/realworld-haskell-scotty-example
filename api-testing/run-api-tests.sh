@@ -16,4 +16,5 @@ npx newman run $SCRIPTDIR/Conduit.postman_collection.json \
   --global-var "USERNAME=$USERNAME" \
   --global-var "EMAIL=$EMAIL" \
   --global-var "PASSWORD=$PASSWORD" \
+  --verbose \
   "$@"

@@ -23,10 +23,13 @@ library
           Conduit.App.Env
           Conduit.App.Has
           Conduit.App.Monad
-          Conduit.DB
-          Conduit.Errors
+          Conduit.DB.Errors
+          Conduit.DB.Init
+          Conduit.DB.Types
+          Conduit.DB.Utils
           Conduit.Features.Account.DB
           Conduit.Features.Account.Errors
+          Conduit.Features.Account.Exports.FindProfileByID
           Conduit.Features.Account.Follows.FollowUser
           Conduit.Features.Account.Follows.UnfollowUser
           Conduit.Features.Account.Handlers
@@ -50,6 +53,7 @@ library
           Conduit.Features.Articles.Favorites.FavoriteArticle
           Conduit.Features.Articles.Favorites.UnfavoriteArticle
           Conduit.Features.Articles.Handlers
+          Conduit.Features.Articles.Slugs
           Conduit.Features.Articles.Tags.GetTags
           Conduit.Features.Articles.Types
           Conduit.Identity.Auth
@@ -79,13 +83,14 @@ library
           TypeFamilies
           GADTs
           ViewPatterns
-    ghc-options: -Wall -Wno-unrecognised-pragmas -O1
+    ghc-options: -Wall -Wno-orphans -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
         , base64
         , cryptonite
         , esqueleto
+        , file-embed
         , http-types
         , jwt
         , memory
@@ -131,13 +136,14 @@ executable app
           TypeFamilies
           GADTs
           ViewPatterns
-    ghc-options: -Wall -Wno-unrecognised-pragmas -O1
+    ghc-options: -Wall -Wno-orphans -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson
         , base >=4.16.4.0
         , base64
         , cryptonite
         , esqueleto
+        , file-embed
         , http-types
         , jwt
         , memory
@@ -163,6 +169,7 @@ test-suite spec
     type: exitcode-stdio-1.0
     main-is: Spec.hs
     other-modules:
+          Conduit.Features.Articles.SlugsSpec
           Conduit.Identity.AuthSpec
           Conduit.Identity.PasswordSpec
           Paths_realworld_hs
@@ -187,7 +194,7 @@ test-suite spec
           TypeFamilies
           GADTs
           ViewPatterns
-    ghc-options: -Wall -Wno-unrecognised-pragmas -O1 -threaded -O0
+    ghc-options: -Wall -Wno-orphans -Wno-unrecognised-pragmas -O1 -threaded -O0
     build-tool-depends:
           hspec-discover:hspec-discover
     build-depends:
@@ -197,6 +204,7 @@ test-suite spec
         , base64
         , cryptonite
         , esqueleto
+        , file-embed
         , hspec
         , http-types
         , jwt

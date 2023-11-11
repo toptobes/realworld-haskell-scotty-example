@@ -56,7 +56,7 @@ newSalt :: (MonadIO m) => m ByteString
 newSalt = liftIO $ getRandomBytes 16
 
 extractSalt :: HashedPassword -> Maybe ByteString
-extractSalt (HashedPassword hash') = rightToMaybe $ decodeBase64 $ encodeUtf8 $ splitOn "$" hash' Unsafe.!! 4
+extractSalt (HashedPassword hash') = rightToMaybe . decodeBase64 . encodeUtf8 $ splitOn "$" hash' Unsafe.!! 4
 
 text2bytes :: Text -> Bytes
 text2bytes = convert . encodeUtf8 @_ @ByteString

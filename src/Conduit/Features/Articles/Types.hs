@@ -1,29 +1,36 @@
 module Conduit.Features.Articles.Types where
 
-import Data.Aeson (ToJSON(toJSON), object, (.=))
+import Conduit.Features.Account.Types (UserProfile)
+import Conduit.Utils (InObj(..))
+import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Aeson.Types (Value)
 import Data.Time (UTCTime)
-import Conduit.Features.Account.Types (UserProfile)
-import Conduit.Utils (InObj(InObj))
 
 newtype ArticleID = ArticleID { unID :: Int64 } 
   deriving newtype (Show, Read, Eq, ToJSON)
+
+newtype Slug = Slug { unSlug :: Text }
+  deriving (Show, Eq)
+  deriving newtype (ToJSON)
+
+newtype NoIDSlug = NoIDSlug { unSlug :: Text }
+  deriving (Show, Eq)
 
 inAuthorObj :: obj -> InObj obj
 inAuthorObj = InObj "author"
 
 data OneArticle = OneArticle
-  { author    :: InObj UserProfile
-  , slug      :: Text
+  { author    :: UserProfile
+  , slug      :: Slug
   , title     :: Text
   , desc      :: Text
   , body      :: Text
-  , tags      :: [Text]
+  , tags      :: Maybe [Text]
   , favorited :: Bool
   , numFavs   :: Int
   , created   :: UTCTime
   , updated   :: UTCTime
-  }
+  } deriving (Show)
 
 instance ToJSON OneArticle where
   toJSON :: OneArticle -> Value
@@ -36,8 +43,8 @@ instance ToJSON OneArticle where
     , "createdAt"      .= created
     , "updatedAt"      .= updated
     , "favorited"      .= favorited
-    , "favoritedCount" .= numFavs
-    , "author"         .= author
+    , "favoritesCount" .= numFavs
+    , "author"         .= inAuthorObj author
     ]
 
 inArticleObj :: obj -> InObj obj
@@ -45,7 +52,7 @@ inArticleObj = InObj "article"
 
 newtype ManyArticles = MultipleArticles
   { articles :: [OneArticle]
-  }
+  } deriving (Show)
 
 instance ToJSON ManyArticles where
   toJSON :: ManyArticles -> Value

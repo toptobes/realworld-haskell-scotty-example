@@ -3,15 +3,15 @@
 module Conduit.Features.Account.User.LoginUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB (MonadDB(..))
-import Conduit.Errors (FeatureErrorHandler(..), mapMaybeDBResult)
-import Conduit.Features.Account.DB (EntityField (UserEmail), User(..), sqlKey2userID)
+import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
+import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID, inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword, testPassword)
 import Data.Aeson (FromJSON)
-import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, where_, (==.), (^.))
+import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, where_, (==.))
 import Database.Esqueleto.Experimental.From (table)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, jsonData, post)
@@ -70,12 +70,12 @@ instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
   findUserByEmail email = mapMaybeDBResult UserNotFoundEx mkUserInfo <$> runDB do
     selectOne $ do
       u <- from table
-      where_ (u ^. UserEmail ==. val email)
+      where_ (u.email ==. val email)
       pure u
 
 mkUserInfo :: Entity User -> UserInfo
 mkUserInfo (Entity userID user) = UserInfo
-  { userID = sqlKey2userID userID
+  { userID = sqlKey2ID userID
   , userName  = user.userUsername
   , userPass  = user.userPassword & HashedPassword
   , userEmail = user.userEmail

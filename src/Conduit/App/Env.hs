@@ -1,8 +1,8 @@
 module Conduit.App.Env where
 
 import Conduit.App.Has (Has, obtain)
-import Conduit.DB (DBPool)
 import Conduit.Identity.JWT (JWTInfo)
+import Conduit.DB.Types (DBPool)
 
 data EnvType = Production | Development
   deriving (Show, Eq, Read)

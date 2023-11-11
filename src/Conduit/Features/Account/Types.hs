@@ -13,7 +13,7 @@ data UserAuth = UserAuth
   , userToken :: Text
   , userBio   :: Maybe Text
   , userImage :: Maybe Text
-  }
+  } deriving (Show)
 
 instance ToJSON UserAuth where
   toJSON :: UserAuth -> Value
@@ -34,7 +34,7 @@ data UserProfile = UserProfile
   , userBio      :: Maybe Text
   , userImage    :: Maybe Text
   , userFollowed :: Bool
-  }
+  } deriving (Show)
 
 instance ToJSON UserProfile where
   toJSON :: UserProfile -> Value

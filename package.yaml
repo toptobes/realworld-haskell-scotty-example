@@ -12,7 +12,7 @@ language: GHC2021
 
 ghc-options:
   - -Wall
-  # - -Wno-orphans
+  - -Wno-orphans
   - -Wno-unrecognised-pragmas
   - -O1
 
@@ -61,6 +61,7 @@ dependencies:
   - persistent
   - persistent-postgresql
   - postgresql-simple
+  - file-embed
 
 library:
   source-dirs: src
