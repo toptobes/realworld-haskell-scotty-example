@@ -60,3 +60,35 @@ instance ToJSON ManyArticles where
     [ "articles" .= articles
     , "articlesCount" .= length articles
     ]
+
+newtype CommentID = CommentID { unID :: Int64 } 
+  deriving newtype (Show, Read, Eq, ToJSON)
+
+data OneComment = OneComment
+  { author    :: UserProfile
+  , commentID :: CommentID
+  , body      :: Text
+  , created   :: UTCTime
+  , updated   :: UTCTime
+  } deriving (Show)
+
+instance ToJSON OneComment where
+  toJSON :: OneComment -> Value
+  toJSON OneComment {..} = object
+    [ "id"        .= commentID
+    , "body"      .= body
+    , "createdAt" .= created
+    , "updatedAt" .= updated
+    , "author"    .= inAuthorObj author
+    ]
+
+inCommentObj :: obj -> InObj obj
+inCommentObj = InObj "comment"
+
+newtype ManyComments = ManyComments
+  { comments :: [OneComment]
+  } deriving (Show, Generic)
+    deriving anyclass (ToJSON)
+
+inTagsObj :: obj -> InObj obj
+inTagsObj = InObj "tags"

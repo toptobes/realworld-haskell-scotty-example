@@ -2,7 +2,7 @@
 
 module Conduit.Features.Account.User.UpdateUser where
 
-import Prelude hiding (put)
+import Prelude hiding (put, pass)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)

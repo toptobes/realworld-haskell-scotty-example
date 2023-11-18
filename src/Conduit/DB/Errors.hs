@@ -55,11 +55,11 @@ extractKeyField str = do
   let (keyField, _) = break (== ')') rest
   Just keyField
 
-authorizationSqlError :: ByteString -> SqlError
-authorizationSqlError errDetail = SqlError
+authorizationSqlError :: SqlError
+authorizationSqlError = SqlError
   { sqlState = "45000"
   , sqlExecStatus = FatalError
   , sqlErrorMsg = "Authorization error"
-  , sqlErrorDetail = errDetail
+  , sqlErrorDetail = ""
   , sqlErrorHint = ""
   }

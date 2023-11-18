@@ -9,7 +9,7 @@ import Conduit.DB.Types (MonadDB, runDB)
 import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.Articles.GetArticle (AquireArticle, getArticle)
-import Conduit.Features.Articles.DB (Article, assumingUserOwnsArticle)
+import Conduit.Features.Articles.DB (Article, assumingUserIsOwner)
 import Conduit.Features.Articles.Errors (ArticleError)
 import Conduit.Features.Articles.Slugs (extractIDFromSlug, mkNoIDSlug, mkSlug)
 import Conduit.Features.Articles.Types (ArticleID(..), OneArticle, Slug(..), inArticleObj)
@@ -57,7 +57,7 @@ data ToUpdate = ToUpdate
 instance (Monad m, MonadDB m, MonadUnliftIO m) => UpdateArticle m where
   updateArticleByID :: ArticleID -> UserID -> ToUpdate -> m (Either ArticleError ())
   updateArticleByID articleID userID ToUpdate {..} = mapDBError <$> runDB do
-    assumingUserOwnsArticle userID articleID do
+    assumingUserIsOwner userID articleID do
       update @_ @Article $ \a -> do
         whenJust title \new -> set a [ #title =. val new        ]
         whenJust desc  \new -> set a [ #desc  =. val new        ]

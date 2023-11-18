@@ -3,24 +3,24 @@
 module Conduit.Features.Articles.Articles.FeedArticles where
 
 import Prelude hiding (get, on)
-import Web.Scotty.Trans (ScottyT, ActionT, captureParams, json, get)
 import Conduit.App.Monad (AppM, liftApp)
-import Data.List (lookup)
-import Conduit.Utils ((-.))
-import Relude.Extra (bimapBoth)
-import Conduit.Features.Articles.Types (ManyArticles(..), OneArticle (..), Slug (..))
 import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
-import Conduit.Features.Account.Types (UserID(..), UserProfile (..))
-import Conduit.Identity.Auth (withAuth, authedUserID)
-import Conduit.Features.Articles.Errors (ArticleError)
-import Conduit.Features.Articles.DB (Article (..), Favorite)
-import Database.Esqueleto.Experimental (Entity(..), Value(..), type (:&) (..), select, from, leftJoin, table, on, just, (==.), groupBy, limit, offset, exists, (&&.), val, subSelectCount, orderBy, valkey)
-import Database.Esqueleto.Experimental qualified as E
-import Conduit.Features.Account.DB (User (..))
-import Conduit.DB.Types (MonadDB, runDB, SqlKey (id2sqlKey))
-import UnliftIO (MonadUnliftIO)
-import Conduit.Features.Account.Exports.FindFollowersByID (AquireFollowers)
+import Conduit.DB.Types (MonadDB, SqlKey (id2sqlKey), runDB)
 import Conduit.DB.Utils (suchThat)
+import Conduit.Features.Account.Exports.FindFollowersByID (AquireFollowers, findFollowersByID)
+import Conduit.Features.Account.Exports.QueryAssociatedUser (queryAssociatedUser)
+import Conduit.Features.Account.Types (UserID(..))
+import Conduit.Features.Articles.DB (Favorite, mkManyArticles)
+import Conduit.Features.Articles.Errors (ArticleError)
+import Conduit.Features.Articles.Types (ManyArticles(..))
+import Conduit.Identity.Auth (authedUserID, withAuth)
+import Conduit.Utils ((-.))
+import Data.List (lookup)
+import Database.Esqueleto.Experimental (exists, from, groupBy, in_, just, limit, offset, orderBy, select, subSelectCount, table, val, valList, valkey, where_, (&&.), (:&)(..), (==.))
+import Database.Esqueleto.Experimental qualified as E
+import Relude.Extra (bimapBoth)
+import UnliftIO (MonadUnliftIO)
+import Web.Scotty.Trans (ActionT, ScottyT, captureParams, get, json)
 
 data FilterOps = FilterOps
   { filterLimit  :: Int64
@@ -28,21 +28,23 @@ data FilterOps = FilterOps
   }
 
 handleFeedArticles :: ScottyT AppM ()
-handleFeedArticles = get "/api/articles/" $ withAuth \user -> do
+handleFeedArticles = get "/api/articles/feed" $ withAuth \user -> do
   filterOps <- parseFilterOps
-  article <- liftApp $ getFeedArticles user.authedUserID filterOps
-  withFeatureErrorsHandled article json
+  articles <- liftApp $ getFeedArticles user.authedUserID filterOps
+  withFeatureErrorsHandled articles json
 
 getFeedArticles :: (AquireArticles m, AquireFollowers m) => UserID -> FilterOps -> m (Either ArticleError ManyArticles)
-getFeedArticles = undefined
+getFeedArticles userID ops = runExceptT do
+  followers <- ExceptT $ findFollowersByID userID
+  ExceptT $ findArticles userID followers ops
 
 parseFilterOps :: ActionT AppM FilterOps
 parseFilterOps = do
   params <- captureParams <&> map (bimapBoth toStrict)
 
   pure $ FilterOps
-    { filterLimit  = (lookup "limit"     params >>= toString -. readMaybe) ?: 20
-    , filterOffset = (lookup "offset"    params >>= toString -. readMaybe) ?: 0
+    { filterLimit  = (lookup "limit"  params >>= toString -. readMaybe) ?: 20
+    , filterOffset = (lookup "offset" params >>= toString -. readMaybe) ?: 0
     }
 
 class (Monad m) => AquireArticles m where
@@ -50,18 +52,14 @@ class (Monad m) => AquireArticles m where
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
   findArticles :: UserID -> [UserID] -> FilterOps -> m (Either ArticleError ManyArticles)
-  findArticles userID followeeIDs FilterOps {..} = mapDBResult toManyArticles <$> runDB do
-    let followees = map unID followeeIDs
-
+  findArticles userID (map id2sqlKey -> followeeIDs) FilterOps {..} = mapDBResult mkManyArticles <$> runDB do
     select $ do
-      (a :& u) <- from $
-        table @Article
-          `leftJoin`
-        table @User
-          `on` \(a :& u) ->
-            just a.author ==. u.id
+      ~(a :& u, _) <- queryAssociatedUser Nothing $ \a u -> 
+        a.author ==. u.id
 
       groupBy (u.id, a.id)
+
+      where_ $ u.id `in_` valList followeeIDs
       
       limit  filterLimit
       offset filterOffset
@@ -76,27 +74,4 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
 
       orderBy [E.desc a.created]
 
-      pure (a, u, favorited, numFavs)
-
-toManyArticles :: [(Entity Article, Maybe (Entity User), Value Bool, Value Int)] -> ManyArticles
-toManyArticles = ManyArticles . map toOneArticle
-
-toOneArticle :: (Entity Article, Maybe (Entity User), Value Bool, Value Int) -> OneArticle
-toOneArticle (_, Nothing, _, _) = error "I'll deal with this later..."
-toOneArticle (Entity _ Article {..}, Just (Entity _ User {..}), Value faved, Value numFavs) = OneArticle
-  { slug = Slug articleSlug
-  , title = articleTitle
-  , tags = reverse articleTags
-  , body = articleBody
-  , created = articleCreated
-  , updated = articleUpdated
-  , favorited = faved
-  , numFavs = numFavs
-  , desc = articleDesc
-  , author = UserProfile
-    { userName = userUsername
-    , userImage = userImage
-    , userBio = userBio
-    , userFollowed = True
-    }
-  }
+      pure (a, u, val True, favorited, numFavs)

@@ -25,7 +25,6 @@ instance ToJSON UserAuth where
     , "image"    .= userImage
     ]
 
-
 inUserObj :: obj -> InObj obj
 inUserObj = InObj "user"
 

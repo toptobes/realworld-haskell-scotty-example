@@ -63,6 +63,7 @@ dependencies:
   - postgresql-simple
   - file-embed
   - text
+  - template-haskell
 
 library:
   source-dirs: src

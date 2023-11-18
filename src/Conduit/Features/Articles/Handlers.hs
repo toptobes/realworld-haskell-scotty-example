@@ -9,15 +9,25 @@ import Conduit.Features.Articles.Favorites.FavoriteArticle   (handleArticleFavor
 import Conduit.Features.Articles.Favorites.UnfavoriteArticle (handleArticleUnfavorite)
 import Conduit.Features.Articles.Articles.UpdateArticle      (handleArticleUpdate)
 import Conduit.Features.Articles.Articles.DeleteArticle      (handleArticleDelete)
-import Conduit.Features.Articles.Articles.ListArticles       (handleGetArticles)
+import Conduit.Features.Articles.Articles.ListArticles       (handleListArticles)
+import Conduit.Features.Articles.Articles.FeedArticles       (handleFeedArticles)
+import Conduit.Features.Articles.Tags.GetTags                (handleGetTags)
+import Conduit.Features.Articles.Comments.AddComment         (handleCommentCreation)
+import Conduit.Features.Articles.Comments.GetComments        (handleGetComments)
+import Conduit.Features.Articles.Comments.DeleteComment      (handleCommentDeletion)
 
 handlers :: ScottyT AppM ()
 handlers = fold
   [ handleArticleCreation
-  , handleGetArticle
   , handleArticleFavorite
   , handleArticleUnfavorite
   , handleArticleUpdate
   , handleArticleDelete
-  , handleGetArticles
+  , handleFeedArticles
+  , handleListArticles
+  , handleGetArticle
+  , handleGetTags
+  , handleCommentCreation
+  , handleGetComments
+  , handleCommentDeletion
   ]

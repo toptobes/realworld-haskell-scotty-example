@@ -2,11 +2,10 @@
 
 module Conduit.Features.Account.DB where
 
-import Conduit.Features.Account.Types (UserID(..))
-import Database.Esqueleto.Experimental (Key)
-import Database.Esqueleto.Experimental qualified as E
+import Conduit.Features.Account.Types (UserID(..), UserProfile (..))
+import Database.Esqueleto.Experimental (Entity (..), Value (..))
 import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
-import Conduit.DB.Types (SqlKey(..))
+import Conduit.DB.Types (deriveSqlKey)
 
 share [mkPersist sqlSettings, mkMigrate "migrateAccountTables"] [persistLowerCase|
   User
@@ -25,9 +24,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAccountTables"] [persistLowerCas
     Primary followeeID followerID
 |]
 
-instance SqlKey User UserID where
-  sqlKey2ID :: Key User -> UserID
-  sqlKey2ID = UserID . E.fromSqlKey
+$(deriveSqlKey ''User ''UserID)
 
-  id2sqlKey :: UserID -> Key User
-  id2sqlKey = E.toSqlKey . unID
+mkProfile :: Entity User -> Value Bool -> UserProfile
+mkProfile (Entity _ user) (Value followed) = UserProfile
+  { userName  = user.userUsername
+  , userBio   = user.userBio
+  , userImage = user.userImage
+  , userFollowed = followed
+  }

@@ -5,16 +5,17 @@ module Conduit.Features.Articles.Articles.GetArticle where
 import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..), SqlKey (id2sqlKey, sqlKey2ID))
+import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.DB.Utils (suchThat)
-import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile, findUserProfileByID)
-import Conduit.Features.Account.Types (UserID, UserProfile)
-import Conduit.Features.Articles.DB (Article(..), Favorite)
+import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile)
+import Conduit.Features.Account.Exports.QueryAssociatedUser (queryAssociatedUser)
+import Conduit.Features.Account.Types (UserID)
+import Conduit.Features.Articles.DB (Favorite, mkOneArticle)
 import Conduit.Features.Articles.Errors (ArticleError(..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID, OneArticle(..), Slug(..), inArticleObj)
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
-import Database.Esqueleto.Experimental (Entity(..), Value(..), exists, from, just, selectOne, subSelectCount, table, val, where_, (&&.), (==.))
+import Database.Esqueleto.Experimental (exists, from, just, selectOne, subSelectCount, table, val, where_, (&&.), (:&)(..), (==.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 
@@ -28,22 +29,17 @@ handleGetArticle = get "/api/articles/:slug" $ maybeWithAuth \user -> do
 getArticle :: (AquireArticle m, AcquireProfile m) => Slug -> Maybe UserID -> m (Either ArticleError OneArticle)
 getArticle slug userID = runExceptT do
   articleID <- ExceptT . pure $ extractIDFromSlug slug
-
-  (authorID, mkArticle) <- ExceptT $ findArticleByID articleID userID
-
-  profile <- ExceptT $ findUserProfileByID authorID userID
-  pure $ mkArticle profile
-
-type MkOneArticle = UserProfile -> OneArticle
+  ExceptT $ findArticleByID articleID userID
 
 class (Monad m) => AquireArticle m where
-  findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError (UserID, MkOneArticle))
+  findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError OneArticle)
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticle m where
-  findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError (UserID, MkOneArticle))
-  findArticleByID articleID userID = mapMaybeDBResult ArticleNotFoundEx mkArticleInfo <$> runDB do
+  findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError OneArticle)
+  findArticleByID articleID userID = mapMaybeDBResult ArticleNotFoundEx mkOneArticle <$> runDB do
     selectOne $ do
-      a <- from $ table @Article
+      (a :& u, follows) <- queryAssociatedUser userID \a u -> 
+        a.author ==. u.id
 
       where_ (a.id ==. val (id2sqlKey articleID))
 
@@ -55,16 +51,4 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticle m where
             `suchThat` \f' -> 
               a.id ==. f'.article
 
-      pure (a, favorited, numFavs)
-
-mkArticleInfo :: (Entity Article, Value Bool, Value Int) -> (UserID, MkOneArticle)
-mkArticleInfo (Entity _ Article {..}, Value favorited, Value numFavs) =
-  ( sqlKey2ID articleAuthor
-  , \profile -> OneArticle
-      { numFavs = numFavs,     slug      = Slug articleSlug
-      , body    = articleBody, title     = articleTitle
-      , desc    = articleDesc, favorited = favorited
-      , tags    = articleTags, created   = articleCreated
-      , author  = profile,     updated   = articleUpdated
-      }
-  )
+      pure (a, u, follows, favorited, numFavs)

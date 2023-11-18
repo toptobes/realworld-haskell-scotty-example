@@ -10,6 +10,7 @@ import Web.Scotty.Trans (ActionT, status)
 data ArticleError
   = UserNotFoundEx
   | ArticleNotFoundEx
+  | CommentNotFoundEx
   | UserUnauthorizedEx
   | InvalidSlugEx
   | SomeDBEx DBError
@@ -25,6 +26,7 @@ instance FeatureErrorHandler ArticleError where
 withFeatureErrorsHandled' :: (MonadIO m) => Either ArticleError a -> (a -> ActionT m ()) -> ActionT m ()
 withFeatureErrorsHandled' (Left UserNotFoundEx)     _ = status status404
 withFeatureErrorsHandled' (Left ArticleNotFoundEx)  _ = status status404
+withFeatureErrorsHandled' (Left CommentNotFoundEx)  _ = print @Text "Comment not found??" >> status status500
 withFeatureErrorsHandled' (Left InvalidSlugEx)      _ = status status404
 withFeatureErrorsHandled' (Left UserUnauthorizedEx) _ = status status403
 withFeatureErrorsHandled' (Left (SomeDBEx e))       _ = print e >> status status500

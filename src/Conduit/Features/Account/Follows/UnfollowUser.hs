@@ -5,7 +5,7 @@ module Conduit.Features.Account.Follows.UnfollowUser where
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.Features.Account.User.GetProfile (AcquireProfile(..), makeProfile, userID)
+import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
 import Conduit.Features.Account.DB (Follow)
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Types (UserID(..), UserProfile(..), inProfileObj)
@@ -24,9 +24,11 @@ handleUserUnfollow = Scotty.delete "/api/profiles/:username/follow" $ withAuth \
 
 tryFollowUser :: (AcquireProfile m, DeleteFollow m) => Text -> UserID -> m (Either AccountError UserProfile)
 tryFollowUser followerName followeeID = runExceptT do
-  follower <- ExceptT $ findUserByName followerName (Just followeeID)
-  ExceptT $ deleteFollow follower.userID followeeID
-  pure (makeProfile follower) 
+  (fID, fProfile) <- ExceptT $ findUserByName followerName (Just followeeID)
+
+  ExceptT $ deleteFollow fID followeeID
+
+  pure fProfile 
     { userFollowed = False
     }
 

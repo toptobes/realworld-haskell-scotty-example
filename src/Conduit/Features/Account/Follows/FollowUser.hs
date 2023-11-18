@@ -5,7 +5,7 @@ module Conduit.Features.Account.Follows.FollowUser where
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.Features.Account.User.GetProfile (AcquireProfile(..), makeProfile, userID)
+import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
 import Conduit.Features.Account.DB (Follow(..))
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Types (UserID, UserProfile(..), inProfileObj)
@@ -23,9 +23,11 @@ handleUserFollow = post "/api/profiles/:username/follow" $ withAuth \followee ->
 
 tryFollowUser :: (AcquireProfile m, CreateFollow m) => Text -> UserID -> m (Either AccountError UserProfile)
 tryFollowUser followerName followeeID = runExceptT do
-  follower <- ExceptT $ findUserByName followerName (Just followeeID)
-  ExceptT $ addFollow follower.userID followeeID
-  pure (makeProfile follower) 
+  (fID, fProfile) <- ExceptT $ findUserByName followerName (Just followeeID)
+
+  ExceptT $ addFollow fID followeeID
+  
+  pure fProfile
     { userFollowed = True
     }
 

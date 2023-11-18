@@ -6,7 +6,7 @@ import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBError)
 import Conduit.DB.Types (MonadDB, runDB)
 import Conduit.Features.Account.Types (UserID(..))
-import Conduit.Features.Articles.DB (Article, assumingUserOwnsArticle)
+import Conduit.Features.Articles.DB (Article, assumingUserIsOwner)
 import Conduit.Features.Articles.Errors (ArticleError)
 import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID(..), Slug(..))
@@ -35,7 +35,7 @@ class (Monad m) => DeleteArticle m where
 instance (Monad m, MonadDB m, MonadUnliftIO m) => DeleteArticle m where
   deleteArticleByID :: ArticleID -> UserID -> m (Either ArticleError ())
   deleteArticleByID articleID userID = mapDBError <$> runDB do
-    assumingUserOwnsArticle userID articleID do
+    assumingUserIsOwner userID articleID do
       delete $ do
         a <- from (table @Article)
         where_ (a.id ==. valkey articleID.unID)
