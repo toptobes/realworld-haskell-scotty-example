@@ -16,7 +16,7 @@ import Network.HTTP.Types (status500)
 import Network.Wai.Middleware.RequestLogger
 import Web.Scotty.Trans (Handler (Handler), defaultHandler, middleware, scottyT, status)
 import Database.PostgreSQL.Simple (SqlError)
-import Network.Wai.Middleware.Static (staticPolicyWithOptions, cacheContainer, CachingStrategy (..), initCaching, addBase, addSlash, hasPrefix, staticPolicy, static)
+import Network.Wai.Middleware.Static (staticPolicyWithOptions, cacheContainer, CachingStrategy (..), initCaching, addBase, hasPrefix)
 import Network.Wai.Middleware.Static qualified as Static
 
 data ConduitOps = ConduitOps
