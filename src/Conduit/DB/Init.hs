@@ -4,34 +4,35 @@ module Conduit.DB.Init where
 
 import Conduit.DB.Types (DBPool)
 import Conduit.Features.Account.DB (migrateAccountTables)
-import Database.Esqueleto.Experimental (createPoolConfig, rawExecute, runMigration, runSqlPool, SqlPersistT)
+import Conduit.Features.Articles.DB (createArticleFunctions, migrateArticleTables)
+import Database.Esqueleto.Experimental (SqlPersistT, createPoolConfig, rawExecute, runMigration, runSqlPool)
 import Database.Persist.Postgresql (PostgresConf(..))
 import UnliftIO (MonadUnliftIO)
-import Conduit.Features.Articles.DB (createArticleFunctions, migrateArticleTables)
 
-data ConnectionOps = ConnectionOps
+data PGConnOps = PGConnOps
   { connStr     :: !Text
   , connSize    :: !Int
   , connTimeout :: !Int
   , connStripes :: !Int
+  , truncTables :: !Bool
   } deriving (Read)
 
-mkPoolConfig :: ConnectionOps -> PostgresConf
-mkPoolConfig ConnectionOps {..} = PostgresConf
+mkPoolConfig :: PGConnOps -> PostgresConf
+mkPoolConfig PGConnOps {..} = PostgresConf
   { pgConnStr         = fromString $ toString connStr
   , pgPoolSize        = connSize
   , pgPoolIdleTimeout = fromIntegral connTimeout
   , pgPoolStripes     = connStripes
   }
 
-mkDBPool :: (MonadIO m) => ConnectionOps -> m DBPool
+mkDBPool :: (MonadIO m) => PGConnOps -> m DBPool
 mkDBPool = liftIO . createPoolConfig . mkPoolConfig
 
-initDB :: (MonadUnliftIO m) => DBPool -> m ()
-initDB pool = flip runSqlPool pool do
+initDB :: (MonadUnliftIO m) => DBPool -> PGConnOps -> m ()
+initDB pool ops = flip runSqlPool pool do
+  when ops.truncTables resetTables
   runMigrations
   runDBFunctions
-  resetTables
 
 tables :: [Text]
 tables = ["user", "follow", "article", "favorite", "comment"]

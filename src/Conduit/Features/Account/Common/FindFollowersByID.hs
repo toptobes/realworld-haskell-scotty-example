@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Conduit.Features.Account.Exports.FindFollowersByID where
+module Conduit.Features.Account.Common.FindFollowersByID where
 
 import Prelude hiding (get, on)
 import Conduit.DB.Errors (FeatureErrorMapper(..), mapDBResult)
@@ -12,10 +12,10 @@ import Database.Esqueleto.Experimental (from, table, valkey, where_, (==.), sele
 import UnliftIO (MonadUnliftIO)
 
 findFollowersByID :: (FeatureErrorMapper AccountError e, AquireFollowers m) => UserID -> m (Either e [UserID])
-findFollowersByID user = first mapFeatureError <$> findUserByID user
+findFollowersByID user = first mapFeatureError <$> findFollowerIDsByID user
 
 class (Monad m) => AquireFollowers m where
-  findUserByID :: UserID -> m (Either AccountError [UserID])
+  findFollowerIDsByID :: UserID -> m (Either AccountError [UserID])
 
 data UserInfo = UserInfo
   { userName     :: !Text
@@ -25,12 +25,12 @@ data UserInfo = UserInfo
   }
 
 instance (Monad m, MonadUnliftIO m, MonadDB m) => AquireFollowers m where
-  findUserByID :: UserID -> m (Either AccountError [UserID])
-  findUserByID userID = mapDBResult toUserIDs <$> runDB do
+  findFollowerIDsByID :: UserID -> m (Either AccountError [UserID])
+  findFollowerIDsByID userID = mapDBResult toUserIDs <$> runDB do
     select $ do
       f <- from $ table @Follow
       where_ (f.followerID ==. valkey userID.unID)
-      pure f.followeeID
+      pure f.followedID
 
 toUserIDs :: [Value UserId] -> [UserID]
 toUserIDs = map (\(Value userID) -> sqlKey2ID userID)

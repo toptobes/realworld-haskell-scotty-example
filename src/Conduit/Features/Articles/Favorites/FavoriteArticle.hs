@@ -5,7 +5,7 @@ module Conduit.Features.Articles.Favorites.FavoriteArticle where
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB(..), id2sqlKey)
-import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile)
+import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.Articles.GetArticle (AquireArticle, getArticle)
 import Conduit.Features.Articles.DB (Favorite(Favorite))

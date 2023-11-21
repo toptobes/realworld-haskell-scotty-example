@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "pg": {
+      "type": "object",
+      "properties": {
+        "connStr": {
+          "type": "string",
+          "pattern": "^host=[^\\s]+ port=\\d+ (user=[^\\s]+ )?(password=[^\\s]+ )?dbname=[^\\s]+$",
+          "description": "The connection string"
+        },
+        "poolSize": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many stripes to divide the pool into. See Data.Pool for details"
+        },
+        "maxIdleTime": {
+          "type": "integer",
+          "minimum": 10,
+          "description": "How long connections can remain idle before being disposed of, in seconds"
+        },
+        "numStripes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many connections should be held in the connection pool"
+        },
+        "truncTables": {
+          "type": "boolean",
+          "description": "Whether or not to truncate all tables on application initialization"
+        }
+      },
+      "required": ["connStr", "poolSize", "maxIdleTime", "numStripes", "truncTables"]
+    },
+    "jwt": {
+      "type": "object",
+      "properties": {
+        "secret": {
+          "type": "string",
+          "description": "Secret to sign JWT w/ using HMAC"
+        },
+        "ttl": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "TTL of the JWT in seconds"
+        }
+      },
+      "required": ["secret", "ttl"]
+    },
+    "env": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["Development", "Production"],
+          "description": "Conduit runtime environment. Dev has more logging and auto-runs DB migrations"
+        }
+      },
+      "required": ["type"]
+    }
+  },
+  "required": ["pg", "jwt", "env"],
+  "if": {
+    "properties": { "env": { "properties": { "type": { "const": "Development" } } } }
+  },
+  "then": {
+    "properties": { "pg": { "properties": { "truncTables": { "type": "boolean" } } } }
+  },
+  "else": {
+    "properties": { "pg": { "properties": { "truncTables": { "enum": [false] } } } }
+  }
+}

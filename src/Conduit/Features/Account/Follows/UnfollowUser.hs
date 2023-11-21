@@ -16,19 +16,19 @@ import Web.Scotty.Trans (ScottyT, captureParam, json)
 import Web.Scotty.Trans qualified as Scotty
 
 handleUserUnfollow :: ScottyT AppM ()
-handleUserUnfollow = Scotty.delete "/api/profiles/:username/follow" $ withAuth \followee -> do
-  follower <- captureParam "username"
-  profile <- liftApp (tryFollowUser follower followee.authedUserID)
+handleUserUnfollow = Scotty.delete "/api/profiles/:username/follow" $ withAuth \follower -> do
+  followed <- captureParam "username"
+  profile <- liftApp (tryFollowUser follower.authedUserID followed)
   withFeatureErrorsHandled profile $
     json . inProfileObj
 
-tryFollowUser :: (AcquireProfile m, DeleteFollow m) => Text -> UserID -> m (Either AccountError UserProfile)
-tryFollowUser followerName followeeID = runExceptT do
-  (fID, fProfile) <- ExceptT $ findUserByName followerName (Just followeeID)
+tryFollowUser :: (AcquireProfile m, DeleteFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
+tryFollowUser followerID followedName = runExceptT do
+  (followedID, followedProfile) <- ExceptT $ findUserByName followedName (Just followerID)
 
-  ExceptT $ deleteFollow fID followeeID
+  ExceptT $ deleteFollow followerID followedID
 
-  pure fProfile 
+  pure followedProfile
     { userFollowed = False
     }
 
@@ -37,7 +37,7 @@ class (Monad m) => DeleteFollow m where
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => DeleteFollow m where
   deleteFollow :: UserID -> UserID -> m (Either AccountError ())
-  deleteFollow follower followee = mapDBError <$> runDB do
+  deleteFollow followed follower = mapDBError <$> runDB do
     delete $ do
       f <- from $ table @Follow
-      where_ $ (f.followeeID ==. valkey followee.unID) &&. (f.followerID ==. valkey follower.unID)
+      where_ $ (f.followerID ==. valkey follower.unID) &&. (f.followedID ==. valkey followed.unID)

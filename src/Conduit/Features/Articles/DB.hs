@@ -11,17 +11,17 @@ module Conduit.Features.Articles.DB
   , Comment(..)
   ) where
 
-import Conduit.DB.Types (deriveSqlKey, SqlKey (id2sqlKey))
+import Conduit.DB.Errors (authorizationSqlError, resourceNotFoundSqlError)
+import Conduit.DB.Types (SqlKey(..), deriveSqlKey)
 import Conduit.DB.Utils (suchThat)
-import Conduit.Features.Account.DB (UserId, User, mkProfile)
-import Conduit.Features.Articles.Types (ArticleID(..), CommentID(..), ManyArticles(..), OneArticle (..), Slug (..))
-import Data.Time (UTCTime)
-import Database.Esqueleto.Experimental (SqlPersistT, rawExecute, from, table, (==.), (&&.), selectOne, PersistEntity (..), val, SqlExpr, Entity (..), Value (..))
-import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
-import Data.FileEmbed (embedFile)
+import Conduit.Features.Account.DB (User, UserId, mkProfile)
 import Conduit.Features.Account.Types (UserID)
+import Conduit.Features.Articles.Types (ArticleID(..), CommentID(..), ManyArticles(..), OneArticle(..), Slug(..))
+import Data.FileEmbed (embedFile)
+import Data.Time (UTCTime)
+import Database.Esqueleto.Experimental (Entity(..), PersistEntity(..), SqlExpr, SqlPersistT, Value(..), from, rawExecute, selectOne, table, val, (==.))
+import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)
 import UnliftIO.Exception (throwIO)
-import Conduit.DB.Errors (authorizationSqlError)
 
 share [mkPersist sqlSettings, mkMigrate "migrateArticleTables"] [persistLowerCase|
   Article
@@ -33,7 +33,8 @@ share [mkPersist sqlSettings, mkMigrate "migrateArticleTables"] [persistLowerCas
     tags    [Text]
     created UTCTime default=now()
     updated UTCTime default=now()
-    UniqueSlug slug
+    UniqueSlug   slug
+    UniqueTitle title
 
   Favorite
     user    UserId    OnDeleteCascade
@@ -58,27 +59,29 @@ createArticleFunctions = rawExecute fns [] where
 $(deriveSqlKey ''Article ''ArticleID)
 $(deriveSqlKey ''Comment ''CommentID)
 
-assumingUserIsOwner :: ∀ table id m a. (OwnableEntity table, SqlKey table id, MonadIO m) => Conduit.Features.Account.Types.UserID -> id -> SqlPersistT m a -> SqlPersistT m a
-assumingUserIsOwner userID tableID action = do
-  authorized <- selectOne $ void $ from (table @table)
+assumingUserIsOwner :: ∀ table id m a e. (OwnableEntity table, SqlKey table id, MonadIO m, Show e) => e -> UserID -> id -> SqlPersistT m a -> SqlPersistT m a
+assumingUserIsOwner err userID tableID action = do
+  result <- selectOne $ from (table @table)
     `suchThat` \a ->
-      (getOwnerField a ==. val (id2sqlKey userID)) &&. (getIDField a ==. val (id2sqlKey tableID))
+      getID a ==. val (id2sqlKey tableID)
 
-  if isJust authorized
-    then action
-    else throwIO authorizationSqlError
+  case result of
+    Nothing -> throwIO resourceNotFoundSqlError
+    Just resource -> if getOwner resource == userID
+      then action
+      else throwIO $ authorizationSqlError err
 
 class (PersistEntity table) => OwnableEntity table where
-  getOwnerField :: SqlExpr (Entity table) -> SqlExpr (Value (Key User))
-  getIDField :: SqlExpr (Entity table) -> SqlExpr (Value (Key table))
+  getID :: SqlExpr (Entity table) -> SqlExpr (Value (Key table))
+  getOwner :: Entity table -> UserID
 
 instance OwnableEntity Article where
-  getOwnerField a = a.author
-  getIDField a = a.id
+  getOwner (Entity _ a) = sqlKey2ID a.articleAuthor
+  getID a = a.id
 
 instance OwnableEntity Comment where
-  getOwnerField a = a.author
-  getIDField a = a.id
+  getOwner (Entity _ c) = sqlKey2ID c.commentAuthor
+  getID a = a.id
 
 mkManyArticles :: [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)] -> ManyArticles
 mkManyArticles = ManyArticles . map mkOneArticle

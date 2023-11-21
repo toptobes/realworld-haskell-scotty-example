@@ -15,19 +15,19 @@ import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, json, post)
 
 handleUserFollow :: ScottyT AppM ()
-handleUserFollow = post "/api/profiles/:username/follow" $ withAuth \followee -> do
-  follower <- captureParam "username"
-  profile <- liftApp (tryFollowUser follower followee.authedUserID)
+handleUserFollow = post "/api/profiles/:username/follow" $ withAuth \follower -> do
+  followed <- captureParam "username"
+  profile <- liftApp (tryFollowUser follower.authedUserID followed)
   withFeatureErrorsHandled profile $
     json . inProfileObj
 
-tryFollowUser :: (AcquireProfile m, CreateFollow m) => Text -> UserID -> m (Either AccountError UserProfile)
-tryFollowUser followerName followeeID = runExceptT do
-  (fID, fProfile) <- ExceptT $ findUserByName followerName (Just followeeID)
+tryFollowUser :: (AcquireProfile m, CreateFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
+tryFollowUser followerID followedName = runExceptT do
+  (followedID, followedProfile) <- ExceptT $ findUserByName followedName (Just followerID)
 
-  ExceptT $ addFollow fID followeeID
+  ExceptT $ addFollow followerID followedID
   
-  pure fProfile
+  pure followedProfile
     { userFollowed = True
     }
 
@@ -36,5 +36,5 @@ class (Monad m) => CreateFollow m where
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateFollow m where
   addFollow :: UserID -> UserID -> m (Either AccountError ())
-  addFollow (id2sqlKey -> follower) (id2sqlKey -> followee) = mapDBError <$> runDB do 
-    insert_ $ Follow follower followee
+  addFollow (id2sqlKey -> follower) (id2sqlKey -> followed) = mapDBError <$> runDB do 
+    insert_ $ Follow follower followed

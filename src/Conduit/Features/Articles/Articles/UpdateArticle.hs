@@ -4,19 +4,19 @@ module Conduit.Features.Articles.Articles.UpdateArticle where
 
 import Prelude hiding (put)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBError)
+import Conduit.DB.Errors (FeatureErrorHandler(..), expectDBNonZero)
 import Conduit.DB.Types (MonadDB, runDB)
-import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile)
+import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.Articles.GetArticle (AquireArticle, getArticle)
 import Conduit.Features.Articles.DB (Article, assumingUserIsOwner)
-import Conduit.Features.Articles.Errors (ArticleError)
+import Conduit.Features.Articles.Errors (ArticleError (..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug, mkNoIDSlug, mkSlug)
 import Conduit.Features.Articles.Types (ArticleID(..), OneArticle, Slug(..), inArticleObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Utils (InObj(..))
+import Conduit.Validation (InObj(..), Validations, are, notBlank)
 import Data.Aeson (FromJSON)
-import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.))
+import Database.Esqueleto.Experimental (set, val, valkey, where_, (=.), (==.), updateCount)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, json, jsonData, put)
 
@@ -25,6 +25,13 @@ data UpdateArticleAction = UpdateArticleAction
   , description :: Maybe Text
   , body        :: Maybe Text
   } deriving (Generic, FromJSON)
+
+validations :: Validations UpdateArticleAction
+validations UpdateArticleAction {..} = mapMaybe (sequence . swap)
+  [ (title,       "title")
+  , (description, "description")
+  , (body,        "body")
+  ] `are` notBlank
 
 handleArticleUpdate :: ScottyT AppM ()
 handleArticleUpdate = put "/api/articles/:slug" $ withAuth \user -> do
@@ -56,9 +63,9 @@ data ToUpdate = ToUpdate
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => UpdateArticle m where
   updateArticleByID :: ArticleID -> UserID -> ToUpdate -> m (Either ArticleError ())
-  updateArticleByID articleID userID ToUpdate {..} = mapDBError <$> runDB do
-    assumingUserIsOwner userID articleID do
-      update @_ @Article $ \a -> do
+  updateArticleByID articleID userID ToUpdate {..} = expectDBNonZero ResourceNotFoundEx <$> runDB do
+    assumingUserIsOwner ("todo" :: Text) userID articleID do
+      updateCount @_ @Article $ \a -> do
         whenJust title \new -> set a [ #title =. val new        ]
         whenJust desc  \new -> set a [ #desc  =. val new        ]
         whenJust body  \new -> set a [ #body  =. val new        ]

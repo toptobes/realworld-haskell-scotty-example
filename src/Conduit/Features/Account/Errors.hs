@@ -1,14 +1,14 @@
 module Conduit.Features.Account.Errors where
 
 import Conduit.DB.Errors (DBError(..), FeatureErrorHandler(..))
-import Network.HTTP.Types (status400, status403, status404, status500)
-import Web.Scotty.Trans (ActionT, status)
+import Network.HTTP.Types (status404, status500, status422, status403)
+import Web.Scotty.Trans (ActionT, status, json)
+import Conduit.Validation (mkErrObj)
 
 data AccountError
   = UserNotFoundEx
-  | UsernameTakenEx
-  | EmailTakenEx
-  | UserUnauthorizedEx
+  | CredsTaken [Text]
+  | BadLoginCredsEx
   | SomeDBEx DBError
   deriving (Show, Eq)
 
@@ -20,15 +20,14 @@ instance FeatureErrorHandler AccountError where
   handleDBError = handleDBErr'
 
 withFeatureErrorsHandled' :: (MonadIO m) => Either AccountError a -> (a -> ActionT m ()) -> ActionT m ()
-withFeatureErrorsHandled' (Left UserNotFoundEx)     _ = status status404
-withFeatureErrorsHandled' (Left UsernameTakenEx)    _ = status status400
-withFeatureErrorsHandled' (Left EmailTakenEx)       _ = status status400
-withFeatureErrorsHandled' (Left UserUnauthorizedEx) _ = status status403
-withFeatureErrorsHandled' (Left (SomeDBEx e))       _ = print e >> status status500
+withFeatureErrorsHandled' (Left UserNotFoundEx)   _ = status status404
+withFeatureErrorsHandled' (Left (CredsTaken cs))  _ = status status422 >> json (mkErrObj $ cs <&> (,"has already been taken"))
+withFeatureErrorsHandled' (Left BadLoginCredsEx)  _ = status status403 >> json (mkErrObj [("email or password", "is invalid")])
+withFeatureErrorsHandled' (Left (SomeDBEx e))     _ = print e >> status status500
 withFeatureErrorsHandled' (Right a) action = action a
 
 handleDBErr' :: DBError -> AccountError
-handleDBErr' (UniquenessError "username") = UsernameTakenEx
-handleDBErr' (UniquenessError "email") = EmailTakenEx
+handleDBErr' (UniquenessError "username") = CredsTaken ["username"]
+handleDBErr' (UniquenessError "email") = CredsTaken ["email"]
 handleDBErr' (UniquenessError _) = error "should never happen; no other uniqueness constraints exist"
 handleDBErr' err = SomeDBEx err

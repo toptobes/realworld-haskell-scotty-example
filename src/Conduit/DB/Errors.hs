@@ -2,17 +2,18 @@
 
 module Conduit.DB.Errors where
 
-import Web.Scotty.Trans (ActionT)
-import Database.PostgreSQL.Simple (SqlError (..), ExecStatus (FatalError))
-import UnliftIO (MonadUnliftIO, catch)
 import Conduit.Utils ((-.))
 import Data.List (stripPrefix)
+import Database.PostgreSQL.Simple (ExecStatus(..), SqlError(..))
+import UnliftIO (MonadUnliftIO, catch)
+import Web.Scotty.Trans (ActionT)
 
 data DBError
-  = SomeDBError SqlError
+  = SomeDBError Text
   | UniquenessError Text
   | AuthorizationError Text
-  deriving (Show, Eq)
+  | NotFoundError
+  deriving (Show, Eq, Read)
 
 class FeatureErrorHandler e where
   withFeatureErrorsHandled :: (MonadIO m) => Either e a -> (a -> ActionT m ()) -> ActionT m ()
@@ -27,7 +28,13 @@ mapMaybeDBResult err f dbResult = do
   f <$> maybeToRight err result
 
 mapDBError :: (FeatureErrorHandler e) => Either DBError a -> Either e a
-mapDBError = mapDBResult id
+mapDBError = first handleDBError
+
+expectDBNonZero :: (FeatureErrorHandler e, Num cnt, Ord cnt) => e -> Either DBError cnt -> Either e ()
+expectDBNonZero err dbResult = do
+  result <- handleDBError `first` dbResult
+  when (result == 0) $
+    Left err
 
 class FeatureErrorMapper e1 e2 where
   mapFeatureError :: e1 -> e2
@@ -40,8 +47,9 @@ catchSqlError stmt = catch @_ @SqlError
 mapSqlError :: SqlError -> DBError
 mapSqlError err
   | err.sqlState == "23505" = UniquenessError $ extractUniquenessViolation err
-  | err.sqlState == "45000" = AuthorizationError $ decodeUtf8 err.sqlErrorDetail
-  | otherwise = SomeDBError err
+  | err.sqlState == "45401" = AuthorizationError $ decodeUtf8 err.sqlErrorDetail
+  | err.sqlState == "45404" = NotFoundError
+  | otherwise = SomeDBError $ show err
 
 -- SqlError {sqlState = "23505", sqlExecStatus = FatalError, sqlErrorMsg = "duplicate key value violates unique constraint \"unique_username\"", sqlErrorDetail = "Key (username)=(username) already exists.", sqlErrorHint = ""}
 
@@ -55,11 +63,24 @@ extractKeyField str = do
   let (keyField, _) = break (== ')') rest
   Just keyField
 
-authorizationSqlError :: SqlError
-authorizationSqlError = SqlError
-  { sqlState = "45000"
+defaultSqlErr :: SqlError
+defaultSqlErr = SqlError
+  { sqlState = error "fill out sqlState"
   , sqlExecStatus = FatalError
-  , sqlErrorMsg = "Authorization error"
+  , sqlErrorMsg = error "fill out sqlErrorMsg"
   , sqlErrorDetail = ""
   , sqlErrorHint = ""
+  }
+
+authorizationSqlError :: (Show e) => e -> SqlError
+authorizationSqlError err = defaultSqlErr
+  { sqlState = "45401"
+  , sqlErrorMsg = "Authorization error"
+  , sqlErrorDetail = show err
+  }
+
+resourceNotFoundSqlError :: SqlError
+resourceNotFoundSqlError = defaultSqlErr
+  { sqlState = "45404"
+  , sqlErrorMsg = "Resource not found"
   }

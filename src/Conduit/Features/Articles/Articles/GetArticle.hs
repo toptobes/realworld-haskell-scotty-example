@@ -7,8 +7,8 @@ import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.DB.Utils (suchThat)
-import Conduit.Features.Account.Exports.FindProfileByID (AcquireProfile)
-import Conduit.Features.Account.Exports.QueryAssociatedUser (queryAssociatedUser)
+import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
+import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.DB (Favorite, mkOneArticle)
 import Conduit.Features.Articles.Errors (ArticleError(..))
@@ -36,7 +36,7 @@ class (Monad m) => AquireArticle m where
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticle m where
   findArticleByID :: ArticleID -> Maybe UserID -> m (Either ArticleError OneArticle)
-  findArticleByID articleID userID = mapMaybeDBResult ArticleNotFoundEx mkOneArticle <$> runDB do
+  findArticleByID articleID userID = mapMaybeDBResult ResourceNotFoundEx mkOneArticle <$> runDB do
     selectOne $ do
       (a :& u, follows) <- queryAssociatedUser userID \a u -> 
         a.author ==. u.id

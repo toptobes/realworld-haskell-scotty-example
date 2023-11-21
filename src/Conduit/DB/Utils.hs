@@ -1,7 +1,7 @@
 module Conduit.DB.Utils where
 
 import Data.Time (UTCTime(..), fromGregorian, secondsToDiffTime)
-import Database.Esqueleto.Experimental (SqlExpr, Value, SqlQuery, where_)
+import Database.Esqueleto.Experimental (SqlExpr, SqlQuery, Value, where_)
 
 zeroTime :: UTCTime
 zeroTime = UTCTime (fromGregorian 1 0 0) (secondsToDiffTime 0)

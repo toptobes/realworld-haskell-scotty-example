@@ -1,7 +1,7 @@
 module Conduit.Features.Articles.Types where
 
 import Conduit.Features.Account.Types (UserProfile)
-import Conduit.Utils (InObj(..))
+import Conduit.Validation (InObj(..))
 import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Aeson.Types (Value)
 import Data.Time (UTCTime)
@@ -44,7 +44,7 @@ instance ToJSON OneArticle where
     , "updatedAt"      .= updated
     , "favorited"      .= favorited
     , "favoritesCount" .= numFavs
-    , "author"         .= inAuthorObj author
+    , "author"         .= author
     ]
 
 inArticleObj :: obj -> InObj obj
@@ -79,7 +79,7 @@ instance ToJSON OneComment where
     , "body"      .= body
     , "createdAt" .= created
     , "updatedAt" .= updated
-    , "author"    .= inAuthorObj author
+    , "author"    .= author
     ]
 
 inCommentObj :: obj -> InObj obj

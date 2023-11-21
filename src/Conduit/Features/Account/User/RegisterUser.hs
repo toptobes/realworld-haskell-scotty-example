@@ -9,12 +9,15 @@ import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..))
-import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword)
+import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
 import Data.Aeson (FromJSON)
-import Database.Esqueleto.Experimental (PersistStoreWrite (insert))
+import Database.Esqueleto.Experimental (insert)
 import UnliftIO (MonadUnliftIO)
-import Web.Scotty.Trans (ScottyT, json, jsonData, post)
-import Conduit.Utils (InObj(InObj))
+import Web.Scotty.Trans (ScottyT, json, post, status)
+import Conduit.Utils ((>->))
+import Network.HTTP.Types (status201)
+import Conduit.Validation (Validations, are, notBlank, fromJsonObj)
+import Conduit.Features.Account.Common.EnsureUserCredsUnique (ensureUserCredsUnique, ReadUsers)
 
 data RegisterUserAction = RegisterUserAction
   { username :: Text
@@ -22,15 +25,28 @@ data RegisterUserAction = RegisterUserAction
   , email    :: Text
   } deriving (Generic, FromJSON)
 
+validations :: Validations RegisterUserAction
+validations RegisterUserAction {..} =
+  [ (username,           "username")
+  , (password.getUnsafe, "password")
+  , (email,              "email")
+  ] `are` notBlank
+
 handleUserRegistration :: ScottyT AppM ()
 handleUserRegistration = post "/api/users" do
-  (InObj _ action) <- jsonData
+  action <- fromJsonObj validations
   user' <- liftApp (registerUser action)
   withFeatureErrorsHandled user' $
-    json . inUserObj
+    json . inUserObj >->
+    status status201
 
-registerUser :: (PasswordGen m, CreateUser m, AuthTokenGen m) => RegisterUserAction -> m (Either AccountError UserAuth)
+defaultImage :: Text
+defaultImage = "https://api.realworld.io/images/smiley-cyrus.jpeg"
+
+registerUser :: (PasswordGen m, CreateUser m, ReadUsers m, AuthTokenGen m) => RegisterUserAction -> m (Either AccountError UserAuth)
 registerUser RegisterUserAction {..} = runExceptT do
+  ExceptT $ ensureUserCredsUnique (Just username) (Just email)
+
   hashedPass <- lift $ hashPassword password
 
   userID <- ExceptT $ insertUser UserInfo
@@ -46,7 +62,7 @@ registerUser RegisterUserAction {..} = runExceptT do
     , userName  = username
     , userEmail = email
     , userBio   = Nothing
-    , userImage = Nothing
+    , userImage = defaultImage
     }
 
 class (Monad m) => CreateUser m where
@@ -61,4 +77,4 @@ data UserInfo = UserInfo
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateUser m where
   insertUser :: UserInfo -> m (Either AccountError UserID)
   insertUser UserInfo {..} = mapDBResult sqlKey2ID <$> runDB do
-    insert (User userName userPass.getHashed userEmail mempty mempty)
+    insert (User userName userPass.getHashed userEmail mempty defaultImage)

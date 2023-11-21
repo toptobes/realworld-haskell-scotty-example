@@ -5,16 +5,21 @@ import Conduit.DB.Errors (DBError(..), FeatureErrorHandler(..), FeatureErrorMapp
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Errors qualified as Account
 import Network.HTTP.Types (status404, status500, status403)
-import Web.Scotty.Trans (ActionT, status)
+import Web.Scotty.Trans (ActionT, status, json)
+import Conduit.Validation (inErrMsgObj, mkErrObj)
+import Conduit.Utils ((-.))
+import Network.HTTP.Types.Status (status422)
 
 data ArticleError
   = UserNotFoundEx
-  | ArticleNotFoundEx
-  | CommentNotFoundEx
+  | ResourceNotFoundEx -- General exception for simplicity's sake since tests don't need specific 404 error msgs
   | UserUnauthorizedEx
+  | IllegalArticleDelEx
+  | IllegalCommentDelEx
+  | UniquenessEx Text
   | InvalidSlugEx
   | SomeDBEx DBError
-  deriving (Show, Eq)
+  deriving (Show, Eq, Read)
 
 instance FeatureErrorHandler ArticleError where
   withFeatureErrorsHandled :: (MonadIO m) => Either ArticleError a -> (a -> ActionT m ()) -> ActionT m ()
@@ -24,16 +29,20 @@ instance FeatureErrorHandler ArticleError where
   handleDBError = handleDBErr'
 
 withFeatureErrorsHandled' :: (MonadIO m) => Either ArticleError a -> (a -> ActionT m ()) -> ActionT m ()
-withFeatureErrorsHandled' (Left UserNotFoundEx)     _ = status status404
-withFeatureErrorsHandled' (Left ArticleNotFoundEx)  _ = status status404
-withFeatureErrorsHandled' (Left CommentNotFoundEx)  _ = print @Text "Comment not found??" >> status status500
-withFeatureErrorsHandled' (Left InvalidSlugEx)      _ = status status404
-withFeatureErrorsHandled' (Left UserUnauthorizedEx) _ = status status403
-withFeatureErrorsHandled' (Left (SomeDBEx e))       _ = print e >> status status500
+withFeatureErrorsHandled' (Left UserNotFoundEx)      _ = status status404
+withFeatureErrorsHandled' (Left ResourceNotFoundEx)  _ = status status404
+withFeatureErrorsHandled' (Left InvalidSlugEx)       _ = status status404
+withFeatureErrorsHandled' (Left UserUnauthorizedEx)  _ = status status403
+withFeatureErrorsHandled' (Left IllegalArticleDelEx) _ = status status403 >> json (inErrMsgObj @Text "You are not authorized to delete this article")
+withFeatureErrorsHandled' (Left IllegalCommentDelEx) _ = status status403 >> json (inErrMsgObj @Text "You are not authorized to delete this comment")
+withFeatureErrorsHandled' (Left (UniquenessEx e))    _ = status status422 >> json (mkErrObj [(e, "must be unique")])
+withFeatureErrorsHandled' (Left (SomeDBEx e))        _ = print e >> status status500
 withFeatureErrorsHandled' (Right a) action = action a
 
 handleDBErr' :: DBError -> ArticleError
-handleDBErr' (AuthorizationError _) = UserUnauthorizedEx
+handleDBErr' (AuthorizationError e) = e & toString -. readMaybe -. fromMaybe (error $ "invalid authorization error: " <> show e)
+handleDBErr' NotFoundError = ResourceNotFoundEx
+handleDBErr' (UniquenessError e) = UniquenessEx e
 handleDBErr' err = SomeDBEx err
 
 instance FeatureErrorMapper AccountError ArticleError where

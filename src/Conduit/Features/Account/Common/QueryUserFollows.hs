@@ -1,4 +1,4 @@
-module Conduit.Features.Account.Exports.QueryUserFollows (queryIfUserFollows) where
+module Conduit.Features.Account.Common.QueryUserFollows (queryIfUserFollows) where
 
 import Conduit.DB.Types (id2sqlKey)
 import Conduit.DB.Utils (suchThat)
@@ -7,11 +7,11 @@ import Conduit.Features.Account.Types (UserID)
 import Database.Esqueleto.Experimental (Entity, SqlExpr, Value, exists, from, just, table, val, (&&.), (==.))
 
 queryIfUserFollows :: (ComparableUserEntity a) => SqlExpr a -> Maybe UserID -> SqlExpr (Value Bool)
-queryIfUserFollows followee followerID = exists 
+queryIfUserFollows follower followedID = exists 
   $ void 
   $ from (table @Follow)
     `suchThat` \f ->
-      (just f.followerID ==. val (followerID <&> id2sqlKey)) &&. (followee `compIDWith` f.followeeID)
+      (just f.followedID ==. val (followedID <&> id2sqlKey)) &&. (follower `compIDWith` f.followerID)
 
 -- Not sure if I'm being stupid, but I can't find a method that turns an Entity inside SqlExpr into a Maybe
 -- so this is just a quick little workaround "for now"

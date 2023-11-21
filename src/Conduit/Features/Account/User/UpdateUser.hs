@@ -11,12 +11,13 @@ import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..), AuthedUser (..), withAuth)
-import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword)
+import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
 import Data.Aeson (FromJSON)
 import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
-import Web.Scotty.Trans (ScottyT, json, jsonData, put)
-import Conduit.Utils (InObj(InObj))
+import Web.Scotty.Trans (ScottyT, json, put)
+import Conduit.Validation (Validations, are, notBlank, fromJsonObj)
+import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
 
 data UpdateUserAction = UpdateUserAction
   { username :: Maybe Text
@@ -26,16 +27,26 @@ data UpdateUserAction = UpdateUserAction
   , image    :: Maybe Text
   } deriving (Generic, FromJSON)
 
+validations :: Validations UpdateUserAction
+validations UpdateUserAction {..} = mapMaybe (sequence . swap)
+  [ (username,               "username")
+  , (password <&> getUnsafe, "password")
+  , (email,                  "email")
+  , (bio,                    "bio")
+  , (image,                  "image")
+  ] `are` notBlank
+
 handleUpdateUser :: ScottyT AppM ()
 handleUpdateUser = put "/api/user" $ withAuth \user -> do
-  (InObj _ action) <- jsonData
+  action <- fromJsonObj validations
   userAuth <- liftApp (updateUser user action)
   withFeatureErrorsHandled userAuth $
     json . inUserObj
 
-updateUser :: (PasswordGen m, AuthTokenGen m, AcquireUser m, UpdateUser m) => AuthedUser -> UpdateUserAction -> m (Either AccountError UserAuth)
-updateUser user@AuthedUser {..} action = runExceptT do
-  maybeNewPW <- mapM (lift . hashPassword) action.password
+updateUser :: (PasswordGen m, AuthTokenGen m, AcquireUser m, ReadUsers m, UpdateUser m) => AuthedUser -> UpdateUserAction -> m (Either AccountError UserAuth)
+updateUser user@AuthedUser {..} action@UpdateUserAction {..} = runExceptT do
+  ExceptT $ ensureUserCredsUnique username email
+  maybeNewPW <- mapM (lift . hashPassword) password
   ExceptT $ updateUserByID authedUserID $ mkToUpdate action maybeNewPW
   ExceptT $ tryGetUser user
 
@@ -60,6 +71,6 @@ instance (Monad m, MonadUnliftIO m, MonadDB m) => UpdateUser m where
       whenJust name  \new -> set u [ #username =. val new           ]
       whenJust pass  \new -> set u [ #password =. val new.getHashed ]
       whenJust email \new -> set u [ #email    =. val new           ]
-      whenJust bio   \new -> set u [ #bio      =. val (Just new) ]
-      whenJust image \new -> set u [ #image    =. val (Just new) ]
+      whenJust bio   \new -> set u [ #bio      =. val (Just new)    ]
+      whenJust image \new -> set u [ #image    =. val new           ]
       where_ (u.id ==. valkey userID.unID)

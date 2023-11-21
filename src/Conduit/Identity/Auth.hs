@@ -2,30 +2,30 @@
 
 module Conduit.Identity.Auth where
 
-import Conduit.App.Has (Has (..), grab)
+import Conduit.App.Has (Has(..), grab)
 import Conduit.Features.Account.Types (UserID)
-import Conduit.Identity.JWT (JWTInfo (..), jwtExpTime, mkClaims)
+import Conduit.Identity.JWT (JWTInfo(..), jwtExpTime, mkClaims)
 import Conduit.Utils ((-.))
+import Data.Map.Strict as M
 import Data.Text
-import Network.HTTP.Types (status403)
+import Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
+import Network.HTTP.Types (status401)
 import Relude.Extra (dup)
-import Web.JWT (claims, decodeAndVerifySignature, encodeSigned, stringOrURIToText, JWTClaimsSet(..), numericDate)
-import Web.Scotty.Trans (ActionT, header, status)
-import Data.Time.Clock.POSIX (getPOSIXTime, POSIXTime)
-
--- newtype AuthedJWT = AuthedJWT 
---   { unJWT :: Text 
---   }
+import Web.JWT (JWTClaimsSet(..), claims, decodeAndVerifySignature, encodeSigned, numericDate, stringOrURIToText)
+import Web.Scotty.Trans (ActionT, header, json, status)
 
 data AuthedUser = AuthedUser
   { authedToken  :: !Text
   , authedUserID :: !UserID
   } deriving (Eq, Show)
 
+authErrRes :: Map Text Text
+authErrRes = M.fromList [("message", "missing authorization credentials")]
+
 withAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (AuthedUser -> ActionT m ()) -> ActionT m ()
 withAuth handler = maybeWithAuth $ \case
   Just user -> handler user
-  Nothing -> status status403
+  Nothing -> status status401 >> json authErrRes
 
 maybeWithAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (Maybe AuthedUser -> ActionT m ()) -> ActionT m ()
 maybeWithAuth handler = do
@@ -50,7 +50,7 @@ makeAuthTokenPure JWTInfo {..} currTime userID =
    in encodeSigned jwtEncodeSigner mempty claims'
 
 tryMakeAuthedUser :: (ToText a) => JWTInfo -> POSIXTime -> a -> Maybe AuthedUser
-tryMakeAuthedUser jwtInfo time authHeader  = authHeader 
+tryMakeAuthedUser jwtInfo time authHeader  = authHeader
    &  toText
    &  extractToken
   <&> dup

@@ -1,0 +1,17 @@
+{
+  "$schema": "./conduit-schema.json",
+  "pg": {
+    "connStr": "host=localhost port=5432 user=postgres password=postgres dbname=realworld",
+    "poolSize": 4,
+    "maxIdleTime": 60,
+    "numStripes": 1,
+    "truncTables": true
+  },
+  "jwt": {
+    "secret": "supersecretsecret",
+    "ttl": 900
+  },
+  "env": {
+    "type": "Development"
+  }
+}

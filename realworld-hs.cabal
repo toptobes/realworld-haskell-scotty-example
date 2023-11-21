@@ -27,12 +27,13 @@ library
           Conduit.DB.Init
           Conduit.DB.Types
           Conduit.DB.Utils
+          Conduit.Features.Account.Common.EnsureUserCredsUnique
+          Conduit.Features.Account.Common.FindFollowersByID
+          Conduit.Features.Account.Common.FindProfileByID
+          Conduit.Features.Account.Common.QueryAssociatedUser
+          Conduit.Features.Account.Common.QueryUserFollows
           Conduit.Features.Account.DB
           Conduit.Features.Account.Errors
-          Conduit.Features.Account.Exports.FindFollowersByID
-          Conduit.Features.Account.Exports.FindProfileByID
-          Conduit.Features.Account.Exports.QueryAssociatedUser
-          Conduit.Features.Account.Exports.QueryUserFollows
           Conduit.Features.Account.Follows.FollowUser
           Conduit.Features.Account.Follows.UnfollowUser
           Conduit.Features.Account.Handlers
@@ -63,6 +64,7 @@ library
           Conduit.Identity.JWT
           Conduit.Identity.Password
           Conduit.Utils
+          Conduit.Validation
     other-modules:
           Paths_realworld_hs
     autogen-modules:
@@ -110,6 +112,7 @@ library
         , time
         , unliftio
         , wai-extra
+        , wai-middleware-static
     mixins:
           base hiding (Prelude)
         , relude (Relude as Prelude)
@@ -166,6 +169,7 @@ executable app
         , time
         , unliftio
         , wai-extra
+        , wai-middleware-static
     mixins:
           base hiding (Prelude)
         , relude (Relude as Prelude)
@@ -230,6 +234,7 @@ test-suite spec
         , time
         , unliftio
         , wai-extra
+        , wai-middleware-static
     mixins:
           base hiding (Prelude)
         , relude (Relude as Prelude)

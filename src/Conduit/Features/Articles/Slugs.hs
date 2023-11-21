@@ -6,10 +6,10 @@ module Conduit.Features.Articles.Slugs
   , mkSlug
   ) where
 
+import Conduit.Features.Articles.Errors (ArticleError (..))
 import Conduit.Features.Articles.Types (ArticleID(..), NoIDSlug(..), Slug(..))
 import Data.Char (isAlphaNum, isSpace)
 import Data.Text qualified as T
-import Conduit.Features.Articles.Errors (ArticleError (InvalidSlugEx))
 
 mkSlug :: ArticleID -> NoIDSlug -> Slug
 mkSlug articleID slug = Slug $ show articleID.unID <> "-" <> slug.unSlug

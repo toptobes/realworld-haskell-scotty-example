@@ -8,7 +8,7 @@ import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User(..))
-import Conduit.Features.Account.Exports.QueryAssociatedUser (queryAssociatedUser)
+import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.DB (Favorite, mkManyArticles)
 import Conduit.Features.Articles.Errors (ArticleError(..))
@@ -85,7 +85,7 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
                 just f.user ==. u'.id
 
           pure u'.username
-
+          
       -- temp until I figure out how to get esqueleto to work with goddamn arrays
       whenJust filterTag $ \tag' -> where_ $ unsafeSqlValue ("'s" <> TB.fromText tag' <> "' = ANY(array(select json_array_elements_text(tags::json)))")
 

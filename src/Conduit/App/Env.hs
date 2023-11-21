@@ -1,11 +1,12 @@
 module Conduit.App.Env where
 
 import Conduit.App.Has (Has, obtain)
-import Conduit.Identity.JWT (JWTInfo)
 import Conduit.DB.Types (DBPool)
+import Conduit.Identity.JWT (JWTInfo)
+import Data.Aeson (FromJSON)
 
 data EnvType = Production | Development
-  deriving (Show, Eq, Read)
+  deriving (Show, Eq, Read, Generic, FromJSON)
 
 data Env = Env
   { envDBPool  :: !DBPool

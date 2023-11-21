@@ -64,6 +64,7 @@ dependencies:
   - file-embed
   - text
   - template-haskell
+  - wai-middleware-static
 
 library:
   source-dirs: src

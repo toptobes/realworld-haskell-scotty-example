@@ -13,15 +13,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAccountTables"] [persistLowerCas
     password Text
     email Text
     bio   Text Maybe
-    image Text Maybe
+    image Text
     
     UniqueUsername username 
     UniqueEmail email
   
   Follow
     followerID UserId sql=follower_id OnDeleteCascade
-    followeeID UserId sql=followee_id OnDeleteCascade
-    Primary followeeID followerID
+    followedID UserId sql=followed_id OnDeleteCascade
+    Primary followerID followedID
 |]
 
 $(deriveSqlKey ''User ''UserID)

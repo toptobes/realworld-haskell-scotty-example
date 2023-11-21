@@ -1,12 +1,13 @@
 module Conduit.Identity.JWT where
 
 import Conduit.Features.Account.Types (UserID, unID)
-import Web.JWT (EncodeSigner, JWTClaimsSet (..), VerifySigner, numericDate, stringOrURI, toVerify)
+import Data.Aeson (FromJSON)
 import Data.Time (NominalDiffTime)
+import Web.JWT (EncodeSigner, JWTClaimsSet(..), VerifySigner, hmacSecret, numericDate, stringOrURI, toVerify)
 
 newtype Seconds = Seconds { unSeconds :: Int }
   deriving (Show)
-  deriving newtype (Num)
+  deriving newtype (Num, FromJSON)
 
 data JWTInfo = JWTInfo
   { jwtEncodeSigner :: !EncodeSigner
@@ -14,8 +15,14 @@ data JWTInfo = JWTInfo
   , jwtExpTime      :: !Seconds
   }
 
-mkJWTInfo :: EncodeSigner -> Seconds -> JWTInfo
-mkJWTInfo signer = JWTInfo signer (toVerify signer)
+data JWTOps = JWTOps
+  { jwtOpsSecret  :: Text
+  , jwtOpsExpTime :: Seconds
+  }
+
+mkJWTInfo :: JWTOps -> JWTInfo
+mkJWTInfo JWTOps {..} = JWTInfo signer (toVerify signer) jwtOpsExpTime
+  where signer = hmacSecret jwtOpsSecret
 
 mkClaims :: NominalDiffTime -> Seconds -> UserID -> JWTClaimsSet
 mkClaims currTime (Seconds ttl) userID = mempty

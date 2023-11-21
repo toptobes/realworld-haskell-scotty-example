@@ -42,7 +42,7 @@ data UserInfo = UserInfo
   { userName  :: !Text
   , userEmail :: !Text
   , userBio   :: !(Maybe Text)
-  , userImage :: !(Maybe Text)
+  , userImage :: Text
   } deriving (Generic, ToJSON)
 
 instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where

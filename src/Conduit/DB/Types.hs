@@ -2,12 +2,12 @@
 
 module Conduit.DB.Types where
 
-import Database.Esqueleto.Experimental (ConnectionPool, SqlPersistT, Key, runSqlPool, toSqlKey, fromSqlKey)
-import Conduit.DB.Errors (DBError, catchSqlError)
-import UnliftIO (MonadUnliftIO)
 import Conduit.App.Has (Has, grab)
+import Conduit.DB.Errors (DBError, catchSqlError)
 import Conduit.Utils ((-.))
+import Database.Esqueleto.Experimental (ConnectionPool, Key, SqlPersistT, fromSqlKey, runSqlPool, toSqlKey)
 import Language.Haskell.TH
+import UnliftIO (MonadUnliftIO)
 
 type DBPool = ConnectionPool
 
