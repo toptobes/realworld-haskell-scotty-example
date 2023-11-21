@@ -27,7 +27,7 @@
         },
         "truncTables": {
           "type": "boolean",
-          "description": "Whether or not to truncate all tables on application initialization"
+          "description": "Whether or not to truncate all tables on application initialization. Only runs if env.type is 'Development'."
         }
       },
       "required": ["connStr", "poolSize", "maxIdleTime", "numStripes", "truncTables"]
@@ -52,7 +52,7 @@
       "properties": {
         "type": {
           "enum": ["Development", "Production"],
-          "description": "Conduit runtime environment. Dev has more logging and auto-runs DB migrations"
+          "description": "Conduit runtime environment. 'Development' has more logging and auto-runs DB migrations"
         }
       },
       "required": ["type"]

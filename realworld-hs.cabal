@@ -106,7 +106,6 @@ library
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , stm
         , template-haskell
         , text
         , time
@@ -163,7 +162,6 @@ executable app
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , stm
         , template-haskell
         , text
         , time
@@ -228,7 +226,6 @@ test-suite spec
         , relude >=1.2.0.0
         , resource-pool
         , scotty
-        , stm
         , template-haskell
         , text
         , time

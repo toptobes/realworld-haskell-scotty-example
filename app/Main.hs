@@ -1,9 +1,9 @@
 module Main where
 
 import Conduit
-import Data.Aeson (FromJSON(..), eitherDecode, withObject, (.:), (.:?), (.!=))
+import Data.Aeson
 
--- Avoiding cross-module orphan instances
+-- Avoiding orphan instances
 newtype C = C { unC :: ConduitOps }
 newtype P = P { unP :: PGConnOps  }
 newtype E = E { unE :: EnvType }
@@ -33,7 +33,10 @@ instance FromJSON E where
     <$> v .: "type"
 
 mkConduitOps :: LByteString -> IO ConduitOps
-mkConduitOps = either (error . toText) (pure . unC) . eitherDecode
+mkConduitOps = eitherDecode <&> either (error . toText) (pure . unC)
 
 main :: IO ()
-main = lookupEnv "CONDUIT_CONFIG" <&> (?: "conduit.json") >>= readFileLBS >>= mkConduitOps >>= Conduit.main
+main = lookupEnv "CONDUIT_CONFIG" <&> (?: "conduit.json") 
+  >>= readFileLBS 
+  >>= mkConduitOps 
+  >>= Conduit.main
