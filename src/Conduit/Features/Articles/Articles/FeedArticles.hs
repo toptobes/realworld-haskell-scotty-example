@@ -6,17 +6,17 @@ import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
 import Conduit.DB.Types (MonadDB, id2sqlKey, runDB)
-import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.Common.FindFollowersByID (AquireFollowers, findFollowersByID)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID(..))
-import Conduit.Features.Articles.DB (Favorite, mkManyArticles)
+import Conduit.Features.Articles.Common.QueryFavStats (queryFavStats)
+import Conduit.Features.Articles.DB (mkManyArticles)
 import Conduit.Features.Articles.Errors (ArticleError)
 import Conduit.Features.Articles.Types (ManyArticles(..))
 import Conduit.Identity.Auth (authedUserID, withAuth)
 import Conduit.Utils ((-.))
 import Data.List (lookup)
-import Database.Esqueleto.Experimental (exists, from, groupBy, in_, just, limit, offset, orderBy, select, subSelectCount, table, val, valList, valkey, where_, (&&.), (:&)(..), (==.))
+import Database.Esqueleto.Experimental (groupBy, in_, limit, offset, orderBy, select, val, valList, where_, (:&)(..), (==.))
 import Database.Esqueleto.Experimental qualified as E
 import Relude.Extra (bimapBoth)
 import UnliftIO (MonadUnliftIO)
@@ -64,13 +64,7 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
       limit  filterLimit
       offset filterOffset
 
-      let favorited = exists $ void $ from (table @Favorite)
-            `suchThat` \f' ->
-              (a.id ==. f'.article) &&. (just f'.user ==. just (valkey userID.unID))
-
-      let numFavs = subSelectCount @Int $ from (table @Favorite)
-            `suchThat` \f' ->
-              a.id ==. f'.article
+      let (favorited, numFavs) = queryFavStats (Just userID) a
 
       orderBy [E.desc a.created]
 

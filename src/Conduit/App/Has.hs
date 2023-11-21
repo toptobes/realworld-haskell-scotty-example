@@ -1,5 +1,6 @@
 module Conduit.App.Has where
 
+-- row polymorphism my beloved
 class Has field container where
   obtain :: container -> field
 

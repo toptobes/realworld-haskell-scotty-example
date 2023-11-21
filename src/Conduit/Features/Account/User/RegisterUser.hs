@@ -3,21 +3,21 @@
 module Conduit.Features.Account.User.RegisterUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
 import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
+import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..))
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
+import Conduit.Utils ((>->))
+import Conduit.Validation (Validations, are, fromJsonObj, notBlank)
 import Data.Aeson (FromJSON)
 import Database.Esqueleto.Experimental (insert)
+import Network.HTTP.Types (status201)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, post, status)
-import Conduit.Utils ((>->))
-import Network.HTTP.Types (status201)
-import Conduit.Validation (Validations, are, notBlank, fromJsonObj)
-import Conduit.Features.Account.Common.EnsureUserCredsUnique (ensureUserCredsUnique, ReadUsers)
 
 data RegisterUserAction = RegisterUserAction
   { username :: Text

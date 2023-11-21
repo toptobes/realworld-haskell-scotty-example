@@ -1,14 +1,13 @@
 module Conduit.Features.Articles.Errors where
 
-
 import Conduit.DB.Errors (DBError(..), FeatureErrorHandler(..), FeatureErrorMapper(..))
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Errors qualified as Account
-import Network.HTTP.Types (status404, status500, status403)
-import Web.Scotty.Trans (ActionT, status, json)
-import Conduit.Validation (inErrMsgObj, mkErrObj)
 import Conduit.Utils ((-.))
+import Conduit.Validation (inErrMsgObj, mkErrObj)
+import Network.HTTP.Types (status403, status404, status500)
 import Network.HTTP.Types.Status (status422)
+import Web.Scotty.Trans (ActionT, json, status)
 
 data ArticleError
   = UserNotFoundEx

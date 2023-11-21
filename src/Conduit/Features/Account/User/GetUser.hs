@@ -4,8 +4,8 @@ module Conduit.Features.Account.User.GetUser where
 
 import Prelude hiding (get)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
+import Conduit.DB.Types (MonadDB(..))
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)

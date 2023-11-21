@@ -1,10 +1,10 @@
 module Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser) where
 
 import Prelude hiding (on)
-import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Common.QueryUserFollows (queryIfUserFollows)
+import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Types (UserID)
-import Database.Esqueleto.Experimental (Entity, PersistEntity, SqlExpr, SqlQuery, Value(..), from, on, table, (:&)(..), innerJoin)
+import Database.Esqueleto.Experimental (Entity, PersistEntity, SqlExpr, SqlQuery, Value(..), from, innerJoin, on, table, (:&)(..))
 
 queryAssociatedUser 
   :: ∀ table. (PersistEntity table) 

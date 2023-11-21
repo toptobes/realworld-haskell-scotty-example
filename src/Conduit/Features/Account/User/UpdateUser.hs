@@ -4,20 +4,20 @@ module Conduit.Features.Account.User.UpdateUser where
 
 import Prelude hiding (put, pass)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.Features.Account.User.GetUser (AcquireUser, tryGetUser)
+import Conduit.DB.Types (MonadDB(..))
+import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
 import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
-import Conduit.Identity.Auth (AuthTokenGen(..), AuthedUser (..), withAuth)
+import Conduit.Features.Account.User.GetUser (AcquireUser, tryGetUser)
+import Conduit.Identity.Auth (AuthTokenGen(..), AuthedUser(..), withAuth)
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
+import Conduit.Validation (Validations, are, fromJsonObj, notBlank)
 import Data.Aeson (FromJSON)
 import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, put)
-import Conduit.Validation (Validations, are, notBlank, fromJsonObj)
-import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
 
 data UpdateUserAction = UpdateUserAction
   { username :: Maybe Text

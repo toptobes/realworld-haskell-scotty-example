@@ -16,7 +16,7 @@ import Conduit.Features.Articles.Types (ArticleID(..), OneArticle, Slug(..), inA
 import Conduit.Identity.Auth (authedUserID, withAuth)
 import Conduit.Validation (InObj(..), Validations, are, notBlank)
 import Data.Aeson (FromJSON)
-import Database.Esqueleto.Experimental (set, val, valkey, where_, (=.), (==.), updateCount)
+import Database.Esqueleto.Experimental (set, updateCount, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, json, jsonData, put)
 

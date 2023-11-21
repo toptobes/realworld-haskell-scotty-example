@@ -14,10 +14,10 @@ For more information on how to this works with other frontends/backends, head ov
 
 ## Basic architectural overview
 Since this is small application (only ~2k actual LOC), I've opted for a very vertical-slice-esque architecture, with each endpoint
-getting its own file, with common logic simply going in its own files. Controllers, services, and data access are of course still
-decoupled through MTL style classes making testing simple (though I've not sprung for many tests due to the Cypress suite already being
-provided for us). I believe the general architecture should be quite self explanitory and easy to refactor. I will admit it *is* slightly 
-influenced by Haskell's dissallowance of circular imports, and I didn't want to deal with hs-boot files.
+getting its own file, and with common logic simply going in its own files. Controllers, services, and data access are of course still
+decoupled through MTL style classes (inspired by [three-layer-cake](https://www.parsonsmatt.org/2018/03/22/three_layer_haskell_cake.html)),
+making testing extremely simple. I believe the general architecture should be quite self explanitory and easy to refactor as the app scales.
+I will admit it *is* slightly influenced by Haskell's dissallowance of circular imports, and I didn't want to deal with hs-boot files.
 
 Feel free to let me know your thoughts, or open an issue!
 
@@ -100,3 +100,6 @@ It may take a while the first time while it obtains/builds the relevant dependen
 If you plan to make any modifications involving creating new files or adding new dependencies, you may need [hpack](https://github.com/sol/hpack).
  - You could update the `realworld-hs.cabal` file manually if you really wanted or needed to though
  - Otherwise, just run the `hpack` command whenever you modify `package.yaml`
+
+ᵃˡˢᵒ ᴵ ʲᵘˢᵗ ʷᵃⁿᵗᵉᵈ ᵗᵒ ᵇʳᵃᵍ ᵗʰᵃᵗ ⁿˣ ʷᵃˢ ᶜʰᵉᶜᵏᶦⁿᵍ ᶜʸᵖʳᵉˢˢ'ˢ ᵗᵉˢᵗ ʳᵉˢᵘˡᵗˢ ᶠʳᵒᵐ ᶦᵗ'ˢ ᶜᵃᶜʰᵉ ʷʰᶦˡᵉ ᴵ ʷᵃⁿᵗᵉᵈ ᶦᵗ ᵗᵒ ᶠᵘˡˡʸ ʳᵉ⁻ᵗᵉˢᵗ ᵃⁿᵈ ᴵ ʲᵘˢᵗ ʳᵃⁿᵈᵒᵐˡʸ 
+ᵍᵘᵉˢˢᵉᵈ ᵗʰᵃᵗ ᴵ ˢʰᵒᵘˡᵈ ᵘˢᵉ '⁻⁻ⁿᵒ⁻ᶜᵃᶜʰᵉ' ᵇ/ᶜ ʷʰʸ ⁿᵒᵗ ᵃⁿᵈ ᶦᵗ ᵃᶜᵗᵘᵃˡˡʸ ᵗᵘʳⁿᵉᵈ ᵒᵘᵗ ᵗᵒ ᵇᵉ ᵗʰᵉ ʳᶦᵍʰᵗ ᵒᵖᵗᶦᵒⁿ ᵗᵒ ᵈᵒ ˢᵒ ᶠᶦʳˢᵗ ᵗʳʸ ˡᵒˡ

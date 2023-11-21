@@ -52,6 +52,7 @@ library
           Conduit.Features.Articles.Comments.AddComment
           Conduit.Features.Articles.Comments.DeleteComment
           Conduit.Features.Articles.Comments.GetComments
+          Conduit.Features.Articles.Common.QueryFavStats
           Conduit.Features.Articles.DB
           Conduit.Features.Articles.Errors
           Conduit.Features.Articles.Favorites.FavoriteArticle

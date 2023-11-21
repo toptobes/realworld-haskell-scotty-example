@@ -4,11 +4,11 @@ module Conduit.Features.Account.Common.FindFollowersByID where
 
 import Prelude hiding (get, on)
 import Conduit.DB.Errors (FeatureErrorMapper(..), mapDBResult)
-import Conduit.DB.Types (MonadDB(..), SqlKey (sqlKey2ID))
+import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
 import Conduit.Features.Account.DB (Follow, UserId)
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserID(..))
-import Database.Esqueleto.Experimental (from, table, valkey, where_, (==.), select, Value(..))
+import Database.Esqueleto.Experimental (Value(..), from, select, table, valkey, where_, (==.))
 import UnliftIO (MonadUnliftIO)
 
 findFollowersByID :: (FeatureErrorMapper AccountError e, AquireFollowers m) => UserID -> m (Either e [UserID])

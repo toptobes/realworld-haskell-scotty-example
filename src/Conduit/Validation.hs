@@ -12,9 +12,9 @@ import Data.Aeson.KeyMap (toAscList)
 import Data.Aeson.Types (FromJSON(..), Key, Parser, ToJSON(..), Value(..), object, withObject, (.=))
 import Data.Map.Strict (fromAscList)
 import Data.Text qualified as T
-import Network.HTTP.Types (status422, Status (..))
-import Web.Scotty.Trans (ActionT, finish, json, jsonData, status, rescue, StatusError (..), raiseStatus)
+import Network.HTTP.Types (Status (..), status422)
 import UnliftIO (MonadUnliftIO)
+import Web.Scotty.Trans (ActionT, StatusError(..), finish, json, jsonData, raiseStatus, rescue, status)
 
 inErrObj :: obj -> InObj obj
 inErrObj = InObj "errors"
@@ -47,7 +47,7 @@ type Validations a = a -> [Maybe ValidatorErr]
 
 infixl 4 `is`
 is :: (a, Text) -> Validator a -> Maybe ValidatorErr
-is a v = uncurry v a
+is = flip uncurry
 
 infixl 4 `are`
 are :: [(a, Text)] -> Validator a -> [Maybe ValidatorErr]

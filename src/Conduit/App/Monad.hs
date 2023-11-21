@@ -16,7 +16,9 @@ class (Monad m) => MonadApp m where
 instance MonadApp AppM where
   liftApp :: AppM a -> AppM a
   liftApp = id
+  {-# INLINE liftApp #-}
 
 instance MonadApp (ActionT AppM) where
   liftApp :: AppM a -> ActionT AppM a
   liftApp = lift
+  {-# INLINE liftApp #-}

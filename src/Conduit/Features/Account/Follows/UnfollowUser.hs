@@ -3,12 +3,12 @@
 module Conduit.Features.Account.Follows.UnfollowUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
+import Conduit.DB.Types (MonadDB(..))
 import Conduit.Features.Account.DB (Follow)
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Types (UserID(..), UserProfile(..), inProfileObj)
+import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
 import Conduit.Identity.Auth (AuthedUser(..), withAuth)
 import Database.Esqueleto.Experimental (delete, from, table, valkey, where_, (&&.), (==.))
 import UnliftIO (MonadUnliftIO)

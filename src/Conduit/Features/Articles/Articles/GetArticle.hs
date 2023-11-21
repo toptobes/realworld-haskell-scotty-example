@@ -6,16 +6,16 @@ import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB(..), id2sqlKey)
-import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID)
-import Conduit.Features.Articles.DB (Favorite, mkOneArticle)
+import Conduit.Features.Articles.Common.QueryFavStats (queryFavStats)
+import Conduit.Features.Articles.DB (mkOneArticle)
 import Conduit.Features.Articles.Errors (ArticleError(..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID, OneArticle(..), Slug(..), inArticleObj)
 import Conduit.Identity.Auth (AuthedUser(..), maybeWithAuth)
-import Database.Esqueleto.Experimental (exists, from, just, selectOne, subSelectCount, table, val, where_, (&&.), (:&)(..), (==.))
+import Database.Esqueleto.Experimental (selectOne, val, where_, (:&)(..), (==.))
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 
@@ -43,12 +43,6 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticle m where
 
       where_ (a.id ==. val (id2sqlKey articleID))
 
-      let favorited = exists $ void $ from (table @Favorite) 
-            `suchThat` \f' -> 
-              (a.id ==. f'.article) &&. (just f'.user ==. val (userID <&> id2sqlKey))
-
-      let numFavs = subSelectCount $ from (table @Favorite)
-            `suchThat` \f' -> 
-              a.id ==. f'.article
+      let (favorited, numFavs) = queryFavStats userID a
 
       pure (a, u, follows, favorited, numFavs)

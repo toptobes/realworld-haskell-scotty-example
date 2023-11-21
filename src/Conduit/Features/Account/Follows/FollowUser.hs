@@ -3,12 +3,12 @@
 module Conduit.Features.Account.Follows.FollowUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
+import Conduit.DB.Types (MonadDB(..), id2sqlKey)
 import Conduit.Features.Account.DB (Follow(..))
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Types (UserID, UserProfile(..), inProfileObj)
+import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
 import Conduit.Identity.Auth (AuthedUser(..), withAuth)
 import Database.Esqueleto.Experimental (insert_)
 import UnliftIO (MonadUnliftIO)

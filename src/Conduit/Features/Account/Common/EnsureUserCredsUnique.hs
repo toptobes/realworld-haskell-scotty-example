@@ -7,7 +7,7 @@ import Conduit.DB.Types (MonadDB(..))
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Errors (AccountError(..))
-import Database.Esqueleto.Experimental (from, selectOne, table, (==.), exists, val, Value (..))
+import Database.Esqueleto.Experimental (Value(..), exists, from, selectOne, table, val, (==.))
 import UnliftIO (MonadUnliftIO)
 
 type Name = Maybe Text

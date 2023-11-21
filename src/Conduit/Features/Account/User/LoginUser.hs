@@ -3,20 +3,20 @@
 module Conduit.Features.Account.User.LoginUser where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
 import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
+import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID, inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword(..), testPassword)
+import Conduit.Validation (Validations, are, fromJsonObj, notBlank)
 import Data.Aeson (FromJSON)
 import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, (==.))
 import Database.Esqueleto.Experimental.From (table)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, json, post)
-import Conduit.Validation (Validations, are, notBlank, fromJsonObj)
-import Conduit.DB.Utils (suchThat)
 
 data LoginUserAction = LoginUserAction
   { password :: UnsafePassword
