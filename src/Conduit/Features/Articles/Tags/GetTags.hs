@@ -3,9 +3,8 @@
 module Conduit.Features.Articles.Tags.GetTags where
 
 import Prelude hiding (get, on)
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..))
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapDBResult)
 import Conduit.Features.Articles.DB (Article(..))
 import Conduit.Features.Articles.Errors (ArticleError(..))
 import Conduit.Features.Articles.Types (inTagsObj)
@@ -19,9 +18,8 @@ import Web.Scotty.Trans (ScottyT, get, json)
 -- are 18 unique tags when running the cypress test, but the test expects anywhere from [1..10]??
 handleGetTags :: ScottyT AppM ()
 handleGetTags = get "/api/tags" do
-  article <- liftApp getAllTags
-  withFeatureErrorsHandled article $
-    json . inTagsObj
+  article <- runService getAllTags
+  json $ inTagsObj article
 
 class (Monad m) => AquireTags m where
   getAllTags :: m (Either ArticleError [Text])

@@ -2,7 +2,7 @@
 
 module Conduit.Features.Account.DB where
 
-import Conduit.DB.Types (deriveSqlKey)
+import Conduit.DB.Core (deriveSqlKey)
 import Conduit.Features.Account.Types (UserID(..), UserProfile(..))
 import Database.Esqueleto.Experimental (Entity(..), Value(..))
 import Database.Persist.TH (mkMigrate, mkPersist, persistLowerCase, share, sqlSettings)

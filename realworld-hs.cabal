@@ -23,10 +23,10 @@ library
           Conduit.App.Env
           Conduit.App.Has
           Conduit.App.Monad
-          Conduit.DB.Errors
+          Conduit.DB.Core
           Conduit.DB.Init
-          Conduit.DB.Types
           Conduit.DB.Utils
+          Conduit.Errors
           Conduit.Features.Account.Common.EnsureUserCredsUnique
           Conduit.Features.Account.Common.FindFollowersByID
           Conduit.Features.Account.Common.FindProfileByID
@@ -65,6 +65,7 @@ library
           Conduit.Identity.JWT
           Conduit.Identity.Password
           Conduit.Utils
+          Conduit.Val
           Conduit.Validation
     other-modules:
           Paths_realworld_hs
@@ -74,11 +75,11 @@ library
           src
     default-extensions:
           LambdaCase
-          OverloadedStrings
           BlockArguments
           RecordWildCards
           OverloadedRecordDot
           OverloadedLabels
+          OverloadedStrings
           DuplicateRecordFields
           DeriveAnyClass
           DerivingStrategies
@@ -129,11 +130,11 @@ executable app
           app
     default-extensions:
           LambdaCase
-          OverloadedStrings
           BlockArguments
           RecordWildCards
           OverloadedRecordDot
           OverloadedLabels
+          OverloadedStrings
           DuplicateRecordFields
           DeriveAnyClass
           DerivingStrategies
@@ -189,11 +190,11 @@ test-suite spec
           test
     default-extensions:
           LambdaCase
-          OverloadedStrings
           BlockArguments
           RecordWildCards
           OverloadedRecordDot
           OverloadedLabels
+          OverloadedStrings
           DuplicateRecordFields
           DeriveAnyClass
           DerivingStrategies
@@ -208,8 +209,7 @@ test-suite spec
     build-tool-depends:
           hspec-discover:hspec-discover
     build-depends:
-          QuickCheck
-        , aeson
+          aeson
         , base >=4.16.4.0
         , base64
         , cryptonite

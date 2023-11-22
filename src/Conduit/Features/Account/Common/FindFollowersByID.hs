@@ -3,8 +3,8 @@
 module Conduit.Features.Account.Common.FindFollowersByID where
 
 import Prelude hiding (get, on)
-import Conduit.DB.Errors (FeatureErrorMapper(..), mapDBResult)
-import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.DB.Core (MonadDB(..), mapDBResult, sqlKey2ID)
+import Conduit.Errors (FeatureErrorMapper(..))
 import Conduit.Features.Account.DB (Follow, UserId)
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserID(..))

@@ -2,10 +2,9 @@
 
 module Conduit.Features.Account.Follows.UnfollowUser where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapDBError, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..))
-import Conduit.Features.Account.DB (Follow)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapDBError)
+import Conduit.Features.Account.DB (Follow(..))
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Types (UserID(..), UserProfile(..), inProfileObj)
 import Conduit.Features.Account.User.GetProfile (AcquireProfile(..))
@@ -18,12 +17,11 @@ import Web.Scotty.Trans qualified as Scotty
 handleUserUnfollow :: ScottyT AppM ()
 handleUserUnfollow = Scotty.delete "/api/profiles/:username/follow" $ withAuth \follower -> do
   followed <- captureParam "username"
-  profile <- liftApp (tryFollowUser follower.authedUserID followed)
-  withFeatureErrorsHandled profile $
-    json . inProfileObj
+  profile <- runService (tryUnfollowUser follower.authedUserID followed)
+  json $ inProfileObj profile
 
-tryFollowUser :: (AcquireProfile m, DeleteFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
-tryFollowUser followerID followedName = runExceptT do
+tryUnfollowUser :: (AcquireProfile m, DeleteFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
+tryUnfollowUser followerID followedName = runExceptT do
   (followedID, followedProfile) <- ExceptT $ findUserByName followedName (Just followerID)
 
   ExceptT $ deleteFollow followerID followedID

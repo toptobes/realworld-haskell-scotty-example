@@ -7,7 +7,8 @@ module Conduit.Identity.Password
   , testPassword
   ) where
 
-import Conduit.Utils ((-.))
+import Conduit.Utils ((.-))
+import Conduit.Val (Validation(..), NotBlank)
 import Crypto.Error (CryptoFailable(..))
 import Crypto.KDF.Argon2 (Options(..), Variant(..), defaultOptions)
 import Crypto.KDF.Argon2 qualified as Argon
@@ -40,13 +41,17 @@ newtype HashedPassword = HashedPassword { getHashed :: Text }
 newtype UnsafePassword = UnsafePassword { getUnsafe :: Text }
   deriving newtype (FromJSON)
 
+instance Validation NotBlank UnsafePassword where
+  validate = validate @NotBlank . getUnsafe
+  errMsg = errMsg @NotBlank @Text
+
 -- | Some monad which can properly hash an 'UnsafePassword'
 class (Monad m) => PasswordGen m where
   hashPassword :: UnsafePassword -> m HashedPassword
 
 instance (Monad m, MonadIO m) => PasswordGen m where
   hashPassword :: UnsafePassword -> m HashedPassword
-  hashPassword = hashPasswordWithSalt -. (<$> newSalt)
+  hashPassword = hashPasswordWithSalt .- (<$> newSalt)
 
 -- | Options for Cryptonite's Argon2 algo; strikes a fair balance of performance and security (I think).
 argonOptions :: Options
@@ -85,4 +90,4 @@ mkHashedPassword digest salt = HashedPassword $ hashStrParams <> salt' <> "$" <>
 testPassword :: UnsafePassword -> HashedPassword -> Bool
 testPassword password hashed = do
   let salt = extractSalt hashed
-   in maybe False (hashPasswordWithSalt password -. (== hashed)) salt
+   in maybe False (hashPasswordWithSalt password .- (== hashed)) salt

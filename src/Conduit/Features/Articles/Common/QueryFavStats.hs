@@ -1,6 +1,6 @@
 module Conduit.Features.Articles.Common.QueryFavStats where
 
-import Conduit.DB.Types (id2sqlKey)
+import Conduit.DB.Core (id2sqlKey)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.DB (Article, Favorite)

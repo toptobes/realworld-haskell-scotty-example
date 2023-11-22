@@ -5,6 +5,7 @@ module Conduit.App.Monad where
 import Conduit.App.Env (Env)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ActionT)
+import Conduit.Errors (FeatureError, handleFeatureErrors)
 
 -- | The app monad. woo.
 newtype AppM a = AppM
@@ -25,3 +26,6 @@ instance MonadApp (ActionT AppM) where
   liftApp :: AppM a -> ActionT AppM a
   liftApp = lift
   {-# INLINE liftApp #-}
+
+runService :: (FeatureError e) => AppM (Either e a) -> ActionT AppM a
+runService = liftApp >=> either handleFeatureErrors pure

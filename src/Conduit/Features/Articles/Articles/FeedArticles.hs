@@ -3,9 +3,8 @@
 module Conduit.Features.Articles.Articles.FeedArticles where
 
 import Prelude hiding (get, on)
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB, id2sqlKey, runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB (..), id2sqlKey, mapDBResult)
 import Conduit.Features.Account.Common.FindFollowersByID (AquireFollowers, findFollowersByID)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID(..))
@@ -14,7 +13,7 @@ import Conduit.Features.Articles.DB (mkManyArticles)
 import Conduit.Features.Articles.Errors (ArticleError)
 import Conduit.Features.Articles.Types (ManyArticles(..))
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Utils ((-.))
+import Conduit.Utils ((.-))
 import Data.List (lookup)
 import Database.Esqueleto.Experimental (groupBy, in_, limit, offset, orderBy, select, val, valList, where_, (:&)(..), (==.))
 import Database.Esqueleto.Experimental qualified as E
@@ -30,8 +29,8 @@ data FilterOps = FilterOps
 handleFeedArticles :: ScottyT AppM ()
 handleFeedArticles = get "/api/articles/feed" $ withAuth \user -> do
   filterOps <- parseFilterOps
-  articles <- liftApp $ getFeedArticles user.authedUserID filterOps
-  withFeatureErrorsHandled articles json
+  articles <- runService $ getFeedArticles user.authedUserID filterOps
+  json articles
 
 getFeedArticles :: (AquireArticles m, AquireFollowers m) => UserID -> FilterOps -> m (Either ArticleError ManyArticles)
 getFeedArticles userID ops = runExceptT do
@@ -43,8 +42,8 @@ parseFilterOps = do
   params <- captureParams <&> map (bimapBoth toStrict)
 
   pure $ FilterOps
-    { filterLimit  = (lookup "limit"  params >>= toString -. readMaybe) ?: 20
-    , filterOffset = (lookup "offset" params >>= toString -. readMaybe) ?: 0
+    { filterLimit  = (lookup "limit"  params >>= toString .- readMaybe) ?: 20
+    , filterOffset = (lookup "offset" params >>= toString .- readMaybe) ?: 0
     }
 
 class (Monad m) => AquireArticles m where
@@ -54,13 +53,13 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
   findArticles :: UserID -> [UserID] -> FilterOps -> m (Either ArticleError ManyArticles)
   findArticles userID (map id2sqlKey -> followeeIDs) FilterOps {..} = mapDBResult mkManyArticles <$> runDB do
     select $ do
-      ~(a :& u, _) <- queryAssociatedUser Nothing $ \a u -> 
+      ~(a :& u, _) <- queryAssociatedUser Nothing $ \a u ->
         a.author ==. u.id
 
       groupBy (u.id, a.id)
 
       where_ $ u.id `in_` valList followeeIDs
-      
+
       limit  filterLimit
       offset filterOffset
 

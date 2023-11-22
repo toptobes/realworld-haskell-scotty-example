@@ -3,9 +3,8 @@
 module Conduit.Features.Account.User.GetUser where
 
 import Prelude hiding (get)
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..))
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapMaybeDBResult)
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
@@ -17,9 +16,8 @@ import Web.Scotty.Trans (ScottyT, get, json)
 
 handleGetUser :: ScottyT AppM ()
 handleGetUser = get "/api/user" $ withAuth \user -> do
-  userAuth <- liftApp $ tryGetUser user
-  withFeatureErrorsHandled userAuth $
-    json . inUserObj
+  userAuth <- runService $ tryGetUser user
+  json $ inUserObj userAuth
 
 tryGetUser :: (AcquireUser m) => AuthedUser -> m (Either AccountError UserAuth)
 tryGetUser AuthedUser {..} = do

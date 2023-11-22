@@ -11,8 +11,8 @@ module Conduit.Features.Articles.DB
   , Comment(..)
   ) where
 
-import Conduit.DB.Errors (authorizationSqlError, resourceNotFoundSqlError)
-import Conduit.DB.Types (SqlKey(..), deriveSqlKey)
+import Conduit.DB.Core (authorizationSqlError, resourceNotFoundSqlError)
+import Conduit.DB.Core (SqlKey(..), deriveSqlKey)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User, UserId, mkProfile)
 import Conduit.Features.Account.Types (UserID)

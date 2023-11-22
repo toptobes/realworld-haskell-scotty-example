@@ -3,9 +3,8 @@
 module Conduit.Features.Articles.Comments.GetComments where
 
 import Prelude hiding (get)
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB, sqlKey2ID, runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapDBResult, sqlKey2ID)
 import Conduit.Features.Account.DB (User, mkProfile)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)
 import Conduit.Features.Account.Types (UserID(..))
@@ -21,8 +20,8 @@ import Web.Scotty.Trans (ScottyT, captureParam, get, json)
 handleGetComments :: ScottyT AppM ()
 handleGetComments = get "/api/articles/:slug/comments" $ maybeWithAuth \user -> do
   slug <- captureParam "slug" <&> Slug
-  comment <- liftApp (getComments slug (user <&> authedUserID))
-  withFeatureErrorsHandled comment json
+  comment <- runService $ getComments slug (user <&> authedUserID)
+  json comment
 
 getComments :: (AquireComment m) => Slug -> Maybe UserID -> m (Either ArticleError ManyComments)
 getComments slug userID = runExceptT do
@@ -36,7 +35,7 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireComment m where
   findCommentsForArticle :: ArticleID -> Maybe UserID -> m (Either ArticleError ManyComments)
   findCommentsForArticle articleID userID = mapDBResult toManyComments <$> runDB do
     select $ do
-      (c :& u, follows) <- queryAssociatedUser userID \c u -> 
+      (c :& u, follows) <- queryAssociatedUser userID \c u ->
         c.author ==. u.id
 
       where_ $ c.article ==. valkey articleID.unID

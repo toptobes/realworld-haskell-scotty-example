@@ -2,18 +2,16 @@
 
 module Conduit.Features.Account.User.RegisterUser where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapDBResult, sqlKey2ID)
 import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..))
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
-import Conduit.Utils ((>->))
-import Conduit.Validation (Validations, are, fromJsonObj, notBlank)
-import Data.Aeson (FromJSON)
+import Conduit.Val (NotBlank(..), fromJsonObj, (<!<))
+import Data.Aeson (FromJSON(..), withObject, (.:))
 import Database.Esqueleto.Experimental (insert)
 import Network.HTTP.Types (status201)
 import UnliftIO (MonadUnliftIO)
@@ -23,22 +21,20 @@ data RegisterUserAction = RegisterUserAction
   { username :: Text
   , password :: UnsafePassword
   , email    :: Text
-  } deriving (Generic, FromJSON)
+  }
 
-validations :: Validations RegisterUserAction
-validations RegisterUserAction {..} =
-  [ (username,           "username")
-  , (password.getUnsafe, "password")
-  , (email,              "email")
-  ] `are` notBlank
+instance FromJSON RegisterUserAction where
+  parseJSON = withObject "RegisterUserAction" $ \v -> RegisterUserAction
+    <$> v .: "username"  <!< NotBlank
+    <*> v .: "password"  <!< NotBlank
+    <*> v .: "email"     <!< NotBlank
 
 handleUserRegistration :: ScottyT AppM ()
 handleUserRegistration = post "/api/users" do
-  action <- fromJsonObj validations
-  user' <- liftApp (registerUser action)
-  withFeatureErrorsHandled user' $
-    json . inUserObj >->
-    status status201
+  action <- fromJsonObj
+  user <- runService $ registerUser action
+  status status201
+  json $ inUserObj user
 
 defaultImage :: Text
 defaultImage = "https://api.realworld.io/images/smiley-cyrus.jpeg"

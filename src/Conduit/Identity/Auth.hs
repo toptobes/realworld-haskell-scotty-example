@@ -5,7 +5,7 @@ module Conduit.Identity.Auth where
 import Conduit.App.Has (Has, grab)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Identity.JWT (JWTInfo(..), jwtExpTime, mkClaims)
-import Conduit.Utils ((-.))
+import Conduit.Utils ((.-))
 import Data.Map.Strict as M
 import Data.Text
 import Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
@@ -61,7 +61,7 @@ tryMakeAuthedUser jwtInfo time authHeader  = authHeader
    &  toText
    &  extractToken
   <&> dup
-   -. second (tryGetSubjectFromJWT jwtInfo time)
+   .- second (tryGetSubjectFromJWT jwtInfo time)
   >>= sequence
   <&> uncurry AuthedUser
 
@@ -71,7 +71,7 @@ tryGetSubjectFromJWT jwtInfo time token = token
   >>= \clms -> guard (clms.exp > numericDate time) $> clms
   >>= sub
   <&> stringOrURIToText
-   -. toString
+   .- toString
   >>= readMaybe
 
 tryGetClaims :: JWTInfo -> Text -> Maybe JWTClaimsSet

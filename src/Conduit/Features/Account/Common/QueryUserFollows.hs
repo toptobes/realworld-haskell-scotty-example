@@ -1,6 +1,6 @@
 module Conduit.Features.Account.Common.QueryUserFollows (queryIfUserFollows) where
 
-import Conduit.DB.Types (id2sqlKey)
+import Conduit.DB.Core (id2sqlKey)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (Follow, User, UserId)
 import Conduit.Features.Account.Types (UserID)

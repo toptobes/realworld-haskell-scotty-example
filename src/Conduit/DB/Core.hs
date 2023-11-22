@@ -1,12 +1,51 @@
-{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE AllowAmbiguousTypes, UndecidableInstances, TemplateHaskell #-}
 
-module Conduit.DB.Errors where
+module Conduit.DB.Core where
 
-import Conduit.Utils ((-.))
+import Conduit.App.Has (Has, grab)
+import Conduit.Errors (FeatureError(..))
+import Conduit.Utils ((.-))
 import Data.List (stripPrefix)
+import Database.Esqueleto.Experimental (ConnectionPool, Key, SqlPersistT, fromSqlKey, runSqlPool, toSqlKey)
 import Database.PostgreSQL.Simple (ExecStatus(..), SqlError(..))
+import Language.Haskell.TH
 import UnliftIO (MonadUnliftIO, catch)
-import Web.Scotty.Trans (ActionT)
+
+-- | The 'ConnectionPool' managing the DB connections.
+newtype DBPool = DBPool { unPool :: ConnectionPool }
+
+-- | Some monad which can run an Esqueleto SQL query/stmt.
+class (Monad m) => MonadDB m where
+  runDB :: SqlPersistT m a -> m (Either DBError a)
+
+instance (Monad m, MonadUnliftIO m, Has DBPool c m) => MonadDB m where
+  runDB :: SqlPersistT m a -> m (Either DBError a)
+  runDB fn = grab @DBPool <&> unPool >>= runSqlPool fn .- catchSqlError
+
+-- | An abstraction to allow for easy conversion between Esqueleto entity Keys and Conduit's own ID datatypes.
+--   'deriveSqlKey' can automagically create instances for this class.
+--   
+-- > newtype TableID = TableID { unID :: Int64 }
+-- > <define some persist table Table>
+-- > $(deriveSqlKey ''Table ''TableID)
+class SqlKey t id | t -> id, id -> t where
+  sqlKey2ID :: Key t -> id
+  id2sqlKey :: id -> Key t
+
+-- | just tried this for fun, very quickly realized I am nowhere near smart enough to be doing something like this.
+--   this took me over an hour.
+--   help.
+-- 
+-- see 'SqlKey' for usage
+deriveSqlKey :: Name -> Name -> Q [Dec]
+deriveSqlKey tableName keyName = do
+  conName <- getConName keyName
+
+  [d|
+    instance SqlKey $(conT tableName) $(conT keyName) where
+      sqlKey2ID = $(pure $ ConE conName) . fromSqlKey
+      id2sqlKey $(conP conName [varP (mkName "id'")]) = toSqlKey id'
+    |]
 
 -- | Attempts to map relevant SqlErrors to more processable types.
 data DBError
@@ -15,36 +54,6 @@ data DBError
   | AuthorizationError Text -- ^ See 'authorizationSqlError'
   | NotFoundError           -- ^ See 'resourceNotFoundSqlError'
   deriving (Show, Eq, Read)
-
--- | Way for features to map from DBErrors -> Feature errors -> application errors/responses.
---   See also 'withFeatureErrorsHandled'.
---   
---   P.S. I would put this in "Conduit.Validation" or its own file, but it'd be stuck in a cyclic dependency
---   so my hand is kinda forced here and I don't wanna deal with an hs-boot atm. It doesn't matter too much
---   here anyways so it's fine enough in this small project.
-class FeatureError e where
-  -- | Converts a feature error into some scotty response
-  handleFeatureError :: (MonadIO m) => e -> ActionT m ()
-  -- | Converts a DBError into some feature error
-  handleDBError :: DBError -> e
-
--- | Converts a potentially failed service's result to either the appropriate error or successful request.
--- 
--- > data MyErr = Aw Text
--- > data MyResult = Yay Text deriving (Generic, ToJSON)
--- > 
--- > instance FeatureError MyErr where
--- >   handleFeatureError (ResultErr msg) = do 
--- >     status status500
--- >     text msg
--- > 
--- > endpoint = get "/" $ do
--- >   (result :: Either MyErr MyResult) <- someService
--- >   withFeatureErrorsHandled result $ \res ->
--- >     json res
-withFeatureErrorsHandled :: (MonadIO m, FeatureError e) => Either e a -> (a -> ActionT m ()) -> ActionT m ()
-withFeatureErrorsHandled (Left  e) _ = handleFeatureError e
-withFeatureErrorsHandled (Right e) action = action e
 
 -- | Maps both sides of a potentially errored SQL query.
 -- 
@@ -79,10 +88,6 @@ expectDBNonZero err dbResult = do
   when (result == 0) $
     Left err
 
--- | Provides an easy way for errors to translate between features to facilitate cross-feature code sharing
-class FeatureErrorMapper e1 e2 where
-  mapFeatureError :: e1 -> e2
-
 -- | A custom SqlError w/ code 45401
 authorizationSqlError :: (Show e) => e -> SqlError
 authorizationSqlError err = defaultSqlErr
@@ -116,7 +121,7 @@ mapSqlError err
 -- | (Internal) Extracts the name of the column whose uniqueness was violated
 extractUniquenessViolation :: SqlError -> Text
 extractUniquenessViolation = toText . extractViolatedColName . decodeUtf8 . sqlErrorDetail
-  where extractViolatedColName = extractKeyField -. fromMaybe (error "")
+  where extractViolatedColName = extractKeyField .- fromMaybe (error "")
 
 extractKeyField :: String -> Maybe String
 extractKeyField str = do
@@ -133,3 +138,14 @@ defaultSqlErr = SqlError
   , sqlErrorDetail = ""
   , sqlErrorHint = ""
   }
+
+-- | (Internal) Gets the constructor name of some newtype
+getConName :: Name -> Q Name
+getConName typeName = do
+  (TyConI tyCon) <- reify typeName
+  
+  case tyCon of
+    NewtypeD _ _ _ _ (RecC    name _) _ -> pure name
+    NewtypeD _ _ _ _ (NormalC name _) _ -> pure name
+    NewtypeD {} -> fail "Newtype constructor not in expected format"
+    _ -> fail "Expected a newtype"

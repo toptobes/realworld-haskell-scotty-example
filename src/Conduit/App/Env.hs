@@ -1,7 +1,7 @@
 module Conduit.App.Env where
 
 import Conduit.App.Has (Has', obtain)
-import Conduit.DB.Types (DBPool)
+import Conduit.DB.Core (DBPool)
 import Conduit.Identity.JWT (JWTInfo)
 import Data.Aeson (FromJSON)
 

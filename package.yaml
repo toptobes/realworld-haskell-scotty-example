@@ -18,11 +18,11 @@ ghc-options:
 
 default-extensions:
   - LambdaCase
-  - OverloadedStrings
   - BlockArguments
   - RecordWildCards
   - OverloadedRecordDot
   - OverloadedLabels
+  - OverloadedStrings
   - DuplicateRecordFields
   - DeriveAnyClass
   - DerivingStrategies
@@ -83,6 +83,5 @@ tests:
       - -O0
     dependencies:
       - hspec
-      - QuickCheck
       - realworld-hs
     build-tools: hspec-discover

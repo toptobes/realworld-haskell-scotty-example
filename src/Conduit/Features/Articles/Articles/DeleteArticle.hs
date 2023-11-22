@@ -2,9 +2,8 @@
 
 module Conduit.Features.Articles.Articles.DeleteArticle where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (expectDBNonZero, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB, runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), expectDBNonZero)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.DB (Article, assumingUserIsOwner)
 import Conduit.Features.Articles.Errors (ArticleError (..))
@@ -20,9 +19,8 @@ import Web.Scotty.Trans qualified as Scotty
 handleArticleDelete :: ScottyT AppM ()
 handleArticleDelete = Scotty.delete "/api/articles/:slug" $ withAuth \user -> do
   slug <- captureParam "slug" <&> Slug
-  result <- liftApp (deleteArticle slug user.authedUserID)
-  withFeatureErrorsHandled result $ \_ ->
-    status status204
+  runService $ deleteArticle slug user.authedUserID
+  status status204
 
 deleteArticle :: (DeleteArticle m) => Slug -> UserID -> m (Either ArticleError ())
 deleteArticle slug userID = runExceptT do

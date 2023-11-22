@@ -2,9 +2,8 @@
 
 module Conduit.Features.Articles.Comments.AddComment where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (withFeatureErrorsHandled, mapDBResult)
-import Conduit.DB.Types (MonadDB, SqlKey (id2sqlKey, sqlKey2ID), runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB, SqlKey(..), mapDBResult, runDB)
 import Conduit.DB.Utils (dbTimeNow)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.Comments.GetComments (AquireComment, getComments)
@@ -13,30 +12,26 @@ import Conduit.Features.Articles.Errors (ArticleError(..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID, CommentID, ManyComments(..), OneComment(..), Slug(..), inCommentObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Validation (Validations, fromJsonObj, is, notBlank)
-import Data.Aeson (FromJSON)
+import Conduit.Val (NotBlank(..), (<!<), fromJsonObj)
+import Data.Aeson (FromJSON(..), (.:), withObject)
 import Database.Esqueleto.Experimental (insert)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ScottyT, captureParam, json, post)
 
 newtype CreateCommentAction = CreateCommentAction
   { body :: Text
-  } deriving (Generic)
-    deriving anyclass (FromJSON)
+  }
 
-validations :: Validations CreateCommentAction
-validations CreateCommentAction {..} =
-  [ (body, "body") `is` notBlank
-  ]
+instance FromJSON CreateCommentAction where
+  parseJSON = withObject "CreateCommentAction" $ \v -> CreateCommentAction
+    <$> v .: "body" <!< NotBlank
 
 handleCommentCreation :: ScottyT AppM ()
 handleCommentCreation = post "/api/articles/:slug/comments" $ withAuth \user -> do
-  body <- fromJsonObj validations
-
+  body <- fromJsonObj
   slug <- captureParam "slug" <&> Slug
-  comment <- liftApp (createComment body slug user.authedUserID)
-  withFeatureErrorsHandled comment $
-    json . inCommentObj
+  comment <- runService $ createComment body slug user.authedUserID
+  json $ inCommentObj comment
 
 createComment :: (AquireComment m, CreateComment m) => CreateCommentAction -> Slug -> UserID -> m (Either ArticleError OneComment)
 createComment CreateCommentAction {..} slug authorID = runExceptT do

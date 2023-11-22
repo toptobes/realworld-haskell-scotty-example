@@ -1,7 +1,7 @@
 module Conduit.Features.Articles.Types where
 
 import Conduit.Features.Account.Types (UserProfile)
-import Conduit.Validation (InObj(..))
+import Conduit.Utils (InObj(..))
 import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Aeson.Types (Value)
 import Data.Time (UTCTime)

@@ -2,17 +2,16 @@
 
 module Conduit.Features.Account.User.LoginUser where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (mapMaybeDBResult, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB(..), sqlKey2ID)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), mapMaybeDBResult, sqlKey2ID)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User(..))
 import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID, inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword(..), testPassword)
-import Conduit.Validation (Validations, are, fromJsonObj, notBlank)
-import Data.Aeson (FromJSON)
+import Conduit.Val (NotBlank(..), fromJsonObj, (<!<))
+import Data.Aeson (FromJSON(..), withObject, (.:))
 import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, (==.))
 import Database.Esqueleto.Experimental.From (table)
 import UnliftIO (MonadUnliftIO)
@@ -21,20 +20,18 @@ import Web.Scotty.Trans (ScottyT, json, post)
 data LoginUserAction = LoginUserAction
   { password :: UnsafePassword
   , email    :: Text
-  } deriving (Generic, FromJSON)
+  }
 
-validations :: Validations LoginUserAction
-validations LoginUserAction {..} =
-  [ (password.getUnsafe, "password")
-  , (email,              "email")
-  ] `are` notBlank
+instance FromJSON LoginUserAction where
+  parseJSON = withObject "LoginUserAction" $ \v -> LoginUserAction
+    <$> v .: "password" <!< NotBlank
+    <*> v .: "email"    <!< NotBlank
 
 handleUserLogin :: ScottyT AppM ()
 handleUserLogin = post "/api/users/login" do
-  action <- fromJsonObj validations
-  userAuth <- liftApp (tryLoginUser action)
-  withFeatureErrorsHandled userAuth $
-    json . inUserObj
+  action <- fromJsonObj
+  userAuth <- runService $ tryLoginUser action
+  json $ inUserObj userAuth
 
 tryLoginUser :: (MonadIO m, AcquireUser m, AuthTokenGen m) => LoginUserAction -> m (Either AccountError UserAuth)
 tryLoginUser LoginUserAction {..} = runExceptT do

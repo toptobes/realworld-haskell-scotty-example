@@ -1,9 +1,10 @@
 module Conduit.Features.Account.Errors where
 
-import Conduit.DB.Errors (DBError(..), FeatureError(..))
+import Conduit.DB.Core (DBError(..))
+import Conduit.Errors (FeatureError(..))
+import Conduit.Val (ValErrs(..))
 import Network.HTTP.Types (status403, status404, status422, status500)
 import Web.Scotty.Trans (ActionT, json, status)
-import Conduit.Validation (ValErrs(..))
 
 data AccountError
   = UserNotFoundEx

@@ -1,10 +1,11 @@
 module Conduit.Features.Articles.Errors where
 
-import Conduit.DB.Errors (DBError(..), FeatureError(..), FeatureErrorMapper(..))
+import Conduit.DB.Core (DBError(..))
+import Conduit.Errors (FeatureError(..), FeatureErrorMapper(..))
 import Conduit.Features.Account.Errors (AccountError)
 import Conduit.Features.Account.Errors qualified as Account
-import Conduit.Utils ((-.))
-import Conduit.Validation (ValErrs(..), inErrMsgObj)
+import Conduit.Utils ((.-))
+import Conduit.Val (ValErrs(..), inErrMsgObj)
 import Network.HTTP.Types (status403, status404, status500)
 import Network.HTTP.Types.Status (status422)
 import Web.Scotty.Trans (ActionT, json, status)
@@ -35,7 +36,7 @@ handleFeatureError' (UniquenessEx e)    = status status422 >> json (ValErrs [(e,
 handleFeatureError' (SomeDBEx e)        = print e >> status status500
 
 handleDBErr' :: DBError -> ArticleError
-handleDBErr' (AuthorizationError e) = e & toString -. readMaybe -. fromMaybe (error $ "invalid authorization error: " <> show e)
+handleDBErr' (AuthorizationError e) = e & toString .- readMaybe .- fromMaybe (error $ "invalid authorization error: " <> show e)
 handleDBErr' NotFoundError = ResourceNotFoundEx
 handleDBErr' (UniquenessError e) = UniquenessEx e
 handleDBErr' err = SomeDBEx err

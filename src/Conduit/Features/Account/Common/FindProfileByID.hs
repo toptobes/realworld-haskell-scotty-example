@@ -3,9 +3,9 @@
 module Conduit.Features.Account.Common.FindProfileByID where
 
 import Prelude hiding (get, on)
-import Conduit.DB.Errors (FeatureErrorMapper(..), mapMaybeDBResult)
-import Conduit.DB.Types (MonadDB(..))
+import Conduit.DB.Core (MonadDB(..), mapMaybeDBResult)
 import Conduit.DB.Utils (suchThat)
+import Conduit.Errors (FeatureErrorMapper(..))
 import Conduit.Features.Account.Common.QueryUserFollows (queryIfUserFollows)
 import Conduit.Features.Account.DB (mkProfile)
 import Conduit.Features.Account.Errors (AccountError(..))

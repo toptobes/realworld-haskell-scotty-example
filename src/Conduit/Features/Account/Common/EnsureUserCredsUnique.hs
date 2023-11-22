@@ -2,8 +2,8 @@
 
 module Conduit.Features.Account.Common.EnsureUserCredsUnique where
 
-import Conduit.DB.Errors (mapDBResult)
-import Conduit.DB.Types (MonadDB(..))
+import Conduit.DB.Core (mapDBResult)
+import Conduit.DB.Core (MonadDB(..))
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Errors (AccountError(..))

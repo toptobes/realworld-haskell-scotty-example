@@ -3,9 +3,8 @@
 module Conduit.Features.Articles.Articles.UpdateArticle where
 
 import Prelude hiding (put)
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (expectDBNonZero, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB, runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB (..), expectDBNonZero)
 import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.Articles.GetArticle (AquireArticle, getArticle)
@@ -14,32 +13,30 @@ import Conduit.Features.Articles.Errors (ArticleError (..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug, mkNoIDSlug, mkSlug)
 import Conduit.Features.Articles.Types (ArticleID(..), OneArticle, Slug(..), inArticleObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Validation (InObj(..), Validations, are, notBlank)
-import Data.Aeson (FromJSON)
+import Conduit.Val (NotBlank(..), fromJsonObj, (<?!<))
+import Data.Aeson (FromJSON(..), (.:?), withObject)
 import Database.Esqueleto.Experimental (set, updateCount, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
-import Web.Scotty.Trans (ScottyT, captureParam, json, jsonData, put)
+import Web.Scotty.Trans (ScottyT, captureParam, json, put)
 
 data UpdateArticleAction = UpdateArticleAction
   { title       :: Maybe Text
   , description :: Maybe Text
   , body        :: Maybe Text
-  } deriving (Generic, FromJSON)
+  }
 
-validations :: Validations UpdateArticleAction
-validations UpdateArticleAction {..} = mapMaybe (sequence . swap)
-  [ (title,       "title")
-  , (description, "description")
-  , (body,        "body")
-  ] `are` notBlank
+instance FromJSON UpdateArticleAction where
+  parseJSON = withObject "UpdateArticleAction" $ \v -> UpdateArticleAction
+    <$> v .:? "title"       <?!< NotBlank
+    <*> v .:? "description" <?!< NotBlank
+    <*> v .:? "body"        <?!< NotBlank
 
 handleArticleUpdate :: ScottyT AppM ()
 handleArticleUpdate = put "/api/articles/:slug" $ withAuth \user -> do
-  (InObj _ action) <- jsonData
+  action <- fromJsonObj
   slug <- captureParam "slug" <&> Slug
-  user' <- liftApp (updateArticle action slug user.authedUserID)
-  withFeatureErrorsHandled user' $
-    json . inArticleObj
+  article <- runService $ updateArticle action slug user.authedUserID
+  json $ inArticleObj article
 
 updateArticle :: (UpdateArticle m, AquireArticle m, AcquireProfile m) => UpdateArticleAction -> Slug -> UserID -> m (Either ArticleError OneArticle)
 updateArticle UpdateArticleAction {..} slug userID = runExceptT do

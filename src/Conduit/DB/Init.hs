@@ -2,7 +2,7 @@
 
 module Conduit.DB.Init where
 
-import Conduit.DB.Types (DBPool(..))
+import Conduit.DB.Core (DBPool(..))
 import Conduit.Features.Account.DB (migrateAccountTables)
 import Conduit.Features.Articles.DB (createArticleFunctions, migrateArticleTables)
 import Database.Esqueleto.Experimental (SqlPersistT, createPoolConfig, rawExecute, runMigration, runSqlPool)

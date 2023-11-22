@@ -2,9 +2,8 @@
 
 module Conduit.Features.Articles.Comments.DeleteComment where
 
-import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (expectDBNonZero, withFeatureErrorsHandled)
-import Conduit.DB.Types (MonadDB, runDB)
+import Conduit.App.Monad (AppM, runService)
+import Conduit.DB.Core (MonadDB(..), expectDBNonZero)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.DB (Comment, assumingUserIsOwner)
 import Conduit.Features.Articles.Errors (ArticleError (..))
@@ -19,9 +18,8 @@ import Web.Scotty.Trans qualified as Scotty
 handleCommentDeletion :: ScottyT AppM ()
 handleCommentDeletion = Scotty.delete "/api/articles/:slug/comments/:id" $ withAuth \user -> do
   commentID <- captureParam "id" <&> CommentID
-  result <- liftApp (deleteComment commentID user.authedUserID)
-  withFeatureErrorsHandled result $ \_ ->
-    status status200
+  runService $ deleteComment commentID user.authedUserID
+  status status200
 
 deleteComment :: (DeleteComment m) => CommentID -> UserID -> m (Either ArticleError ())
 deleteComment commentID userID = runExceptT do
