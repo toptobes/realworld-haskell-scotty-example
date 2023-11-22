@@ -4,7 +4,7 @@ module Conduit.Features.Articles.Articles.UpdateArticle where
 
 import Prelude hiding (put)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), expectDBNonZero)
+import Conduit.DB.Errors (expectDBNonZero, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB, runDB)
 import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.Types (UserID(..))

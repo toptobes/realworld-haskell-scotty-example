@@ -20,7 +20,8 @@ import Network.Wai.Middleware.Static qualified as Static
 import Web.Scotty.Trans (Handler(..), defaultHandler, middleware, scottyT, status)
 
 data ConduitOps = ConduitOps
-  { dbConnOps :: PGConnOps
+  { port      :: Int
+  , dbConnOps :: PGConnOps
   , jwtOps    :: JWTOps
   , envType   :: EnvType
   }
@@ -37,7 +38,7 @@ main ConduitOps {..} = do
 
   cache <- initCaching PublicStaticCaching
 
-  scottyT 3000 runAppToIO do
+  scottyT port runAppToIO do
     defaultHandler $ Handler \(e :: SqlError) -> do -- temp for debugging reasons
       print e >> status status500
     

@@ -6,10 +6,13 @@ import Conduit.App.Env (Env)
 import UnliftIO (MonadUnliftIO)
 import Web.Scotty.Trans (ActionT)
 
+-- | The app monad. woo.
 newtype AppM a = AppM
   { runAppM :: ReaderT Env IO a
   } deriving newtype (Functor, Applicative, Monad, MonadIO, MonadReader Env, MonadUnliftIO)
 
+-- | Lifts computations to the app monad level. @(MonadApp m)@ shouldn't be used directly as a constraint;
+--   Rather, just use @liftApp@ and see 'Conduit.App.Has.Has'.
 class (Monad m) => MonadApp m where
   liftApp :: AppM a -> m a
 

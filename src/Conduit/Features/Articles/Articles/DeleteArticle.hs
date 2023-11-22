@@ -3,7 +3,7 @@
 module Conduit.Features.Articles.Articles.DeleteArticle where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), expectDBNonZero)
+import Conduit.DB.Errors (expectDBNonZero, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB, runDB)
 import Conduit.Features.Account.Types (UserID(..))
 import Conduit.Features.Articles.DB (Article, assumingUserIsOwner)

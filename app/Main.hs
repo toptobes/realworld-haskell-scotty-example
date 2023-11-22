@@ -11,9 +11,10 @@ newtype J = J { unJ :: JWTOps  }
 
 instance FromJSON C where
   parseJSON = withObject "C" \v -> fmap C $ ConduitOps
-    <$> (v .: "pg"  <&> unP)
-    <*> (v .: "jwt" <&> unJ)
-    <*> (v .: "env" <&> unE)
+    <$>  v .:? "port" .!= 3000
+    <*> (v .:  "pg"   <&> unP)
+    <*> (v .:  "jwt"  <&> unJ)
+    <*> (v .:  "env"  <&> unE)
 
 instance FromJSON P where
   parseJSON = withObject "P" \v -> fmap P $ PGConnOps

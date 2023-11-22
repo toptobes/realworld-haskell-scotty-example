@@ -4,7 +4,7 @@ module Conduit.Features.Articles.Comments.GetComments where
 
 import Prelude hiding (get)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
+import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB, sqlKey2ID, runDB)
 import Conduit.Features.Account.DB (User, mkProfile)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)

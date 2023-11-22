@@ -3,9 +3,9 @@
 module Conduit.Features.Articles.Articles.CreateArticle where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
+import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB, SqlKey (id2sqlKey, sqlKey2ID), runDB)
-import Conduit.DB.Utils (zeroTime)
+import Conduit.DB.Utils (dbTimeNow)
 import Conduit.Features.Account.Common.FindProfileByID (AcquireProfile)
 import Conduit.Features.Account.DB (UserId)
 import Conduit.Features.Account.Types (UserID)
@@ -74,4 +74,4 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateArticle m where
     insert (mkArticle (id2sqlKey author) slug.unSlug title desc body (tags ?: []))
 
 mkArticle :: UserId -> Text -> Text -> Text -> Text -> [Text] -> Article
-mkArticle author slug title desc body tags = Article author slug title desc body tags zeroTime zeroTime
+mkArticle author slug title desc body tags = Article author slug title desc body tags dbTimeNow dbTimeNow

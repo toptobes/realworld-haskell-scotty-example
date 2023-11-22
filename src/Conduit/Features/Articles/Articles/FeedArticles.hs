@@ -4,7 +4,7 @@ module Conduit.Features.Articles.Articles.FeedArticles where
 
 import Prelude hiding (get, on)
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
+import Conduit.DB.Errors (mapDBResult, withFeatureErrorsHandled)
 import Conduit.DB.Types (MonadDB, id2sqlKey, runDB)
 import Conduit.Features.Account.Common.FindFollowersByID (AquireFollowers, findFollowersByID)
 import Conduit.Features.Account.Common.QueryAssociatedUser (queryAssociatedUser)

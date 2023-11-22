@@ -2,7 +2,7 @@
 
 module Conduit.DB.Init where
 
-import Conduit.DB.Types (DBPool)
+import Conduit.DB.Types (DBPool(..))
 import Conduit.Features.Account.DB (migrateAccountTables)
 import Conduit.Features.Articles.DB (createArticleFunctions, migrateArticleTables)
 import Database.Esqueleto.Experimental (SqlPersistT, createPoolConfig, rawExecute, runMigration, runSqlPool)
@@ -26,10 +26,10 @@ mkPoolConfig PGConnOps {..} = PostgresConf
   }
 
 mkDBPool :: (MonadIO m) => PGConnOps -> m DBPool
-mkDBPool = liftIO . createPoolConfig . mkPoolConfig
+mkDBPool = liftIO . fmap DBPool . createPoolConfig . mkPoolConfig
 
 initDB :: (MonadUnliftIO m) => DBPool -> PGConnOps -> m ()
-initDB pool ops = flip runSqlPool pool do
+initDB (DBPool pool) ops = flip runSqlPool pool do
   when ops.truncTables resetTables
   runMigrations
   runDBFunctions

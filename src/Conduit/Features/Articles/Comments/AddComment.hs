@@ -3,9 +3,9 @@
 module Conduit.Features.Articles.Comments.AddComment where
 
 import Conduit.App.Monad (AppM, liftApp)
-import Conduit.DB.Errors (FeatureErrorHandler(..), mapDBResult)
+import Conduit.DB.Errors (withFeatureErrorsHandled, mapDBResult)
 import Conduit.DB.Types (MonadDB, SqlKey (id2sqlKey, sqlKey2ID), runDB)
-import Conduit.DB.Utils (zeroTime)
+import Conduit.DB.Utils (dbTimeNow)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Features.Articles.Comments.GetComments (AquireComment, getComments)
 import Conduit.Features.Articles.DB (Comment(..))
@@ -64,4 +64,4 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateComment m where
     insert $ mkComment authorID articleID body
 
 mkComment :: UserID -> ArticleID -> Text -> Comment
-mkComment (id2sqlKey -> authorID) (id2sqlKey -> articleID) body = Comment authorID articleID body zeroTime zeroTime
+mkComment (id2sqlKey -> authorID) (id2sqlKey -> articleID) body = Comment authorID articleID body dbTimeNow dbTimeNow

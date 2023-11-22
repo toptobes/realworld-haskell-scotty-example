@@ -87,6 +87,8 @@ instance (Monad m, MonadDB m, MonadUnliftIO m) => AquireArticles m where
           pure u'.username
           
       -- temp until I figure out how to get esqueleto to work with goddamn arrays
+      -- for some reason, while the [Text] array is serialized, is has an 's' prepended to each element,
+      -- hence the 's' prepended here also for comparison purposes
       whenJust filterTag $ \tag' -> where_ $ unsafeSqlValue ("'s" <> TB.fromText tag' <> "' = ANY(array(select json_array_elements_text(tags::json)))")
 
       limit  filterLimit

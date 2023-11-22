@@ -2,7 +2,7 @@
 
 module Conduit.Identity.Auth where
 
-import Conduit.App.Has (Has(..), grab)
+import Conduit.App.Has (Has, grab)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Identity.JWT (JWTInfo(..), jwtExpTime, mkClaims)
 import Conduit.Utils ((-.))
@@ -14,30 +14,37 @@ import Relude.Extra (dup)
 import Web.JWT (JWTClaimsSet(..), claims, decodeAndVerifySignature, encodeSigned, numericDate, stringOrURIToText)
 import Web.Scotty.Trans (ActionT, header, json, status)
 
+-- | The form of an authenticated user passed into any endpoint using 'withAuth'/'maybeWithAuth'.
 data AuthedUser = AuthedUser
   { authedToken  :: !Text
   , authedUserID :: !UserID
   } deriving (Eq, Show)
 
-authErrRes :: Map Text Text
-authErrRes = M.fromList [("message", "missing authorization credentials")]
-
-withAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (AuthedUser -> ActionT m ()) -> ActionT m ()
+-- | An endpoint which requires user authentication.
+-- 
+-- > endpoint = get "/" $ withAuth \(user :: AuthedUser) -> do
+-- >   ...
+withAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c m) => (AuthedUser -> ActionT m ()) -> ActionT m ()
 withAuth handler = maybeWithAuth $ \case
   Just user -> handler user
   Nothing -> status status401 >> json authErrRes
 
-maybeWithAuth :: (MonadIO m, MonadReader c m, Has JWTInfo c) => (Maybe AuthedUser -> ActionT m ()) -> ActionT m ()
+-- | An endpoint which requests, but does require, user authentication.
+-- 
+-- > endpoint = get "/" $ maybeWithAuth \(user :: Maybe AuthedUser) -> do
+-- >   ...
+maybeWithAuth :: (MonadIO m, Has JWTInfo c m) => (Maybe AuthedUser -> ActionT m ()) -> ActionT m ()
 maybeWithAuth handler = do
   authHeader <- header "Authorization"
   jwtInfo <- lift $ grab @JWTInfo
   currTime <- liftIO getPOSIXTime
   handler $ authHeader >>= tryMakeAuthedUser jwtInfo currTime
 
+-- | Some monad which can generate a JWT
 class (Monad m) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
 
-instance (Monad m, MonadIO m, MonadReader c m, Has JWTInfo c) => AuthTokenGen m where
+instance (Monad m, MonadIO m, Has JWTInfo c m) => AuthTokenGen m where
   mkAuthToken :: UserID -> m Text
   mkAuthToken userID = do
     jwtInfo <- grab @JWTInfo
@@ -76,3 +83,6 @@ extractToken :: Text -> Maybe Text
 extractToken str = case splitOn " " str of
   ["Token", token] -> Just token
   _ -> Nothing
+
+authErrRes :: Map Text Text
+authErrRes = M.fromList [("message", "missing authorization credentials")]

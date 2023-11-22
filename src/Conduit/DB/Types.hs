@@ -1,6 +1,11 @@
 {-# LANGUAGE UndecidableInstances, QuasiQuotes, TemplateHaskell #-}
 
-module Conduit.DB.Types where
+module Conduit.DB.Types
+  ( DBPool(DBPool)
+  , MonadDB(..)
+  , SqlKey(..)
+  , deriveSqlKey
+  ) where
 
 import Conduit.App.Has (Has, grab)
 import Conduit.DB.Errors (DBError, catchSqlError)
@@ -9,22 +14,30 @@ import Database.Esqueleto.Experimental (ConnectionPool, Key, SqlPersistT, fromSq
 import Language.Haskell.TH
 import UnliftIO (MonadUnliftIO)
 
-type DBPool = ConnectionPool
+-- | The 'ConnectionPool' managing the DB connections.
+newtype DBPool = DBPool { unPool :: ConnectionPool }
 
+-- | Some monad which can run an Esqueleto SQL query/stmt.
 class (Monad m) => MonadDB m where
   runDB :: SqlPersistT m a -> m (Either DBError a)
 
-instance (Monad m, MonadUnliftIO m, MonadReader c m, Has DBPool c) => MonadDB m where
+instance (Monad m, MonadUnliftIO m, Has DBPool c m) => MonadDB m where
   runDB :: SqlPersistT m a -> m (Either DBError a)
-  runDB fn = grab @DBPool >>= runSqlPool fn -. catchSqlError
+  runDB fn = grab @DBPool <&> unPool >>= runSqlPool fn -. catchSqlError
 
+-- | An abstraction to allow for easy conversion between Esqueleto entity Keys and Conduit's own ID datatypes.
+--   'deriveSqlKey' can automagically create instances for this class.
+--   
+-- > newtype TableID = TableID { unID :: Int64 }
+-- > <define some persist table Table>
+-- > $(deriveSqlKey ''Table ''TableID)
 class SqlKey t id | t -> id, id -> t where
   sqlKey2ID :: Key t -> id
   id2sqlKey :: id -> Key t
 
--- just tried this for fun, very quickly realized I am nowhere near smart enough to do something like this
--- this took me over an hour.
--- help.
+-- | just tried this for fun, very quickly realized I am nowhere near smart enough to be doing something like this.
+--   this took me over an hour.
+--   help.
 deriveSqlKey :: Name -> Name -> Q [Dec]
 deriveSqlKey tableName keyName = do
   conName <- getConName keyName

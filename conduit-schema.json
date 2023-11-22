@@ -2,6 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "port": {
+      "type": "integer",
+      "description": "Port the server runs on; defaults to 3000"
+    },
     "pg": {
       "type": "object",
       "properties": {
