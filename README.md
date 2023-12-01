@@ -21,7 +21,7 @@ I will admit it *is* slightly influenced by Haskell's dissallowance of circular 
 
 Feel free to let me know your thoughts, or open an issue!
 
-View more fine-grained documentation [here](#further-documentation).
+View more fine-grained documentation [here](https://toptobes.github.io/realworld-scotty-hs/).
 
 ## File-structure overview
 ```ruby
@@ -112,7 +112,10 @@ If you plan to make any modifications involving creating new files or adding new
 
 ## Further documentation
 
-You can create the documentation site for this project using `cabal haddock`, and then access it w/ `npx serve` or whatever
-else you fancy. Nearly everything except for the features are decently documented, and I'll work on adding more soon.
+**Access the documentation site @ [https://toptobes.github.io/realworld-scotty-hs/].**
+Nearly everything except for the features are decently documented, and I'll work on adding more soon.
+
+You can build the documentation site locally using `cabal haddock`, and then serve it w/ `npx serve` or whatever
+else you fancy.
 
 Or just read through the code manually if you prefer, whatever you want lol.

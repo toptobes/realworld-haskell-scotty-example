@@ -8,7 +8,7 @@ module Conduit.Identity.Password
   ) where
 
 import Conduit.Utils ((.-))
-import Conduit.Val (Validation(..), NotBlank)
+import Conduit.Validation (Validation(..), NotBlank)
 import Crypto.Error (CryptoFailable(..))
 import Crypto.KDF.Argon2 (Options(..), Variant(..), defaultOptions)
 import Crypto.KDF.Argon2 qualified as Argon

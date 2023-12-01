@@ -1,6 +1,6 @@
 module Conduit.Features.Account.Types where
 
-import Conduit.Validation (InObj(..))
+import Conduit.Utils (InObj(..))
 import Data.Aeson (ToJSON(..), object, (.=))
 import Data.Aeson.Types (Value)
 

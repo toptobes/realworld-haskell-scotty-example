@@ -65,7 +65,6 @@ library
           Conduit.Identity.JWT
           Conduit.Identity.Password
           Conduit.Utils
-          Conduit.Val
           Conduit.Validation
     other-modules:
           Paths_realworld_hs

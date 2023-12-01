@@ -80,7 +80,7 @@ mapMaybeDBResult err f dbResult = do
 mapDBError :: (FeatureError e) => Either DBError a -> Either e a
 mapDBError = first handleDBError
 
--- | Maps the error of a potentially errored SQL query/stmt & ensures that the result is > 0.
+-- | Maps the error of a potentially errored SQL query/stmt & Assurances that the result is > 0.
 --   Intended for use with something like Esqueleto's @insertCount@ or @deleteCount@.
 expectDBNonZero :: (FeatureError e, Num cnt, Ord cnt) => e -> Either DBError cnt -> Either e ()
 expectDBNonZero err dbResult = do

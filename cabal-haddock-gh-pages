@@ -1,0 +1,28 @@
+#!/bin/bash -e
+
+git checkout master
+stash_count_before=$(git stash list | wc -l)
+git stash
+
+echo ">>> Building Haddock for realworld-hs"
+
+doc_root=$(cabal v2-haddock --haddock-html-location='https://hackage.haskell.org/package/$pkg-$version/docs' --haddock-hyperlink-source --haddock-quickjump --jobs=4 -O0 | tail -n1)
+du -h "$doc_root"
+
+rm -rf /tmp/rwhsws-haddock/
+mkdir /tmp/rwhsws-haddock/
+cp -r "$doc_root"* /tmp/rwhsws-haddock/
+
+git branch -D gh-pages || echo "gh-pages branch didn't exist"
+git checkout --orphan gh-pages
+rm -rf -- *
+mv /tmp/rwhsws-haddock/* .
+
+git add .
+git commit -m "Automatic Haddock commit"
+git push -f -u origin gh-pages
+
+git checkout master
+if [ "$(git stash list | wc -l)" -gt "$stash_count_before" ]; then
+    git stash pop
+fi
