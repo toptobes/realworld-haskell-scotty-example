@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Common.FindProfileByID</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapMaybeDBResult"><span class="hs-identifier">mapMaybeDBResult</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Utils.html"><span class="hs-identifier">Conduit.DB.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-identifier">suchThat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Errors.html"><span class="hs-identifier">Conduit.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureErrorMapper"><span class="hs-identifier">FeatureErrorMapper</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.QueryUserFollows.html"><span class="hs-identifier">Conduit.Features.Account.Common.QueryUserFollows</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.QueryUserFollows.html#queryIfUserFollows"><span class="hs-identifier">queryIfUserFollows</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#mkProfile"><span class="hs-identifier">mkProfile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier">UserProfile</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">from</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">selectOne</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">table</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">valkey</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span id="local-6989586621679287178"><span id="local-6989586621679287180"><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserProfileByID"><span class="hs-identifier hs-type">findUserProfileByID</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureErrorMapper"><span class="hs-identifier hs-type">FeatureErrorMapper</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287178"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#AcquireProfile"><span class="hs-identifier hs-type">AcquireProfile</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287180"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287180"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679287178"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-17"></span><span id="findUserProfileByID"><span class="annot"><span class="annottext">findUserProfileByID :: forall e (m :: * -&gt; *).
+(FeatureErrorMapper AccountError e, AcquireProfile m) =&gt;
+UserID -&gt; Maybe UserID -&gt; m (Either e UserProfile)
+</span><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserProfileByID"><span class="hs-identifier hs-var hs-var">findUserProfileByID</span></a></span></span><span> </span><span id="local-6989586621679287287"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287287"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span id="local-6989586621679287288"><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679287288"><span class="hs-identifier hs-var">currUser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(AccountError -&gt; e)
+-&gt; Either AccountError UserProfile -&gt; Either e UserProfile
+forall a b c. (a -&gt; b) -&gt; Either a c -&gt; Either b c
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-identifier hs-var">first</span></span><span> </span><span class="annot"><span class="annottext">AccountError -&gt; e
+forall e1 e2. FeatureErrorMapper e1 e2 =&gt; e1 -&gt; e2
+</span><a href="Conduit.Errors.html#mapFeatureError"><span class="hs-identifier hs-var">mapFeatureError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either AccountError UserProfile -&gt; Either e UserProfile)
+-&gt; m (Either AccountError UserProfile) -&gt; m (Either e UserProfile)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID -&gt; m (Either AccountError UserProfile)
+forall (m :: * -&gt; *).
+AcquireProfile m =&gt;
+UserID -&gt; Maybe UserID -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserByID"><span class="hs-identifier hs-var">findUserByID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287287"><span class="hs-identifier hs-var">user</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679287288"><span class="hs-identifier hs-var">currUser</span></a></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287189"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="AcquireProfile"><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#AcquireProfile"><span class="hs-identifier hs-var">AcquireProfile</span></a></span></span><span> </span><span id="local-6989586621679287189"><span class="annot"><a href="#local-6989586621679287189"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-20"></span><span>  </span><span id="findUserByID"><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserByID"><span class="hs-identifier hs-type">findUserByID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287189"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679287204"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287204"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679287204"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287204"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#AcquireProfile"><span class="hs-identifier hs-type">AcquireProfile</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287204"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserByID"><span class="hs-identifier hs-type">findUserByID</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287204"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span>  </span><span id="local-6989586621679287348"><span class="annot"><span class="annottext">findUserByID :: UserID -&gt; Maybe UserID -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Common.FindProfileByID.html#findUserByID"><span class="hs-identifier hs-var hs-var hs-var hs-var">findUserByID</span></a></span></span><span> </span><span id="local-6989586621679287349"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287349"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span id="local-6989586621679287350"><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679287350"><span class="hs-identifier hs-var">currUserID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AccountError
+-&gt; ((Entity User, Value Bool) -&gt; UserProfile)
+-&gt; Either DBError (Maybe (Entity User, Value Bool))
+-&gt; Either AccountError UserProfile
+forall e a b.
+FeatureError e =&gt;
+e -&gt; (a -&gt; b) -&gt; Either DBError (Maybe a) -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapMaybeDBResult"><span class="hs-identifier hs-var">mapMaybeDBResult</span></a></span><span> </span><span class="annot"><span class="annottext">AccountError
+</span><a href="Conduit.Features.Account.Errors.html#UserNotFoundEx"><span class="hs-identifier hs-var">UserNotFoundEx</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Entity User -&gt; Value Bool -&gt; UserProfile)
+-&gt; (Entity User, Value Bool) -&gt; UserProfile
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">Entity User -&gt; Value Bool -&gt; UserProfile
+</span><a href="Conduit.Features.Account.DB.html#mkProfile"><span class="hs-identifier hs-var">mkProfile</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either DBError (Maybe (Entity User, Value Bool))
+ -&gt; Either AccountError UserProfile)
+-&gt; m (Either DBError (Maybe (Entity User, Value Bool)))
+-&gt; m (Either AccountError UserProfile)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m (Maybe (Entity User, Value Bool))
+-&gt; m (Either DBError (Maybe (Entity User, Value Bool)))
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>    </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User), SqlExpr (Value Bool))
+-&gt; SqlPersistT m (Maybe (Entity User, Value Bool))
+forall a r (m :: * -&gt; *) backend.
+(SqlSelect a r, MonadIO m, SqlBackendCanRead backend) =&gt;
+SqlQuery a -&gt; ReaderT backend m (Maybe r)
+</span><span class="hs-identifier hs-var">selectOne</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Entity User), SqlExpr (Value Bool))
+ -&gt; SqlPersistT m (Maybe (Entity User, Value Bool)))
+-&gt; SqlQuery (SqlExpr (Entity User), SqlExpr (Value Bool))
+-&gt; SqlPersistT m (Maybe (Entity User, Value Bool))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-26"></span><span>      </span><span id="local-6989586621679287354"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679287354"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity User)) -&gt; SqlQuery (SqlExpr (Entity User))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity User))
+forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User))
+-&gt; (SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity User))
+forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-var">`suchThat`</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679287355"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679287355"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679287355"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key User))
+-&gt; SqlExpr (Value (Key User)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; SqlExpr (Value (Key User))
+forall entity.
+(ToBackendKey SqlBackend entity, PersistField (Key entity)) =&gt;
+Int64 -&gt; SqlExpr (Value (Key entity))
+</span><span class="hs-identifier hs-var">valkey</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287349"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679287356"><span class="annot"><span class="annottext">follows :: SqlExpr (Value Bool)
+</span><a href="#local-6989586621679287356"><span class="hs-identifier hs-var hs-var">follows</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User) -&gt; Maybe UserID -&gt; SqlExpr (Value Bool)
+forall a.
+ComparableUserEntity a =&gt;
+SqlExpr a -&gt; Maybe UserID -&gt; SqlExpr (Value Bool)
+</span><a href="Conduit.Features.Account.Common.QueryUserFollows.html#queryIfUserFollows"><span class="hs-identifier hs-var">queryIfUserFollows</span></a></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679287354"><span class="hs-identifier hs-var">u</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679287350"><span class="hs-identifier hs-var">currUserID</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span>      </span><span class="annot"><span class="annottext">(SqlExpr (Entity User), SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity User), SqlExpr (Value Bool))
+forall a. a -&gt; SqlQuery a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679287354"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679287356"><span class="hs-identifier hs-var">follows</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span></pre></body></html>

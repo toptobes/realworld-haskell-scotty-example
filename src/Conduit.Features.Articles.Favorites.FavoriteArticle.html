@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Favorites.FavoriteArticle</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier">id2sqlKey</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier">mapDBError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html"><span class="hs-identifier">Conduit.Features.Account.Common.FindProfileByID</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#AcquireProfile"><span class="hs-identifier">AcquireProfile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.GetArticle.html"><span class="hs-identifier">Conduit.Features.Articles.Articles.GetArticle</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Articles.GetArticle.html#AquireArticle"><span class="hs-identifier">AquireArticle</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.GetArticle.html#getArticle"><span class="hs-identifier">getArticle</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier">Favorite</span></a></span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier">Favorite</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html"><span class="hs-identifier">Conduit.Features.Articles.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier">ArticleError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html"><span class="hs-identifier">Conduit.Features.Articles.Slugs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier">extractIDFromSlug</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html"><span class="hs-identifier">Conduit.Features.Articles.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier">ArticleID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier">OneArticle</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier">Slug</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#inArticleObj"><span class="hs-identifier">inArticleObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier">AuthedUser</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">insert_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParam</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">post</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#handleArticleFavorite"><span class="hs-identifier hs-type">handleArticleFavorite</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span id="handleArticleFavorite"><span class="annot"><span class="annottext">handleArticleFavorite :: ScottyT AppM ()
+</span><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#handleArticleFavorite"><span class="hs-identifier hs-var hs-var">handleArticleFavorite</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">post</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/articles/:slug/favorite&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679288078"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679288078"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-21"></span><span>  </span><span id="local-6989586621679288079"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679288079"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT AppM Text
+forall a (m :: * -&gt; *).
+(Parsable a, Monad m) =&gt;
+Text -&gt; ActionT m a
+</span><span class="hs-identifier hs-var">captureParam</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;slug&quot;</span></span><span> </span><span class="annot"><span class="annottext">ActionT AppM Text -&gt; (Text -&gt; Slug) -&gt; ActionT AppM Slug
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Slug
+</span><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679288082"><span class="annot"><span class="annottext">OneArticle
+</span><a href="#local-6989586621679288082"><span class="hs-identifier hs-var">article</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either ArticleError OneArticle) -&gt; ActionT AppM OneArticle
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either ArticleError OneArticle) -&gt; ActionT AppM OneArticle)
+-&gt; AppM (Either ArticleError OneArticle) -&gt; ActionT AppM OneArticle
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; UserID -&gt; AppM (Either ArticleError OneArticle)
+forall (m :: * -&gt; *).
+(CreateFavorite m, AquireArticle m, AcquireProfile m) =&gt;
+Slug -&gt; UserID -&gt; m (Either ArticleError OneArticle)
+</span><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#favoriteArticle"><span class="hs-identifier hs-var">favoriteArticle</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679288079"><span class="hs-identifier hs-var">slug</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679288078"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="annottext">InObj OneArticle -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">(InObj OneArticle -&gt; ActionT AppM ())
+-&gt; InObj OneArticle -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">OneArticle -&gt; InObj OneArticle
+forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inArticleObj"><span class="hs-identifier hs-var">inArticleObj</span></a></span><span> </span><span class="annot"><span class="annottext">OneArticle
+</span><a href="#local-6989586621679288082"><span class="hs-identifier hs-var">article</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span id="local-6989586621679287967"><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#favoriteArticle"><span class="hs-identifier hs-type">favoriteArticle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#CreateFavorite"><span class="hs-identifier hs-type">CreateFavorite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287967"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.GetArticle.html#AquireArticle"><span class="hs-identifier hs-type">AquireArticle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287967"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindProfileByID.html#AcquireProfile"><span class="hs-identifier hs-type">AcquireProfile</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287967"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287967"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-type">OneArticle</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-26"></span><span id="favoriteArticle"><span class="annot"><span class="annottext">favoriteArticle :: forall (m :: * -&gt; *).
+(CreateFavorite m, AquireArticle m, AcquireProfile m) =&gt;
+Slug -&gt; UserID -&gt; m (Either ArticleError OneArticle)
+</span><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#favoriteArticle"><span class="hs-identifier hs-var hs-var">favoriteArticle</span></a></span></span><span> </span><span id="local-6989586621679288098"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679288098"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span id="local-6989586621679288099"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679288099"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT ArticleError m OneArticle
+-&gt; m (Either ArticleError OneArticle)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679288101"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679288101"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError ArticleID)
+-&gt; ExceptT ArticleError m ArticleID
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ArticleID)
+ -&gt; ExceptT ArticleError m ArticleID)
+-&gt; (Either ArticleError ArticleID
+    -&gt; m (Either ArticleError ArticleID))
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either ArticleError ArticleID -&gt; m (Either ArticleError ArticleID)
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either ArticleError ArticleID -&gt; ExceptT ArticleError m ArticleID)
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; Either ArticleError ArticleID
+</span><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier hs-var">extractIDFromSlug</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679288098"><span class="hs-identifier hs-var">slug</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">m (Either ArticleError ()) -&gt; ExceptT ArticleError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ()) -&gt; ExceptT ArticleError m ())
+-&gt; m (Either ArticleError ()) -&gt; ExceptT ArticleError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+forall (m :: * -&gt; *).
+CreateFavorite m =&gt;
+ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#addFavorite"><span class="hs-identifier hs-var">addFavorite</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679288101"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679288099"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><span class="annottext">m (Either ArticleError OneArticle)
+-&gt; ExceptT ArticleError m OneArticle
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError OneArticle)
+ -&gt; ExceptT ArticleError m OneArticle)
+-&gt; m (Either ArticleError OneArticle)
+-&gt; ExceptT ArticleError m OneArticle
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; Maybe UserID -&gt; m (Either ArticleError OneArticle)
+forall (m :: * -&gt; *).
+(AquireArticle m, AcquireProfile m) =&gt;
+Slug -&gt; Maybe UserID -&gt; m (Either ArticleError OneArticle)
+</span><a href="Conduit.Features.Articles.Articles.GetArticle.html#getArticle"><span class="hs-identifier hs-var">getArticle</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679288098"><span class="hs-identifier hs-var">slug</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679288099"><span class="hs-identifier hs-var">userID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287976"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="CreateFavorite"><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#CreateFavorite"><span class="hs-identifier hs-var">CreateFavorite</span></a></span></span><span> </span><span id="local-6989586621679287976"><span class="annot"><a href="#local-6989586621679287976"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="addFavorite"><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#addFavorite"><span class="hs-identifier hs-type">addFavorite</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287976"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679287951"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679287951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#CreateFavorite"><span class="hs-identifier hs-type">CreateFavorite</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287951"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#addFavorite"><span class="hs-identifier hs-type">addFavorite</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287951"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679288134"><span class="annot"><span class="annottext">addFavorite :: ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Favorites.FavoriteArticle.html#addFavorite"><span class="hs-identifier hs-var hs-var hs-var hs-var">addFavorite</span></a></span></span><span> </span><span id="local-6989586621679288135"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679288135"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span id="local-6989586621679288136"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679288136"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either DBError () -&gt; Either ArticleError ()
+forall e a. FeatureError e =&gt; Either DBError a -&gt; Either e a
+</span><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier hs-var">mapDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError () -&gt; Either ArticleError ())
+-&gt; m (Either DBError ()) -&gt; m (Either ArticleError ())
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m () -&gt; m (Either DBError ())
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">Favorite -&gt; SqlPersistT m ()
+forall backend record (m :: * -&gt; *).
+(PersistStoreWrite backend, MonadIO m,
+ PersistRecordBackend record backend, SafeToInsert record) =&gt;
+record -&gt; ReaderT backend m ()
+forall record (m :: * -&gt; *).
+(MonadIO m, PersistRecordBackend record SqlBackend,
+ SafeToInsert record) =&gt;
+record -&gt; ReaderT SqlBackend m ()
+</span><span class="hs-identifier hs-var">insert_</span></span><span> </span><span class="annot"><span class="annottext">(Favorite -&gt; SqlPersistT m ()) -&gt; Favorite -&gt; SqlPersistT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserId -&gt; ArticleId -&gt; Favorite
+</span><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier hs-var">Favorite</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; UserId
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679288136"><span class="hs-identifier hs-var">userID</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ArticleID -&gt; ArticleId
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679288135"><span class="hs-identifier hs-var">articleID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span></pre></body></html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Follows.FollowUser</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier">id2sqlKey</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier">mapDBError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#Follow"><span class="hs-identifier">Follow</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier">UserProfile</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier">inProfileObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html"><span class="hs-identifier">Conduit.Features.Account.User.GetProfile</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html#AcquireProfile"><span class="hs-identifier">AcquireProfile</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier">AuthedUser</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">insert_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParam</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">post</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#handleUserFollow"><span class="hs-identifier hs-type">handleUserFollow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span id="handleUserFollow"><span class="annot"><span class="annottext">handleUserFollow :: ScottyT AppM ()
+</span><a href="Conduit.Features.Account.Follows.FollowUser.html#handleUserFollow"><span class="hs-identifier hs-var hs-var">handleUserFollow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">post</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/profiles/:username/follow&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679287115"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679287115"><span class="hs-identifier hs-var">follower</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679287116"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679287116"><span class="hs-identifier hs-var">followed</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT AppM Text
+forall a (m :: * -&gt; *).
+(Parsable a, Monad m) =&gt;
+Text -&gt; ActionT m a
+</span><span class="hs-identifier hs-var">captureParam</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;username&quot;</span></span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679287117"><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679287117"><span class="hs-identifier hs-var">profile</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either AccountError UserProfile) -&gt; ActionT AppM UserProfile
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either AccountError UserProfile)
+ -&gt; ActionT AppM UserProfile)
+-&gt; AppM (Either AccountError UserProfile)
+-&gt; ActionT AppM UserProfile
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; Text -&gt; AppM (Either AccountError UserProfile)
+forall (m :: * -&gt; *).
+(AcquireProfile m, CreateFollow m) =&gt;
+UserID -&gt; Text -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Follows.FollowUser.html#followUser"><span class="hs-identifier hs-var">followUser</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679287115"><span class="hs-identifier hs-var">follower</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679287116"><span class="hs-identifier hs-var">followed</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="annottext">InObj UserProfile -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">(InObj UserProfile -&gt; ActionT AppM ())
+-&gt; InObj UserProfile -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserProfile -&gt; InObj UserProfile
+forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier hs-var">inProfileObj</span></a></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679287117"><span class="hs-identifier hs-var">profile</span></a></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span id="local-6989586621679287018"><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#followUser"><span class="hs-identifier hs-type">followUser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html#AcquireProfile"><span class="hs-identifier hs-type">AcquireProfile</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287018"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#CreateFollow"><span class="hs-identifier hs-type">CreateFollow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287018"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287018"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-23"></span><span id="followUser"><span class="annot"><span class="annottext">followUser :: forall (m :: * -&gt; *).
+(AcquireProfile m, CreateFollow m) =&gt;
+UserID -&gt; Text -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Follows.FollowUser.html#followUser"><span class="hs-identifier hs-var hs-var">followUser</span></a></span></span><span> </span><span id="local-6989586621679287134"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287134"><span class="hs-identifier hs-var">followerID</span></a></span></span><span> </span><span id="local-6989586621679287135"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679287135"><span class="hs-identifier hs-var">followedName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT AccountError m UserProfile
+-&gt; m (Either AccountError UserProfile)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679287137"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287137"><span class="hs-identifier hs-var">followedID</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679287138"><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679287138"><span class="hs-identifier hs-var">followedProfile</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either AccountError (UserID, UserProfile))
+-&gt; ExceptT AccountError m (UserID, UserProfile)
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError (UserID, UserProfile))
+ -&gt; ExceptT AccountError m (UserID, UserProfile))
+-&gt; m (Either AccountError (UserID, UserProfile))
+-&gt; ExceptT AccountError m (UserID, UserProfile)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; Maybe UserID -&gt; m (Either AccountError (UserID, UserProfile))
+forall (m :: * -&gt; *).
+AcquireProfile m =&gt;
+Text
+-&gt; Maybe UserID -&gt; m (Either AccountError (UserID, UserProfile))
+</span><a href="Conduit.Features.Account.User.GetProfile.html#findUserByName"><span class="hs-identifier hs-var">findUserByName</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679287135"><span class="hs-identifier hs-var">followedName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287134"><span class="hs-identifier hs-var">followerID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="annottext">m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError ()) -&gt; ExceptT AccountError m ())
+-&gt; m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; UserID -&gt; m (Either AccountError ())
+forall (m :: * -&gt; *).
+CreateFollow m =&gt;
+UserID -&gt; UserID -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Follows.FollowUser.html#addFollow"><span class="hs-identifier hs-var">addFollow</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287134"><span class="hs-identifier hs-var">followerID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679287137"><span class="hs-identifier hs-var">followedID</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">UserProfile -&gt; ExceptT AccountError m UserProfile
+forall a. a -&gt; ExceptT AccountError m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679287138"><span class="hs-identifier hs-var">followedProfile</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:followed:UserProfile :: Bool
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Afollowed%3AUserProfile"><span class="hs-identifier hs-var">followed</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287038"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="CreateFollow"><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#CreateFollow"><span class="hs-identifier hs-var">CreateFollow</span></a></span></span><span> </span><span id="local-6989586621679287038"><span class="annot"><a href="#local-6989586621679287038"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-33"></span><span>  </span><span id="addFollow"><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#addFollow"><span class="hs-identifier hs-type">addFollow</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287038"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679287006"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679287006"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287006"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679287006"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#CreateFollow"><span class="hs-identifier hs-type">CreateFollow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679287006"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><a href="Conduit.Features.Account.Follows.FollowUser.html#addFollow"><span class="hs-identifier hs-type">addFollow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679287006"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679287171"><span class="annot"><span class="annottext">addFollow :: UserID -&gt; UserID -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Follows.FollowUser.html#addFollow"><span class="hs-identifier hs-var hs-var hs-var hs-var">addFollow</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Key User
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679287172"><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679287172"><span class="hs-identifier hs-var">follower</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Key User
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679287173"><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679287173"><span class="hs-identifier hs-var">followed</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either DBError () -&gt; Either AccountError ()
+forall e a. FeatureError e =&gt; Either DBError a -&gt; Either e a
+</span><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier hs-var">mapDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError () -&gt; Either AccountError ())
+-&gt; m (Either DBError ()) -&gt; m (Either AccountError ())
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m () -&gt; m (Either DBError ())
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>    </span><span class="annot"><span class="annottext">Follow -&gt; SqlPersistT m ()
+forall backend record (m :: * -&gt; *).
+(PersistStoreWrite backend, MonadIO m,
+ PersistRecordBackend record backend, SafeToInsert record) =&gt;
+record -&gt; ReaderT backend m ()
+forall record (m :: * -&gt; *).
+(MonadIO m, PersistRecordBackend record SqlBackend,
+ SafeToInsert record) =&gt;
+record -&gt; ReaderT SqlBackend m ()
+</span><span class="hs-identifier hs-var">insert_</span></span><span> </span><span class="annot"><span class="annottext">(Follow -&gt; SqlPersistT m ()) -&gt; Follow -&gt; SqlPersistT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Key User -&gt; Key User -&gt; Follow
+</span><a href="Conduit.Features.Account.DB.html#Follow"><span class="hs-identifier hs-var">Follow</span></a></span><span> </span><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679287172"><span class="hs-identifier hs-var">follower</span></a></span><span> </span><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679287173"><span class="hs-identifier hs-var">followed</span></a></span><span>
+</span><span id="line-39"></span></pre></body></html>

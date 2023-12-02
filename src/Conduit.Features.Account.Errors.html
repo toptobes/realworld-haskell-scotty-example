@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Errors</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier">DBError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Errors.html"><span class="hs-identifier">Conduit.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier">FeatureError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Validation.html"><span class="hs-identifier">Conduit.Validation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Validation.html#ValErrs"><span class="hs-identifier">ValErrs</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status403</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status404</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status422</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status500</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ActionT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">data</span><span> </span><span id="AccountError"><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-var">AccountError</span></a></span></span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="UserNotFoundEx"><span class="annot"><a href="Conduit.Features.Account.Errors.html#UserNotFoundEx"><span class="hs-identifier hs-var">UserNotFoundEx</span></a></span></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="CredsTaken"><span class="annot"><a href="Conduit.Features.Account.Errors.html#CredsTaken"><span class="hs-identifier hs-var">CredsTaken</span></a></span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="BadLoginCredsEx"><span class="annot"><a href="Conduit.Features.Account.Errors.html#BadLoginCredsEx"><span class="hs-identifier hs-var">BadLoginCredsEx</span></a></span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="SomeDBEx"><span class="annot"><a href="Conduit.Features.Account.Errors.html#SomeDBEx"><span class="hs-identifier hs-var">SomeDBEx</span></a></span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679283458"><span id="local-6989586621679283468"><span id="local-6989586621679283472"><span class="annot"><span class="annottext">Int -&gt; AccountError -&gt; ShowS
+[AccountError] -&gt; ShowS
+AccountError -&gt; String
+(Int -&gt; AccountError -&gt; ShowS)
+-&gt; (AccountError -&gt; String)
+-&gt; ([AccountError] -&gt; ShowS)
+-&gt; Show AccountError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; AccountError -&gt; ShowS
+showsPrec :: Int -&gt; AccountError -&gt; ShowS
+$cshow :: AccountError -&gt; String
+show :: AccountError -&gt; String
+$cshowList :: [AccountError] -&gt; ShowS
+showList :: [AccountError] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679283477"><span id="local-6989586621679283483"><span class="annot"><span class="annottext">AccountError -&gt; AccountError -&gt; Bool
+(AccountError -&gt; AccountError -&gt; Bool)
+-&gt; (AccountError -&gt; AccountError -&gt; Bool) -&gt; Eq AccountError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: AccountError -&gt; AccountError -&gt; Bool
+== :: AccountError -&gt; AccountError -&gt; Bool
+$c/= :: AccountError -&gt; AccountError -&gt; Bool
+/= :: AccountError -&gt; AccountError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-17"></span><span>  </span><span id="local-6989586621679283493"><span class="annot"><span class="annottext">handleFeatureError :: forall (m :: * -&gt; *). MonadIO m =&gt; AccountError -&gt; ActionT m ()
+</span><a href="#local-6989586621679283493"><span class="hs-identifier hs-var hs-var hs-var hs-var">handleFeatureError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AccountError -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; AccountError -&gt; ActionT m ()
+</span><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679283496"><span class="annot"><span class="annottext">handleDBError :: DBError -&gt; AccountError
+</span><a href="#local-6989586621679283496"><span class="hs-identifier hs-var hs-var hs-var hs-var">handleDBError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span id="local-6989586621679283499"><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-type">handleFeatureError'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679283499"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679283499"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-21"></span><span id="handleFeatureError%27"><span class="annot"><span class="annottext">handleFeatureError' :: forall (m :: * -&gt; *). MonadIO m =&gt; AccountError -&gt; ActionT m ()
+</span><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var hs-var">handleFeatureError'</span></a></span></span><span> </span><span class="annot"><span class="annottext">AccountError
+</span><a href="Conduit.Features.Account.Errors.html#UserNotFoundEx"><span class="hs-identifier hs-var">UserNotFoundEx</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status404</span></span><span>
+</span><span id="line-22"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#CredsTaken"><span class="hs-identifier hs-type">CredsTaken</span></a></span><span> </span><span id="local-6989586621679283524"><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679283524"><span class="hs-identifier hs-var">cs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status422</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ValErrs -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Text, Text)] -&gt; ValErrs
+</span><a href="Conduit.Validation.html#ValErrs"><span class="hs-identifier hs-var">ValErrs</span></a></span><span> </span><span class="annot"><span class="annottext">([(Text, Text)] -&gt; ValErrs) -&gt; [(Text, Text)] -&gt; ValErrs
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679283524"><span class="hs-identifier hs-var">cs</span></a></span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; (Text -&gt; (Text, Text)) -&gt; [(Text, Text)]
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">,</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;has already been taken&quot;</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="annot"><span class="annottext">AccountError
+</span><a href="Conduit.Features.Account.Errors.html#BadLoginCredsEx"><span class="hs-identifier hs-var">BadLoginCredsEx</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status403</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ValErrs -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Text, Text)] -&gt; ValErrs
+</span><a href="Conduit.Validation.html#ValErrs"><span class="hs-identifier hs-var">ValErrs</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;email or password&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;is invalid&quot;</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-24"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#SomeDBEx"><span class="hs-identifier hs-type">SomeDBEx</span></a></span><span> </span><span id="local-6989586621679283527"><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283527"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (MonadIO m, Show a) =&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">print</span></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283527"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status500</span></span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-type">handleDBErr'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span>
+</span><span id="line-27"></span><span id="handleDBErr%27"><span class="annot"><span class="annottext">handleDBErr' :: DBError -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var hs-var">handleDBErr'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-type">UniquenessError</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;username&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#CredsTaken"><span class="hs-identifier hs-var">CredsTaken</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;username&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-28"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-type">UniquenessError</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;email&quot;</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#CredsTaken"><span class="hs-identifier hs-var">CredsTaken</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;email&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-type">UniquenessError</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; AccountError
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;should never happen; no other uniqueness constraints exist&quot;</span></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Conduit.Features.Account.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span id="local-6989586621679283531"><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283531"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#SomeDBEx"><span class="hs-identifier hs-var">SomeDBEx</span></a></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283531"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-31"></span></pre></body></html>

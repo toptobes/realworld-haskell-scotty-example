@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Types</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier">InObj</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">object</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.=)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">newtype</span><span> </span><span id="UserID"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-var">UserID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UserID"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-var">UserID</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunID%3AUserID"><span class="annot"><span class="annottext">UserID -&gt; Int64
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3AunID%3AUserID"><span class="hs-identifier hs-var hs-var">unID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int64</span></span><span> </span><span class="hs-special">}</span><span> </span><span>
+</span><span id="line-8"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679276556"><span id="local-6989586621679276561"><span id="local-6989586621679276565"><span class="annot"><span class="annottext">Int -&gt; UserID -&gt; ShowS
+[UserID] -&gt; ShowS
+UserID -&gt; String
+(Int -&gt; UserID -&gt; ShowS)
+-&gt; (UserID -&gt; String) -&gt; ([UserID] -&gt; ShowS) -&gt; Show UserID
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; UserID -&gt; ShowS
+showsPrec :: Int -&gt; UserID -&gt; ShowS
+$cshow :: UserID -&gt; String
+show :: UserID -&gt; String
+$cshowList :: [UserID] -&gt; ShowS
+showList :: [UserID] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679276571"><span id="local-6989586621679276576"><span id="local-6989586621679276580"><span id="local-6989586621679276584"><span class="annot"><span class="annottext">ReadPrec [UserID]
+ReadPrec UserID
+Int -&gt; ReadS UserID
+ReadS [UserID]
+(Int -&gt; ReadS UserID)
+-&gt; ReadS [UserID]
+-&gt; ReadPrec UserID
+-&gt; ReadPrec [UserID]
+-&gt; Read UserID
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS UserID
+readsPrec :: Int -&gt; ReadS UserID
+$creadList :: ReadS [UserID]
+readList :: ReadS [UserID]
+$creadPrec :: ReadPrec UserID
+readPrec :: ReadPrec UserID
+$creadListPrec :: ReadPrec [UserID]
+readListPrec :: ReadPrec [UserID]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679276590"><span id="local-6989586621679276595"><span class="annot"><span class="annottext">UserID -&gt; UserID -&gt; Bool
+(UserID -&gt; UserID -&gt; Bool)
+-&gt; (UserID -&gt; UserID -&gt; Bool) -&gt; Eq UserID
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: UserID -&gt; UserID -&gt; Bool
+== :: UserID -&gt; UserID -&gt; Bool
+$c/= :: UserID -&gt; UserID -&gt; Bool
+/= :: UserID -&gt; UserID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679276601"><span id="local-6989586621679276606"><span id="local-6989586621679276610"><span id="local-6989586621679276614"><span id="local-6989586621679276618"><span class="annot"><span class="annottext">[UserID] -&gt; Value
+[UserID] -&gt; Encoding
+UserID -&gt; Bool
+UserID -&gt; Value
+UserID -&gt; Encoding
+(UserID -&gt; Value)
+-&gt; (UserID -&gt; Encoding)
+-&gt; ([UserID] -&gt; Value)
+-&gt; ([UserID] -&gt; Encoding)
+-&gt; (UserID -&gt; Bool)
+-&gt; ToJSON UserID
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (a -&gt; Bool)
+-&gt; ToJSON a
+$ctoJSON :: UserID -&gt; Value
+toJSON :: UserID -&gt; Value
+$ctoEncoding :: UserID -&gt; Encoding
+toEncoding :: UserID -&gt; Encoding
+$ctoJSONList :: [UserID] -&gt; Value
+toJSONList :: [UserID] -&gt; Value
+$ctoEncodingList :: [UserID] -&gt; Encoding
+toEncodingList :: [UserID] -&gt; Encoding
+$comitField :: UserID -&gt; Bool
+omitField :: UserID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-keyword">data</span><span> </span><span id="UserAuth"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-var">UserAuth</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UserAuth"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-var">UserAuth</span></a></span></span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aemail%3AUserAuth"><span class="annot"><span class="annottext">UserAuth -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aemail%3AUserAuth"><span class="hs-identifier hs-var hs-var">email</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aname%3AUserAuth"><span class="annot"><span class="annottext">UserAuth -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aname%3AUserAuth"><span class="hs-identifier hs-var hs-var">name</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Atoken%3AUserAuth"><span class="annot"><span class="annottext">UserAuth -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Atoken%3AUserAuth"><span class="hs-identifier hs-var hs-var">token</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Abio%3AUserAuth"><span class="annot"><span class="annottext">UserAuth -&gt; Maybe Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Abio%3AUserAuth"><span class="hs-identifier hs-var hs-var">bio</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aimage%3AUserAuth"><span class="annot"><span class="annottext">UserAuth -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aimage%3AUserAuth"><span class="hs-identifier hs-var hs-var">image</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679276630"><span id="local-6989586621679276641"><span id="local-6989586621679276645"><span class="annot"><span class="annottext">Int -&gt; UserAuth -&gt; ShowS
+[UserAuth] -&gt; ShowS
+UserAuth -&gt; String
+(Int -&gt; UserAuth -&gt; ShowS)
+-&gt; (UserAuth -&gt; String) -&gt; ([UserAuth] -&gt; ShowS) -&gt; Show UserAuth
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; UserAuth -&gt; ShowS
+showsPrec :: Int -&gt; UserAuth -&gt; ShowS
+$cshow :: UserAuth -&gt; String
+show :: UserAuth -&gt; String
+$cshowList :: [UserAuth] -&gt; ShowS
+showList :: [UserAuth] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679276649"><span id="local-6989586621679276653"><span id="local-6989586621679276656"><span id="local-6989586621679276659"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-type">UserAuth</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">toJSON</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-type">UserAuth</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span>
+</span><span id="line-20"></span><span>  </span><span id="local-6989586621679276683"><span class="annot"><span class="annottext">toJSON :: UserAuth -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-type">UserAuth</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679276684"><span id="local-6989586621679276685"><span id="local-6989586621679276686"><span id="local-6989586621679276687"><span id="local-6989586621679276688"><span class="annot"><span class="annottext">Maybe Text
+Text
+$sel:email:UserAuth :: UserAuth -&gt; Text
+$sel:name:UserAuth :: UserAuth -&gt; Text
+$sel:token:UserAuth :: UserAuth -&gt; Text
+$sel:bio:UserAuth :: UserAuth -&gt; Maybe Text
+$sel:image:UserAuth :: UserAuth -&gt; Text
+email :: Text
+name :: Text
+token :: Text
+bio :: Maybe Text
+image :: Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aemail%3AUserAuth"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Pair] -&gt; Value
+</span><span class="hs-identifier hs-var">object</span></span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;username&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276685"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-22"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;email&quot;</span></span><span>    </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276684"><span class="hs-identifier hs-var">email</span></a></span><span>
+</span><span id="line-23"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;token&quot;</span></span><span>    </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276686"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-24"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;bio&quot;</span></span><span>      </span><span class="annot"><span class="annottext">Key -&gt; Maybe Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><a href="#local-6989586621679276687"><span class="hs-identifier hs-var">bio</span></a></span><span>
+</span><span id="line-25"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;image&quot;</span></span><span>    </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276688"><span class="hs-identifier hs-var">image</span></a></span><span>
+</span><span id="line-26"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span id="local-6989586621679276545"><span class="annot"><a href="Conduit.Features.Account.Types.html#inUserObj"><span class="hs-identifier hs-type">inUserObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679276545"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276545"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-29"></span><span id="inUserObj"><span class="annot"><span class="annottext">inUserObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Account.Types.html#inUserObj"><span class="hs-identifier hs-var hs-var">inUserObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;user&quot;</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-keyword">data</span><span> </span><span id="UserProfile"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-var">UserProfile</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UserProfile"><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-var">UserProfile</span></a></span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aname%3AUserProfile"><span class="annot"><span class="annottext">UserProfile -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aname%3AUserProfile"><span class="hs-identifier hs-var hs-var">name</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Abio%3AUserProfile"><span class="annot"><span class="annottext">UserProfile -&gt; Maybe Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Abio%3AUserProfile"><span class="hs-identifier hs-var hs-var">bio</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aimage%3AUserProfile"><span class="annot"><span class="annottext">UserProfile -&gt; Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aimage%3AUserProfile"><span class="hs-identifier hs-var hs-var">image</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Afollowed%3AUserProfile"><span class="annot"><span class="annottext">UserProfile -&gt; Bool
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Afollowed%3AUserProfile"><span class="hs-identifier hs-var hs-var">followed</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679276698"><span id="local-6989586621679276706"><span id="local-6989586621679276710"><span class="annot"><span class="annottext">Int -&gt; UserProfile -&gt; ShowS
+[UserProfile] -&gt; ShowS
+UserProfile -&gt; String
+(Int -&gt; UserProfile -&gt; ShowS)
+-&gt; (UserProfile -&gt; String)
+-&gt; ([UserProfile] -&gt; ShowS)
+-&gt; Show UserProfile
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; UserProfile -&gt; ShowS
+showsPrec :: Int -&gt; UserProfile -&gt; ShowS
+$cshow :: UserProfile -&gt; String
+show :: UserProfile -&gt; String
+$cshowList :: [UserProfile] -&gt; ShowS
+showList :: [UserProfile] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679276714"><span id="local-6989586621679276718"><span id="local-6989586621679276721"><span id="local-6989586621679276724"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">toJSON</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679276741"><span class="annot"><span class="annottext">toJSON :: UserProfile -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679276742"><span id="local-6989586621679276743"><span id="local-6989586621679276744"><span id="local-6989586621679276745"><span class="annot"><span class="annottext">Bool
+Maybe Text
+Text
+$sel:name:UserProfile :: UserProfile -&gt; Text
+$sel:bio:UserProfile :: UserProfile -&gt; Maybe Text
+$sel:image:UserProfile :: UserProfile -&gt; Text
+$sel:followed:UserProfile :: UserProfile -&gt; Bool
+name :: Text
+bio :: Maybe Text
+image :: Text
+followed :: Bool
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aname%3AUserProfile"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Pair] -&gt; Value
+</span><span class="hs-identifier hs-var">object</span></span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;username&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276742"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;image&quot;</span></span><span>     </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276744"><span class="hs-identifier hs-var">image</span></a></span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;bio&quot;</span></span><span>       </span><span class="annot"><span class="annottext">Key -&gt; Maybe Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><a href="#local-6989586621679276743"><span class="hs-identifier hs-var">bio</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;following&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; Bool -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679276745"><span class="hs-identifier hs-var">followed</span></a></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span id="local-6989586621679276746"><span class="annot"><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier hs-type">inProfileObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679276746"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276746"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-48"></span><span id="inProfileObj"><span class="annot"><span class="annottext">inProfileObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier hs-var hs-var">inProfileObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;profile&quot;</span></span><span>
+</span><span id="line-49"></span></pre></body></html>

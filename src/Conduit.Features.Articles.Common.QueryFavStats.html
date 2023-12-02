@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Common.QueryFavStats</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier">id2sqlKey</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Utils.html"><span class="hs-identifier">Conduit.DB.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-identifier">suchThat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Article"><span class="hs-identifier">Article</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier">Favorite</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Entity</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SqlExpr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">exists</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">from</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">just</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">subSelectCount</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">table</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">val</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;&amp;.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="annot"><a href="Conduit.Features.Articles.Common.QueryFavStats.html#queryFavStats"><span class="hs-identifier hs-type">queryFavStats</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlExpr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Entity</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Article"><span class="hs-identifier hs-type">Article</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">SqlExpr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlExpr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span id="queryFavStats"><span class="annot"><span class="annottext">queryFavStats :: Maybe UserID
+-&gt; SqlExpr (Entity Article)
+-&gt; (SqlExpr (Value Bool), SqlExpr (Value Int))
+</span><a href="Conduit.Features.Articles.Common.QueryFavStats.html#queryFavStats"><span class="hs-identifier hs-var hs-var">queryFavStats</span></a></span></span><span> </span><span id="local-6989586621679281901"><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679281901"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span id="local-6989586621679281902"><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679281902"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679281903"><span class="hs-identifier hs-var">favorited</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Int)
+</span><a href="#local-6989586621679281904"><span class="hs-identifier hs-var">numFavs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-12"></span><span>    </span><span id="local-6989586621679281903"><span class="annot"><span class="annottext">favorited :: SqlExpr (Value Bool)
+</span><a href="#local-6989586621679281903"><span class="hs-identifier hs-var hs-var">favorited</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqlQuery () -&gt; SqlExpr (Value Bool)
+</span><span class="hs-identifier hs-var">exists</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery () -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery () -&gt; SqlExpr (Value Bool)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity Favorite)) -&gt; SqlQuery ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Entity Favorite)) -&gt; SqlQuery ())
+-&gt; SqlQuery (SqlExpr (Entity Favorite)) -&gt; SqlQuery ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity Favorite))
+-&gt; SqlQuery (SqlExpr (Entity Favorite))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier hs-type">Favorite</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>      </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity Favorite))
+-&gt; (SqlExpr (Entity Favorite) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity Favorite))
+forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-var">`suchThat`</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679281906"><span class="annot"><span class="annottext">SqlExpr (Entity Favorite)
+</span><a href="#local-6989586621679281906"><span class="hs-identifier hs-var">f'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-14"></span><span>        </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679281902"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key Article))
+-&gt; SqlExpr (Value (Key Article)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Favorite)
+</span><a href="#local-6989586621679281906"><span class="hs-identifier hs-var">f'</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">article</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+-&gt; SqlExpr (Value Bool) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">&amp;&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Value (Key User)) -&gt; SqlExpr (Value (Maybe (Key User)))
+forall typ. SqlExpr (Value typ) -&gt; SqlExpr (Value (Maybe typ))
+</span><span class="hs-identifier hs-var">just</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Favorite)
+</span><a href="#local-6989586621679281906"><span class="hs-identifier hs-var">f'</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">user</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Maybe (Key User)))
+-&gt; SqlExpr (Value (Maybe (Key User))) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Maybe (Key User) -&gt; SqlExpr (Value (Maybe (Key User)))
+forall typ. PersistField typ =&gt; typ -&gt; SqlExpr (Value typ)
+</span><span class="hs-identifier hs-var">val</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Maybe UserID
+</span><a href="#local-6989586621679281901"><span class="hs-identifier hs-var">userID</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe UserID -&gt; (UserID -&gt; Key User) -&gt; Maybe (Key User)
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; Key User
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span>    </span><span id="local-6989586621679281904"><span class="annot"><span class="annottext">numFavs :: SqlExpr (Value Int)
+</span><a href="#local-6989586621679281904"><span class="hs-identifier hs-var hs-var">numFavs</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall a ignored.
+(Num a, PersistField a) =&gt;
+SqlQuery ignored -&gt; SqlExpr (Value a)
+</span><span class="hs-identifier hs-var">subSelectCount</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Entity Favorite)) -&gt; SqlExpr (Value Int))
+-&gt; SqlQuery (SqlExpr (Entity Favorite)) -&gt; SqlExpr (Value Int)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity Favorite))
+-&gt; SqlQuery (SqlExpr (Entity Favorite))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Favorite"><span class="hs-identifier hs-type">Favorite</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span>      </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity Favorite))
+-&gt; (SqlExpr (Entity Favorite) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity Favorite))
+forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-var">`suchThat`</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679281908"><span class="annot"><span class="annottext">SqlExpr (Entity Favorite)
+</span><a href="#local-6989586621679281908"><span class="hs-identifier hs-var">f'</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-18"></span><span>        </span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679281902"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key Article))
+-&gt; SqlExpr (Value (Key Article)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Favorite)
+</span><a href="#local-6989586621679281908"><span class="hs-identifier hs-var">f'</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">article</span><span>
+</span><span id="line-19"></span></pre></body></html>

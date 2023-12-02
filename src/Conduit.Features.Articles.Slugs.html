@@ -1,0 +1,117 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Slugs</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier">extractIDFromSlug</span></a></span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#mkNoIDSlug"><span class="hs-identifier">mkNoIDSlug</span></a></span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#mkSlug"><span class="hs-identifier">mkSlug</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html"><span class="hs-identifier">Conduit.Features.Articles.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html"><span class="hs-identifier">Conduit.Features.Articles.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier">ArticleID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier">NoIDSlug</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier">Slug</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Char</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">isAlphaNum</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">isSpace</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">T</span></span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="annot"><span class="hs-comment">-- | Creates a Slug where a slug is &quot;&lt;articleID&gt;-&lt;slugifiedTitle&gt;&quot;. Depends on a formerly built 'NoIDSlug'.</span></span><span>
+</span><span id="line-15"></span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#mkSlug"><span class="hs-identifier hs-type">mkSlug</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier hs-type">NoIDSlug</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span>
+</span><span id="line-16"></span><span id="mkSlug"><span class="annot"><span class="annottext">mkSlug :: ArticleID -&gt; NoIDSlug -&gt; Slug
+</span><a href="Conduit.Features.Articles.Slugs.html#mkSlug"><span class="hs-identifier hs-var hs-var">mkSlug</span></a></span></span><span> </span><span id="local-6989586621679284010"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679284010"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span id="local-6989586621679284011"><span class="annot"><span class="annottext">NoIDSlug
+</span><a href="#local-6989586621679284011"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Slug
+</span><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Slug) -&gt; Text -&gt; Slug
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; Text
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679284010"><span class="hs-identifier hs-var">articleID</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;-&quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">NoIDSlug
+</span><a href="#local-6989586621679284011"><span class="hs-identifier hs-var">slug</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unSlug</span><span>
+</span><span id="line-17"></span><span>
+</span><span id="line-18"></span><span class="hs-comment">-- | Creates a NoIDSlug where the ID-less slug is the alphanumeric words of the title with the spaces becoming dashes.</span><span>
+</span><span id="line-19"></span><span class="hs-comment">--   Note that it's ID-less and only suitable as an intermediate representation.</span><span>
+</span><span id="line-20"></span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#mkNoIDSlug"><span class="hs-identifier hs-type">mkNoIDSlug</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier hs-type">NoIDSlug</span></a></span><span>
+</span><span id="line-21"></span><span id="mkNoIDSlug"><span class="annot"><span class="annottext">mkNoIDSlug :: Text -&gt; NoIDSlug
+</span><a href="Conduit.Features.Articles.Slugs.html#mkNoIDSlug"><span class="hs-identifier hs-var hs-var">mkNoIDSlug</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; NoIDSlug
+</span><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier hs-var">NoIDSlug</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; NoIDSlug) -&gt; (Text -&gt; Text) -&gt; Text -&gt; NoIDSlug
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.toLower</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (Text -&gt; Text) -&gt; Text -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Bool) -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.filter</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><a href="Conduit.Features.Articles.Slugs.html#isValidSlugChar"><span class="hs-identifier hs-var">isValidSlugChar</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; (Text -&gt; Text) -&gt; Text -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Char) -&gt; Text -&gt; Text
+</span><span class="hs-identifier hs-var">T.map</span></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char
+</span><a href="Conduit.Features.Articles.Slugs.html#space2dash"><span class="hs-identifier hs-var">space2dash</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#space2dash"><span class="hs-identifier hs-type">space2dash</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span>
+</span><span id="line-24"></span><span id="space2dash"><span class="annot"><span class="annottext">space2dash :: Char -&gt; Char
+</span><a href="Conduit.Features.Articles.Slugs.html#space2dash"><span class="hs-identifier hs-var hs-var">space2dash</span></a></span></span><span> </span><span id="local-6989586621679284020"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284020"><span class="hs-identifier hs-var">c</span></a></span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><span class="hs-identifier hs-var">isSpace</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284020"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'-'</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284020"><span class="hs-identifier hs-var">c</span></a></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#isValidSlugChar"><span class="hs-identifier hs-type">isValidSlugChar</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Char</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-29"></span><span id="isValidSlugChar"><span class="annot"><span class="annottext">isValidSlugChar :: Char -&gt; Bool
+</span><a href="Conduit.Features.Articles.Slugs.html#isValidSlugChar"><span class="hs-identifier hs-var hs-var">isValidSlugChar</span></a></span></span><span> </span><span id="local-6989586621679284021"><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284021"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Char -&gt; Bool
+</span><span class="hs-identifier hs-var">isAlphaNum</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284021"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Bool -&gt; Bool
+</span><span class="hs-operator hs-var">||</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><a href="#local-6989586621679284021"><span class="hs-identifier hs-var">c</span></a></span><span> </span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">'-'</span></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | Attempts to extract the ID from a Slug, where the slug is &quot;&lt;articleID&gt;-&lt;slugifiedTitle&gt;&quot;.</span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-33"></span><span class="hs-comment">--   The reason it's an opaque-er newtype rather than a proper invarient is just because</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--   'Slug's are allowed to be created without proper validation, with it rather being deferred</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--   to this function instead.</span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier hs-type">extractIDFromSlug</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span>
+</span><span id="line-37"></span><span id="extractIDFromSlug"><span class="annot"><span class="annottext">extractIDFromSlug :: Slug -&gt; Either ArticleError ArticleID
+</span><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier hs-var hs-var">extractIDFromSlug</span></a></span></span><span> </span><span id="local-6989586621679284023"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284023"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284023"><span class="hs-identifier hs-var">slug</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unSlug</span><span>
+</span><span id="line-38"></span><span>   </span><span class="annot"><span class="annottext">Text -&gt; (Text -&gt; [Text]) -&gt; [Text]
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">HasCallStack =&gt; Text -&gt; Text -&gt; [Text]
+Text -&gt; Text -&gt; [Text]
+</span><span class="hs-identifier hs-var">T.splitOn</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;-&quot;</span></span><span>
+</span><span id="line-39"></span><span>   </span><span class="annot"><span class="annottext">[Text] -&gt; ([Text] -&gt; Maybe Text) -&gt; Maybe Text
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">(NonEmpty Text -&gt; Text) -&gt; [Text] -&gt; Maybe Text
+forall a b. (NonEmpty a -&gt; b) -&gt; [a] -&gt; Maybe b
+</span><span class="hs-identifier hs-var">viaNonEmpty</span></span><span> </span><span class="annot"><span class="annottext">NonEmpty Text -&gt; Text
+forall (f :: * -&gt; *) a. IsNonEmpty f a a &quot;head&quot; =&gt; f a -&gt; a
+</span><span class="hs-identifier hs-var">head</span></span><span>
+</span><span id="line-40"></span><span>  </span><span class="annot"><span class="annottext">Maybe Text -&gt; (Text -&gt; String) -&gt; Maybe String
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="annottext">Maybe String -&gt; (String -&gt; Maybe ArticleID) -&gt; Maybe ArticleID
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe ArticleID
+forall a. Read a =&gt; String -&gt; Maybe a
+</span><span class="hs-identifier hs-var">readMaybe</span></span><span>
+</span><span id="line-42"></span><span>   </span><span class="annot"><span class="annottext">Maybe ArticleID
+-&gt; (Maybe ArticleID -&gt; Either ArticleError ArticleID)
+-&gt; Either ArticleError ArticleID
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">ArticleError -&gt; Maybe ArticleID -&gt; Either ArticleError ArticleID
+forall l r. l -&gt; Maybe r -&gt; Either l r
+</span><span class="hs-identifier hs-var">maybeToRight</span></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#InvalidSlugEx"><span class="hs-identifier hs-var">InvalidSlugEx</span></a></span><span>
+</span><span id="line-43"></span></pre></body></html>

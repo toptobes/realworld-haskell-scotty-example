@@ -1,0 +1,479 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE AllowAmbiguousTypes, UndecidableInstances, TemplateHaskell #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.DB.Core</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Has.html"><span class="hs-identifier">Conduit.App.Has</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier">Has</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#grab"><span class="hs-identifier">grab</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Errors.html"><span class="hs-identifier">Conduit.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier">FeatureError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#.-"><span class="hs-operator">(.-)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">stripPrefix</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ConnectionPool</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Key</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SqlPersistT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">fromSqlKey</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runSqlPool</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">toSqlKey</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.PostgreSQL.Simple</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ExecStatus</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SqlError</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Language.Haskell.TH</span></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">catch</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span>
+</span><span id="line-14"></span><span class="annot"><span class="hs-comment">-- | The 'ConnectionPool' managing the DB connections.</span></span><span>
+</span><span id="line-15"></span><span class="hs-keyword">newtype</span><span> </span><span id="DBPool"><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-var">DBPool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="DBPool"><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-var">DBPool</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunPool%3ADBPool"><span class="annot"><span class="annottext">DBPool -&gt; ConnectionPool
+</span><a href="Conduit.DB.Core.html#%24sel%3AunPool%3ADBPool"><span class="hs-identifier hs-var hs-var">unPool</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ConnectionPool</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- | Some monad which can run an Esqueleto SQL query/stmt.</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679277921"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="MonadDB"><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-var">MonadDB</span></a></span></span><span> </span><span id="local-6989586621679277921"><span class="annot"><a href="#local-6989586621679277921"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-19"></span><span>  </span><span id="runDB"><span class="annot"><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-type">runDB</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679277924"><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679277921"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277924"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277921"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277924"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679277936"><span id="local-6989586621679277937"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier hs-type">Has</span></a></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-type">DBPool</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277937"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-22"></span><span>  </span><span class="annot"><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-type">runDB</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679278137"><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278137"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277936"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278137"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-23"></span><span>  </span><span id="local-6989586621679278148"><span class="annot"><span class="annottext">runDB :: forall a. SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var hs-var hs-var hs-var">runDB</span></a></span></span><span> </span><span id="local-6989586621679278149"><span class="annot"><span class="annottext">SqlPersistT m a
+</span><a href="#local-6989586621679278149"><span class="hs-identifier hs-var">fn</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall field container (m :: * -&gt; *).
+Has field container m =&gt;
+m field
+</span><a href="Conduit.App.Has.html#grab"><span class="hs-identifier hs-var">grab</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-type">DBPool</span></a></span><span> </span><span class="annot"><span class="annottext">m DBPool -&gt; (DBPool -&gt; ConnectionPool) -&gt; m ConnectionPool
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="hs-special">(</span><span class="hs-operator">.</span><span class="hs-identifier">unPool</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">m ConnectionPool
+-&gt; (ConnectionPool -&gt; m (Either DBError a)) -&gt; m (Either DBError a)
+forall a b. m a -&gt; (a -&gt; m b) -&gt; m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m a -&gt; ConnectionPool -&gt; m a
+forall backend (m :: * -&gt; *) a.
+(MonadUnliftIO m, BackendCompatible SqlBackend backend) =&gt;
+ReaderT backend m a -&gt; Pool backend -&gt; m a
+</span><span class="hs-identifier hs-var">runSqlPool</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m a
+</span><a href="#local-6989586621679278149"><span class="hs-identifier hs-var">fn</span></a></span><span> </span><span class="annot"><span class="annottext">(ConnectionPool -&gt; m a)
+-&gt; (m a -&gt; m (Either DBError a))
+-&gt; ConnectionPool
+-&gt; m (Either DBError a)
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadUnliftIO m =&gt;
+m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#catchSqlError"><span class="hs-identifier hs-var">catchSqlError</span></a></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- | An abstraction to allow for easy conversion between Esqueleto entity Keys and Conduit's own ID datatypes.</span><span>
+</span><span id="line-26"></span><span class="hs-comment">--   'deriveSqlKey' can automagically create instances for this class.</span><span>
+</span><span id="line-27"></span><span class="hs-comment">--   </span><span>
+</span><span id="line-28"></span><span class="hs-comment">-- &gt; newtype TableID = TableID { unID :: Int64 }</span><span>
+</span><span id="line-29"></span><span class="hs-comment">-- &gt; &lt;define some persist table Table&gt;</span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- &gt; $(deriveSqlKey ''Table ''TableID)</span><span>
+</span><span id="line-31"></span><span class="hs-keyword">class</span><span> </span><span id="SqlKey"><span class="annot"><a href="Conduit.DB.Core.html#SqlKey"><span class="hs-identifier hs-var">SqlKey</span></a></span></span><span> </span><span id="local-6989586621679278154"><span class="annot"><a href="#local-6989586621679278154"><span class="hs-identifier hs-type">t</span></a></span></span><span> </span><span id="local-6989586621679278155"><span class="annot"><a href="#local-6989586621679278155"><span class="hs-identifier hs-type">id</span></a></span></span><span> </span><span class="hs-glyph">|</span><span> </span><span class="annot"><a href="#local-6989586621679278154"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679278155"><span class="hs-identifier hs-type">id</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679278155"><span class="hs-identifier hs-type">id</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679278154"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-32"></span><span>  </span><span id="sqlKey2ID"><span class="annot"><a href="Conduit.DB.Core.html#sqlKey2ID"><span class="hs-identifier hs-type">sqlKey2ID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Key</span></span><span> </span><span class="annot"><a href="#local-6989586621679278154"><span class="hs-identifier hs-type">t</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679278155"><span class="hs-identifier hs-type">id</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span id="id2sqlKey"><span class="annot"><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-type">id2sqlKey</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679278155"><span class="hs-identifier hs-type">id</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Key</span></span><span> </span><span class="annot"><a href="#local-6989586621679278154"><span class="hs-identifier hs-type">t</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- | just tried this for fun, very quickly realized I am nowhere near smart enough to be doing something like this.</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--   this took me over an hour.</span><span>
+</span><span id="line-37"></span><span class="hs-comment">--   help.</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- see 'SqlKey' for usage</span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Conduit.DB.Core.html#deriveSqlKey"><span class="hs-identifier hs-type">deriveSqlKey</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Name</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Name</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Q</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Dec</span></span><span class="hs-special">]</span><span>
+</span><span id="line-41"></span><span id="deriveSqlKey"><span class="annot"><span class="annottext">deriveSqlKey :: Name -&gt; Name -&gt; Q [Dec]
+</span><a href="Conduit.DB.Core.html#deriveSqlKey"><span class="hs-identifier hs-var hs-var">deriveSqlKey</span></a></span></span><span> </span><span id="local-6989586621679278158"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278158"><span class="hs-identifier hs-var">tableName</span></a></span></span><span> </span><span id="local-6989586621679278159"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278159"><span class="hs-identifier hs-var">keyName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679278160"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278160"><span class="hs-identifier hs-var">conName</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Name
+</span><a href="Conduit.DB.Core.html#getConName"><span class="hs-identifier hs-var">getConName</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278159"><span class="hs-identifier hs-var">keyName</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">[d|</span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-keyword">instance</span><span> </span><span class="hs-identifier">SqlKey</span><span> </span><span class="hs-special">$</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Q Type
+forall (m :: * -&gt; *). Quote m =&gt; Name -&gt; m Type
+</span><span class="hs-identifier hs-var">conT</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278158"><span class="hs-identifier hs-var">tableName</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">$</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; Q Type
+forall (m :: * -&gt; *). Quote m =&gt; Name -&gt; m Type
+</span><span class="hs-identifier hs-var">conT</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278159"><span class="hs-identifier hs-var">keyName</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-46"></span><span>      </span><span class="hs-identifier">sqlKey2ID</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">$</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Exp -&gt; Q Exp
+forall a. a -&gt; Q a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Exp -&gt; Q Exp) -&gt; Exp -&gt; Q Exp
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Name -&gt; Exp
+</span><span class="hs-identifier hs-var">ConE</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278160"><span class="hs-identifier hs-var">conName</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-operator">.</span><span> </span><span class="hs-identifier">fromSqlKey</span><span>
+</span><span id="line-47"></span><span>      </span><span class="hs-identifier">id2sqlKey</span><span> </span><span class="hs-special">$</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Name -&gt; [Q Pat] -&gt; Q Pat
+forall (m :: * -&gt; *). Quote m =&gt; Name -&gt; [m Pat] -&gt; m Pat
+</span><span class="hs-identifier hs-var">conP</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278160"><span class="hs-identifier hs-var">conName</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Name -&gt; Q Pat
+forall (m :: * -&gt; *). Quote m =&gt; Name -&gt; m Pat
+</span><span class="hs-identifier hs-var">varP</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[Char] -&gt; Name
+</span><span class="hs-identifier hs-var">mkName</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;id'&quot;</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-identifier">toSqlKey</span><span> </span><span class="hs-identifier">id'</span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">|]</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="annot"><span class="hs-comment">-- | Attempts to map relevant SqlErrors to more processable types.</span></span><span>
+</span><span id="line-51"></span><span class="hs-keyword">data</span><span> </span><span id="DBError"><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-var">DBError</span></a></span></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="SomeDBError"><span class="annot"><a href="Conduit.DB.Core.html#SomeDBError"><span class="hs-identifier hs-var">SomeDBError</span></a></span></span><span>        </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="hs-comment">-- ^ Catch-all for irrelevant/unkown SqlErrors</span></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UniquenessError"><span class="annot"><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-var">UniquenessError</span></a></span></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="hs-comment">-- ^ Unique constraint violation err, holds name of violated column</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="AuthorizationError"><span class="annot"><a href="Conduit.DB.Core.html#AuthorizationError"><span class="hs-identifier hs-var">AuthorizationError</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="hs-comment">-- ^ See 'authorizationSqlError'</span></span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="NotFoundError"><span class="annot"><a href="Conduit.DB.Core.html#NotFoundError"><span class="hs-identifier hs-var">NotFoundError</span></a></span></span><span>           </span><span class="annot"><span class="hs-comment">-- ^ See 'resourceNotFoundSqlError'</span></span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679278171"><span id="local-6989586621679278181"><span id="local-6989586621679278185"><span class="annot"><span class="annottext">Int -&gt; DBError -&gt; ShowS
+[DBError] -&gt; ShowS
+DBError -&gt; [Char]
+(Int -&gt; DBError -&gt; ShowS)
+-&gt; (DBError -&gt; [Char]) -&gt; ([DBError] -&gt; ShowS) -&gt; Show DBError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; [Char]) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; DBError -&gt; ShowS
+showsPrec :: Int -&gt; DBError -&gt; ShowS
+$cshow :: DBError -&gt; [Char]
+show :: DBError -&gt; [Char]
+$cshowList :: [DBError] -&gt; ShowS
+showList :: [DBError] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679278189"><span id="local-6989586621679278195"><span class="annot"><span class="annottext">DBError -&gt; DBError -&gt; Bool
+(DBError -&gt; DBError -&gt; Bool)
+-&gt; (DBError -&gt; DBError -&gt; Bool) -&gt; Eq DBError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: DBError -&gt; DBError -&gt; Bool
+== :: DBError -&gt; DBError -&gt; Bool
+$c/= :: DBError -&gt; DBError -&gt; Bool
+/= :: DBError -&gt; DBError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679278200"><span id="local-6989586621679278204"><span id="local-6989586621679278207"><span id="local-6989586621679278225"><span class="annot"><span class="annottext">ReadPrec [DBError]
+ReadPrec DBError
+Int -&gt; ReadS DBError
+ReadS [DBError]
+(Int -&gt; ReadS DBError)
+-&gt; ReadS [DBError]
+-&gt; ReadPrec DBError
+-&gt; ReadPrec [DBError]
+-&gt; Read DBError
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS DBError
+readsPrec :: Int -&gt; ReadS DBError
+$creadList :: ReadS [DBError]
+readList :: ReadS [DBError]
+$creadPrec :: ReadPrec DBError
+readPrec :: ReadPrec DBError
+$creadListPrec :: ReadPrec [DBError]
+readListPrec :: ReadPrec [DBError]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-57"></span><span>
+</span><span id="line-58"></span><span class="hs-comment">-- | Maps both sides of a potentially errored SQL query.</span><span>
+</span><span id="line-59"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-60"></span><span class="hs-comment">-- &gt; newtype Name = Name Text</span><span>
+</span><span id="line-61"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-62"></span><span class="hs-comment">-- &gt; mkNames :: [Value Text] -&gt; [Name]</span><span>
+</span><span id="line-63"></span><span class="hs-comment">-- &gt; mkNames = map (\(Value name) -&gt; Name name)</span><span>
+</span><span id="line-64"></span><span class="hs-comment">-- &gt;</span><span>
+</span><span id="line-65"></span><span class="hs-comment">-- &gt; result :: (Monad m, MonadDB m, MonadUnliftIO m) =&gt; m (Either ??? [Name])</span><span>
+</span><span id="line-66"></span><span class="hs-comment">-- &gt; result = mapDBResult mkNames &lt;$&gt; runDBError do</span><span>
+</span><span id="line-67"></span><span class="hs-comment">-- &gt;   select $ do</span><span>
+</span><span id="line-68"></span><span class="hs-comment">-- &gt;     u &lt;- from table @User</span><span>
+</span><span id="line-69"></span><span class="hs-comment">-- &gt;     pure u.name</span><span>
+</span><span id="line-70"></span><span id="local-6989586621679277972"><span id="local-6989586621679277974"><span id="local-6989586621679277975"><span class="annot"><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-type">mapDBResult</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277972"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679277974"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277975"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277974"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679277972"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277975"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-71"></span><span id="mapDBResult"><span class="annot"><span class="annottext">mapDBResult :: forall e a b.
+FeatureError e =&gt;
+(a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-var hs-var">mapDBResult</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(DBError -&gt; e) -&gt; (a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+forall a b c d. (a -&gt; b) -&gt; (c -&gt; d) -&gt; Either a c -&gt; Either b d
+forall (p :: * -&gt; * -&gt; *) a b c d.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; (c -&gt; d) -&gt; p a c -&gt; p b d
+</span><span class="hs-identifier hs-var">bimap</span></span><span> </span><span class="annot"><span class="annottext">DBError -&gt; e
+forall e. FeatureError e =&gt; DBError -&gt; e
+</span><a href="Conduit.Errors.html#handleDBError"><span class="hs-identifier hs-var">handleDBError</span></a></span><span>
+</span><span id="line-72"></span><span>
+</span><span id="line-73"></span><span class="annot"><span class="hs-comment">-- | Maps both sides of a potentially errored, potentially not-found SQL query.</span></span><span>
+</span><span id="line-74"></span><span id="local-6989586621679277986"><span id="local-6989586621679277987"><span id="local-6989586621679277988"><span class="annot"><a href="Conduit.DB.Core.html#mapMaybeDBResult"><span class="hs-identifier hs-type">mapMaybeDBResult</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277986"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277986"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679277987"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277988"><span class="hs-identifier hs-type">b</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="#local-6989586621679277987"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679277986"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277988"><span class="hs-identifier hs-type">b</span></a></span></span></span></span><span>
+</span><span id="line-75"></span><span id="mapMaybeDBResult"><span class="annot"><span class="annottext">mapMaybeDBResult :: forall e a b.
+FeatureError e =&gt;
+e -&gt; (a -&gt; b) -&gt; Either DBError (Maybe a) -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapMaybeDBResult"><span class="hs-identifier hs-var hs-var">mapMaybeDBResult</span></a></span></span><span> </span><span id="local-6989586621679278243"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278243"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span id="local-6989586621679278244"><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679278244"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span id="local-6989586621679278245"><span class="annot"><span class="annottext">Either DBError (Maybe a)
+</span><a href="#local-6989586621679278245"><span class="hs-identifier hs-var">dbResult</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679278246"><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679278246"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; e
+forall e. FeatureError e =&gt; DBError -&gt; e
+</span><a href="Conduit.Errors.html#handleDBError"><span class="hs-identifier hs-var">handleDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(DBError -&gt; e) -&gt; Either DBError (Maybe a) -&gt; Either e (Maybe a)
+forall a b c. (a -&gt; b) -&gt; Either a c -&gt; Either b c
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-operator hs-var">`first`</span></span><span> </span><span class="annot"><span class="annottext">Either DBError (Maybe a)
+</span><a href="#local-6989586621679278245"><span class="hs-identifier hs-var">dbResult</span></a></span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="annottext">a -&gt; b
+</span><a href="#local-6989586621679278244"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">(a -&gt; b) -&gt; Either e a -&gt; Either e b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">e -&gt; Maybe a -&gt; Either e a
+forall l r. l -&gt; Maybe r -&gt; Either l r
+</span><span class="hs-identifier hs-var">maybeToRight</span></span><span> </span><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278243"><span class="hs-identifier hs-var">err</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe a
+</span><a href="#local-6989586621679278246"><span class="hs-identifier hs-var">result</span></a></span><span>
+</span><span id="line-78"></span><span>
+</span><span id="line-79"></span><span class="annot"><span class="hs-comment">-- | Maps the error of a potentially errored SQL query/stmt.</span></span><span>
+</span><span id="line-80"></span><span id="local-6989586621679278002"><span id="local-6989586621679278003"><span class="annot"><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier hs-type">mapDBError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278002"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278003"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679278002"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278003"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-81"></span><span id="mapDBError"><span class="annot"><span class="annottext">mapDBError :: forall e a. FeatureError e =&gt; Either DBError a -&gt; Either e a
+</span><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier hs-var hs-var">mapDBError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(DBError -&gt; e) -&gt; Either DBError a -&gt; Either e a
+forall a b c. (a -&gt; b) -&gt; Either a c -&gt; Either b c
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-identifier hs-var">first</span></span><span> </span><span class="annot"><span class="annottext">DBError -&gt; e
+forall e. FeatureError e =&gt; DBError -&gt; e
+</span><a href="Conduit.Errors.html#handleDBError"><span class="hs-identifier hs-var">handleDBError</span></a></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span class="hs-comment">-- | Maps the error of a potentially errored SQL query/stmt &amp; Assurances that the result is &gt; 0.</span><span>
+</span><span id="line-84"></span><span class="hs-comment">--   Intended for use with something like Esqueleto's @insertCount@ or @deleteCount@.</span><span>
+</span><span id="line-85"></span><span id="local-6989586621679278006"><span id="local-6989586621679278007"><span class="annot"><a href="Conduit.DB.Core.html#expectDBNonZero"><span class="hs-identifier hs-type">expectDBNonZero</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278006"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Num</span></span><span> </span><span class="annot"><a href="#local-6989586621679278007"><span class="hs-identifier hs-type">cnt</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Ord</span></span><span> </span><span class="annot"><a href="#local-6989586621679278007"><span class="hs-identifier hs-type">cnt</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679278006"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679278007"><span class="hs-identifier hs-type">cnt</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679278006"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-86"></span><span id="expectDBNonZero"><span class="annot"><span class="annottext">expectDBNonZero :: forall e cnt.
+(FeatureError e, Num cnt, Ord cnt) =&gt;
+e -&gt; Either DBError cnt -&gt; Either e ()
+</span><a href="Conduit.DB.Core.html#expectDBNonZero"><span class="hs-identifier hs-var hs-var">expectDBNonZero</span></a></span></span><span> </span><span id="local-6989586621679278267"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278267"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span id="local-6989586621679278268"><span class="annot"><span class="annottext">Either DBError cnt
+</span><a href="#local-6989586621679278268"><span class="hs-identifier hs-var">dbResult</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-87"></span><span>  </span><span id="local-6989586621679278269"><span class="annot"><span class="annottext">cnt
+</span><a href="#local-6989586621679278269"><span class="hs-identifier hs-var">result</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; e
+forall e. FeatureError e =&gt; DBError -&gt; e
+</span><a href="Conduit.Errors.html#handleDBError"><span class="hs-identifier hs-var">handleDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(DBError -&gt; e) -&gt; Either DBError cnt -&gt; Either e cnt
+forall a b c. (a -&gt; b) -&gt; Either a c -&gt; Either b c
+forall (p :: * -&gt; * -&gt; *) a b c.
+Bifunctor p =&gt;
+(a -&gt; b) -&gt; p a c -&gt; p b c
+</span><span class="hs-operator hs-var">`first`</span></span><span> </span><span class="annot"><span class="annottext">Either DBError cnt
+</span><a href="#local-6989586621679278268"><span class="hs-identifier hs-var">dbResult</span></a></span><span>
+</span><span id="line-88"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; Either e () -&gt; Either e ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">cnt
+</span><a href="#local-6989586621679278269"><span class="hs-identifier hs-var">result</span></a></span><span> </span><span class="annot"><span class="annottext">cnt -&gt; cnt -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">cnt
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">(Either e () -&gt; Either e ()) -&gt; Either e () -&gt; Either e ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-89"></span><span>    </span><span class="annot"><span class="annottext">e -&gt; Either e ()
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278267"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-90"></span><span>
+</span><span id="line-91"></span><span class="annot"><span class="hs-comment">-- | A custom SqlError w/ code 45401</span></span><span>
+</span><span id="line-92"></span><span id="local-6989586621679278015"><span class="annot"><a href="Conduit.DB.Core.html#authorizationSqlError"><span class="hs-identifier hs-type">authorizationSqlError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Show</span></span><span> </span><span class="annot"><a href="#local-6989586621679278015"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679278015"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span></span><span>
+</span><span id="line-93"></span><span id="authorizationSqlError"><span class="annot"><span class="annottext">authorizationSqlError :: forall e. Show e =&gt; e -&gt; SqlError
+</span><a href="Conduit.DB.Core.html#authorizationSqlError"><span class="hs-identifier hs-var hs-var">authorizationSqlError</span></a></span></span><span> </span><span id="local-6989586621679278276"><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278276"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="Conduit.DB.Core.html#defaultSqlErr"><span class="hs-identifier hs-var">defaultSqlErr</span></a></span><span>
+</span><span id="line-94"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">sqlState :: ByteString
+</span><span class="hs-identifier hs-var">sqlState</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;45401&quot;</span></span><span>
+</span><span id="line-95"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorMsg :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorMsg</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;Authorization error&quot;</span></span><span>
+</span><span id="line-96"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorDetail :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorDetail</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">e -&gt; ByteString
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">e
+</span><a href="#local-6989586621679278276"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-97"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-98"></span><span>
+</span><span id="line-99"></span><span class="annot"><span class="hs-comment">-- | A custom SqlError w/ code 45404</span></span><span>
+</span><span id="line-100"></span><span class="annot"><a href="Conduit.DB.Core.html#resourceNotFoundSqlError"><span class="hs-identifier hs-type">resourceNotFoundSqlError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span>
+</span><span id="line-101"></span><span id="resourceNotFoundSqlError"><span class="annot"><span class="annottext">resourceNotFoundSqlError :: SqlError
+</span><a href="Conduit.DB.Core.html#resourceNotFoundSqlError"><span class="hs-identifier hs-var hs-var">resourceNotFoundSqlError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="Conduit.DB.Core.html#defaultSqlErr"><span class="hs-identifier hs-var">defaultSqlErr</span></a></span><span>
+</span><span id="line-102"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">sqlState :: ByteString
+</span><span class="hs-identifier hs-var">sqlState</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;45404&quot;</span></span><span>
+</span><span id="line-103"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorMsg :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorMsg</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;Resource not found&quot;</span></span><span>
+</span><span id="line-104"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-105"></span><span>
+</span><span id="line-106"></span><span class="annot"><span class="hs-comment">-- | (Internal) Catches &amp; maps any SqlErrors to 'DBError's</span></span><span>
+</span><span id="line-107"></span><span id="local-6989586621679277957"><span id="local-6989586621679277958"><span class="annot"><a href="Conduit.DB.Core.html#catchSqlError"><span class="hs-identifier hs-type">catchSqlError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679277957"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277957"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277958"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679277957"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277958"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-108"></span><span id="catchSqlError"><span class="annot"><span class="annottext">catchSqlError :: forall (m :: * -&gt; *) a.
+MonadUnliftIO m =&gt;
+m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#catchSqlError"><span class="hs-identifier hs-var hs-var">catchSqlError</span></a></span></span><span> </span><span id="local-6989586621679278294"><span class="annot"><span class="annottext">m a
+</span><a href="#local-6989586621679278294"><span class="hs-identifier hs-var">stmt</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">forall (m :: * -&gt; *) e a.
+(MonadUnliftIO m, Exception e) =&gt;
+m a -&gt; (e -&gt; m a) -&gt; m a
+</span><span class="hs-identifier hs-var">catch</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span>
+</span><span id="line-109"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; Either DBError a
+forall a b. b -&gt; Either a b
+</span><span class="hs-identifier hs-var">Right</span></span><span> </span><span class="annot"><span class="annottext">(a -&gt; Either DBError a) -&gt; m a -&gt; m (Either DBError a)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">m a
+</span><a href="#local-6989586621679278294"><span class="hs-identifier hs-var">stmt</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-110"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Either DBError a -&gt; m (Either DBError a)
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either DBError a -&gt; m (Either DBError a))
+-&gt; (SqlError -&gt; Either DBError a)
+-&gt; SqlError
+-&gt; m (Either DBError a)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">DBError -&gt; Either DBError a
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(DBError -&gt; Either DBError a)
+-&gt; (SqlError -&gt; DBError) -&gt; SqlError -&gt; Either DBError a
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SqlError -&gt; DBError
+</span><a href="Conduit.DB.Core.html#mapSqlError"><span class="hs-identifier hs-var">mapSqlError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-111"></span><span>
+</span><span id="line-112"></span><span class="annot"><a href="Conduit.DB.Core.html#mapSqlError"><span class="hs-identifier hs-type">mapSqlError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span>
+</span><span id="line-113"></span><span id="mapSqlError"><span class="annot"><span class="annottext">mapSqlError :: SqlError -&gt; DBError
+</span><a href="Conduit.DB.Core.html#mapSqlError"><span class="hs-identifier hs-var hs-var">mapSqlError</span></a></span></span><span> </span><span id="local-6989586621679278297"><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span></span><span>
+</span><span id="line-114"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">sqlState</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;23505&quot;</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; DBError
+</span><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-var">UniquenessError</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; DBError) -&gt; Text -&gt; DBError
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlError -&gt; Text
+</span><a href="Conduit.DB.Core.html#extractUniquenessViolation"><span class="hs-identifier hs-var">extractUniquenessViolation</span></a></span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-115"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">sqlState</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;45401&quot;</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; DBError
+</span><a href="Conduit.DB.Core.html#AuthorizationError"><span class="hs-identifier hs-var">AuthorizationError</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; DBError) -&gt; Text -&gt; DBError
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; Text
+forall a b. ConvertUtf8 a b =&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">decodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">sqlErrorDetail</span><span>
+</span><span id="line-116"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">sqlState</span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; ByteString -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;45404&quot;</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="Conduit.DB.Core.html#NotFoundError"><span class="hs-identifier hs-var">NotFoundError</span></a></span><span>
+</span><span id="line-117"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">otherwise</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; DBError
+</span><a href="Conduit.DB.Core.html#SomeDBError"><span class="hs-identifier hs-var">SomeDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; DBError) -&gt; Text -&gt; DBError
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlError -&gt; Text
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679278297"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-118"></span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- SqlError {sqlState = &quot;23505&quot;, sqlExecStatus = FatalError, sqlErrorMsg = &quot;duplicate key value violates unique constraint \&quot;unique_username\&quot;&quot;, sqlErrorDetail = &quot;Key (username)=(username) already exists.&quot;, sqlErrorHint = &quot;&quot;}</span><span>
+</span><span id="line-120"></span><span>
+</span><span id="line-121"></span><span class="annot"><span class="hs-comment">-- | (Internal) Extracts the name of the column whose uniqueness was violated</span></span><span>
+</span><span id="line-122"></span><span class="annot"><a href="Conduit.DB.Core.html#extractUniquenessViolation"><span class="hs-identifier hs-type">extractUniquenessViolation</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-123"></span><span id="extractUniquenessViolation"><span class="annot"><span class="annottext">extractUniquenessViolation :: SqlError -&gt; Text
+</span><a href="Conduit.DB.Core.html#extractUniquenessViolation"><span class="hs-identifier hs-var hs-var">extractUniquenessViolation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Text
+forall a. ToText a =&gt; a -&gt; Text
+</span><span class="hs-identifier hs-var">toText</span></span><span> </span><span class="annot"><span class="annottext">([Char] -&gt; Text) -&gt; (SqlError -&gt; [Char]) -&gt; SqlError -&gt; Text
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ShowS
+</span><a href="#local-6989586621679278301"><span class="hs-identifier hs-var">extractViolatedColName</span></a></span><span> </span><span class="annot"><span class="annottext">ShowS -&gt; (SqlError -&gt; [Char]) -&gt; SqlError -&gt; [Char]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ByteString -&gt; [Char]
+forall a b. ConvertUtf8 a b =&gt; b -&gt; a
+</span><span class="hs-identifier hs-var">decodeUtf8</span></span><span> </span><span class="annot"><span class="annottext">(ByteString -&gt; [Char])
+-&gt; (SqlError -&gt; ByteString) -&gt; SqlError -&gt; [Char]
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">SqlError -&gt; ByteString
+</span><span class="hs-identifier hs-var">sqlErrorDetail</span></span><span>
+</span><span id="line-124"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679278301"><span class="annot"><span class="annottext">extractViolatedColName :: ShowS
+</span><a href="#local-6989586621679278301"><span class="hs-identifier hs-var hs-var">extractViolatedColName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Maybe [Char]
+</span><a href="Conduit.DB.Core.html#extractKeyField"><span class="hs-identifier hs-var">extractKeyField</span></a></span><span> </span><span class="annot"><span class="annottext">([Char] -&gt; Maybe [Char]) -&gt; (Maybe [Char] -&gt; [Char]) -&gt; ShowS
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Maybe [Char] -&gt; [Char]
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; [Char]
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-125"></span><span>
+</span><span id="line-126"></span><span class="annot"><a href="Conduit.DB.Core.html#extractKeyField"><span class="hs-identifier hs-type">extractKeyField</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">String</span></span><span>
+</span><span id="line-127"></span><span id="extractKeyField"><span class="annot"><span class="annottext">extractKeyField :: [Char] -&gt; Maybe [Char]
+</span><a href="Conduit.DB.Core.html#extractKeyField"><span class="hs-identifier hs-var hs-var">extractKeyField</span></a></span></span><span> </span><span id="local-6989586621679278312"><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278312"><span class="hs-identifier hs-var">str</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-128"></span><span>  </span><span id="local-6989586621679278313"><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278313"><span class="hs-identifier hs-var">rest</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; [Char] -&gt; Maybe [Char]
+forall a. Eq a =&gt; [a] -&gt; [a] -&gt; Maybe [a]
+</span><span class="hs-identifier hs-var">stripPrefix</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;Key (&quot;</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278312"><span class="hs-identifier hs-var">str</span></a></span><span>
+</span><span id="line-129"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679278314"><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278314"><span class="hs-identifier hs-var">keyField</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Char -&gt; Bool) -&gt; [Char] -&gt; ([Char], [Char])
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; ([a], [a])
+</span><span class="hs-identifier hs-var">break</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Char -&gt; Char -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">Char
+</span><span class="hs-char">')'</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278313"><span class="hs-identifier hs-var">rest</span></a></span><span>
+</span><span id="line-130"></span><span>  </span><span class="annot"><span class="annottext">[Char] -&gt; Maybe [Char]
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><a href="#local-6989586621679278314"><span class="hs-identifier hs-var">keyField</span></a></span><span>
+</span><span id="line-131"></span><span>
+</span><span id="line-132"></span><span class="annot"><span class="hs-comment">-- | (Internal) SqlError with irrelevant/unused fields pre-filled out</span></span><span>
+</span><span id="line-133"></span><span class="annot"><a href="Conduit.DB.Core.html#defaultSqlErr"><span class="hs-identifier hs-type">defaultSqlErr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span>
+</span><span id="line-134"></span><span id="defaultSqlErr"><span class="annot"><span class="annottext">defaultSqlErr :: SqlError
+</span><a href="Conduit.DB.Core.html#defaultSqlErr"><span class="hs-identifier hs-var hs-var">defaultSqlErr</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span>
+</span><span id="line-135"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">sqlState :: ByteString
+</span><span class="hs-identifier hs-var">sqlState</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ByteString
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;fill out sqlState&quot;</span></span><span>
+</span><span id="line-136"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlExecStatus :: ExecStatus
+</span><span class="hs-identifier hs-var">sqlExecStatus</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExecStatus
+</span><span class="hs-identifier hs-var">FatalError</span></span><span>
+</span><span id="line-137"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorMsg :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorMsg</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ByteString
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;fill out sqlErrorMsg&quot;</span></span><span>
+</span><span id="line-138"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorDetail :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorDetail</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-139"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sqlErrorHint :: ByteString
+</span><span class="hs-identifier hs-var">sqlErrorHint</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ByteString
+</span><span class="hs-string">&quot;&quot;</span></span><span>
+</span><span id="line-140"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-141"></span><span>
+</span><span id="line-142"></span><span class="annot"><span class="hs-comment">-- | (Internal) Gets the constructor name of some newtype</span></span><span>
+</span><span id="line-143"></span><span class="annot"><a href="Conduit.DB.Core.html#getConName"><span class="hs-identifier hs-type">getConName</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Name</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Q</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Name</span></span><span>
+</span><span id="line-144"></span><span id="getConName"><span class="annot"><span class="annottext">getConName :: Name -&gt; Q Name
+</span><a href="Conduit.DB.Core.html#getConName"><span class="hs-identifier hs-var hs-var">getConName</span></a></span></span><span> </span><span id="local-6989586621679278320"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278320"><span class="hs-identifier hs-var">typeName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-145"></span><span>  </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">TyConI</span></span><span> </span><span id="local-6989586621679278322"><span class="annot"><span class="annottext">Dec
+</span><a href="#local-6989586621679278322"><span class="hs-identifier hs-var">tyCon</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Info
+</span><span class="hs-identifier hs-var">reify</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278320"><span class="hs-identifier hs-var">typeName</span></a></span><span>
+</span><span id="line-146"></span><span>  </span><span>
+</span><span id="line-147"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">Dec
+</span><a href="#local-6989586621679278322"><span class="hs-identifier hs-var">tyCon</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-148"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">NewtypeD</span></span><span> </span><span class="annot"><span class="annottext">Cxt
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[TyVarBndr ()]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe Type
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">RecC</span></span><span>    </span><span id="local-6989586621679278326"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278326"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="annot"><span class="annottext">[VarBangType]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[DerivClause]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Name
+forall a. a -&gt; Q a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278326"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-149"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">NewtypeD</span></span><span> </span><span class="annot"><span class="annottext">Cxt
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">[TyVarBndr ()]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="annot"><span class="annottext">Maybe Type
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">NormalC</span></span><span> </span><span id="local-6989586621679278328"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278328"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span class="annot"><span class="annottext">[BangType]
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[DerivClause]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Name -&gt; Q Name
+forall a. a -&gt; Q a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679278328"><span class="hs-identifier hs-var">name</span></a></span><span>
+</span><span id="line-150"></span><span>    </span><span class="annot"><span class="hs-identifier hs-type">NewtypeD</span></span><span> </span><span class="hs-special">{</span><span class="hs-special">}</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Q Name
+forall a. [Char] -&gt; Q a
+forall (m :: * -&gt; *) a. MonadFail m =&gt; [Char] -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;Newtype constructor not in expected format&quot;</span></span><span>
+</span><span id="line-151"></span><span>    </span><span class="annot"><span class="annottext">Dec
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">[Char] -&gt; Q Name
+forall a. [Char] -&gt; Q a
+forall (m :: * -&gt; *) a. MonadFail m =&gt; [Char] -&gt; m a
+</span><span class="hs-identifier hs-var">fail</span></span><span> </span><span class="annot"><span class="annottext">[Char]
+</span><span class="hs-string">&quot;Expected a newtype&quot;</span></span><span>
+</span><span id="line-152"></span></pre></body></html>

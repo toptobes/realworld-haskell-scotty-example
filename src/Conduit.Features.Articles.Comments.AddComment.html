@@ -1,0 +1,300 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Comments.AddComment</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#SqlKey"><span class="hs-identifier">SqlKey</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier">mapDBResult</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier">runDB</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Utils.html"><span class="hs-identifier">Conduit.DB.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Utils.html#dbTimeNow"><span class="hs-identifier">dbTimeNow</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.GetComments.html"><span class="hs-identifier">Conduit.Features.Articles.Comments.GetComments</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Comments.GetComments.html#AquireComment"><span class="hs-identifier">AquireComment</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.GetComments.html#getComments"><span class="hs-identifier">getComments</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Comment"><span class="hs-identifier">Comment</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html"><span class="hs-identifier">Conduit.Features.Articles.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier">ArticleError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html"><span class="hs-identifier">Conduit.Features.Articles.Slugs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier">extractIDFromSlug</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html"><span class="hs-identifier">Conduit.Features.Articles.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier">ArticleID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier">CommentID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyComments"><span class="hs-identifier">ManyComments</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier">OneComment</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier">Slug</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#inCommentObj"><span class="hs-identifier">inCommentObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#%24sel%3AauthedUserID%3AAuthedUser"><span class="hs-identifier">authedUserID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Validation.html"><span class="hs-identifier">Conduit.Validation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier">NotBlank</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator">(&lt;!&lt;)</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Validation.html#parseJsonBody"><span class="hs-identifier">parseJsonBody</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.:)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">withObject</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">insert</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParam</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">post</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">newtype</span><span> </span><span id="CreateCommentAction"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-var">CreateCommentAction</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CreateCommentAction"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-var">CreateCommentAction</span></a></span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Abody%3ACreateCommentAction"><span class="annot"><span class="annottext">CreateCommentAction -&gt; Text
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3Abody%3ACreateCommentAction"><span class="hs-identifier hs-var hs-var">body</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679284769"><span id="local-6989586621679284772"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-type">CreateCommentAction</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-26"></span><span>  </span><span id="local-6989586621679284785"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser CreateCommentAction
+</span><a href="#local-6989586621679284785"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; (Object -&gt; Parser CreateCommentAction)
+-&gt; Value
+-&gt; Parser CreateCommentAction
+forall a. String -&gt; (Object -&gt; Parser a) -&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">withObject</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;CreateCommentAction&quot;</span></span><span> </span><span class="annot"><span class="annottext">((Object -&gt; Parser CreateCommentAction)
+ -&gt; Value -&gt; Parser CreateCommentAction)
+-&gt; (Object -&gt; Parser CreateCommentAction)
+-&gt; Value
+-&gt; Parser CreateCommentAction
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679284787"><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679284787"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; CreateCommentAction
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-var">CreateCommentAction</span></a></span><span>
+</span><span id="line-27"></span><span>    </span><span class="annot"><span class="annottext">(Text -&gt; CreateCommentAction)
+-&gt; Parser Text -&gt; Parser CreateCommentAction
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679284787"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Key -&gt; Parser (Assurance NotBlank Text)
+forall a. FromJSON a =&gt; Object -&gt; Key -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;body&quot;</span></span><span> </span><span class="annot"><span class="annottext">Parser (Assurance NotBlank Text) -&gt; NotBlank -&gt; Parser Text
+forall prop on. Parser (Assurance prop on) -&gt; prop -&gt; Parser on
+</span><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator hs-var">&lt;!&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">NotBlank
+</span><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier hs-var">NotBlank</span></a></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#handleCommentCreation"><span class="hs-identifier hs-type">handleCommentCreation</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span id="handleCommentCreation"><span class="annot"><span class="annottext">handleCommentCreation :: ScottyT AppM ()
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#handleCommentCreation"><span class="hs-identifier hs-var hs-var">handleCommentCreation</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">post</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/articles/:slug/comments&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679284791"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679284791"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679284792"><span class="annot"><span class="annottext">CreateCommentAction
+</span><a href="#local-6989586621679284792"><span class="hs-identifier hs-var">body</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ActionT AppM CreateCommentAction
+forall a (m :: * -&gt; *).
+(MonadUnliftIO m, FromJSON a) =&gt;
+ActionT m a
+</span><a href="Conduit.Validation.html#parseJsonBody"><span class="hs-identifier hs-var">parseJsonBody</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679284793"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284793"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT AppM Text
+forall a (m :: * -&gt; *).
+(Parsable a, Monad m) =&gt;
+Text -&gt; ActionT m a
+</span><span class="hs-identifier hs-var">captureParam</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;slug&quot;</span></span><span> </span><span class="annot"><span class="annottext">ActionT AppM Text -&gt; (Text -&gt; Slug) -&gt; ActionT AppM Slug
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Slug
+</span><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span id="local-6989586621679284796"><span class="annot"><span class="annottext">OneComment
+</span><a href="#local-6989586621679284796"><span class="hs-identifier hs-var">comment</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either ArticleError OneComment) -&gt; ActionT AppM OneComment
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either ArticleError OneComment) -&gt; ActionT AppM OneComment)
+-&gt; AppM (Either ArticleError OneComment) -&gt; ActionT AppM OneComment
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CreateCommentAction
+-&gt; Slug -&gt; UserID -&gt; AppM (Either ArticleError OneComment)
+forall (m :: * -&gt; *).
+(AquireComment m, CreateComment m) =&gt;
+CreateCommentAction
+-&gt; Slug -&gt; UserID -&gt; m (Either ArticleError OneComment)
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#createComment"><span class="hs-identifier hs-var">createComment</span></a></span><span> </span><span class="annot"><span class="annottext">CreateCommentAction
+</span><a href="#local-6989586621679284792"><span class="hs-identifier hs-var">body</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284793"><span class="hs-identifier hs-var">slug</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679284791"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">InObj OneComment -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">(InObj OneComment -&gt; ActionT AppM ())
+-&gt; InObj OneComment -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">OneComment -&gt; InObj OneComment
+forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inCommentObj"><span class="hs-identifier hs-var">inCommentObj</span></a></span><span> </span><span class="annot"><span class="annottext">OneComment
+</span><a href="#local-6989586621679284796"><span class="hs-identifier hs-var">comment</span></a></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span id="local-6989586621679284642"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#createComment"><span class="hs-identifier hs-type">createComment</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Comments.GetComments.html#AquireComment"><span class="hs-identifier hs-type">AquireComment</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679284642"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateComment"><span class="hs-identifier hs-type">CreateComment</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679284642"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-type">CreateCommentAction</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679284642"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-type">OneComment</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-37"></span><span id="createComment"><span class="annot"><span class="annottext">createComment :: forall (m :: * -&gt; *).
+(AquireComment m, CreateComment m) =&gt;
+CreateCommentAction
+-&gt; Slug -&gt; UserID -&gt; m (Either ArticleError OneComment)
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#createComment"><span class="hs-identifier hs-var hs-var">createComment</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateCommentAction"><span class="hs-identifier hs-type">CreateCommentAction</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679284817"><span class="annot"><span class="annottext">Text
+$sel:body:CreateCommentAction :: CreateCommentAction -&gt; Text
+body :: Text
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3Abody%3ACreateCommentAction"><span class="hs-glyph hs-var hs-var">..</span></a></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679284818"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284818"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span id="local-6989586621679284819"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679284819"><span class="hs-identifier hs-var">authorID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT ArticleError m OneComment
+-&gt; m (Either ArticleError OneComment)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679284821"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679284821"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError ArticleID)
+-&gt; ExceptT ArticleError m ArticleID
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ArticleID)
+ -&gt; ExceptT ArticleError m ArticleID)
+-&gt; (Either ArticleError ArticleID
+    -&gt; m (Either ArticleError ArticleID))
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either ArticleError ArticleID -&gt; m (Either ArticleError ArticleID)
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either ArticleError ArticleID -&gt; ExceptT ArticleError m ArticleID)
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; Either ArticleError ArticleID
+</span><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier hs-var">extractIDFromSlug</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284818"><span class="hs-identifier hs-var">slug</span></a></span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679284824"><span class="annot"><span class="annottext">CommentID
+</span><a href="#local-6989586621679284824"><span class="hs-identifier hs-var">commentID</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError CommentID)
+-&gt; ExceptT ArticleError m CommentID
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError CommentID)
+ -&gt; ExceptT ArticleError m CommentID)
+-&gt; m (Either ArticleError CommentID)
+-&gt; ExceptT ArticleError m CommentID
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">CommentInfo -&gt; m (Either ArticleError CommentID)
+forall (m :: * -&gt; *).
+CreateComment m =&gt;
+CommentInfo -&gt; m (Either ArticleError CommentID)
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#insertComment"><span class="hs-identifier hs-var">insertComment</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-type">CommentInfo</span></a></span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:authorID:CommentInfo :: UserID
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3AauthorID%3ACommentInfo"><span class="hs-identifier hs-var">authorID</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679284819"><span class="hs-identifier hs-var">authorID</span></a></span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:articleID:CommentInfo :: ArticleID
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3AarticleID%3ACommentInfo"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679284821"><span class="hs-identifier hs-var">articleID</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:body:CommentInfo :: Text
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3Abody%3ACommentInfo"><span class="hs-identifier hs-var">body</span></a></span><span>      </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679284817"><span class="hs-identifier hs-var">body</span></a></span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-44"></span><span>  </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyComments"><span class="hs-identifier hs-type">ManyComments</span></a></span><span> </span><span id="local-6989586621679284831"><span class="annot"><span class="annottext">[OneComment]
+</span><a href="#local-6989586621679284831"><span class="hs-identifier hs-var">comments</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError ManyComments)
+-&gt; ExceptT ArticleError m ManyComments
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ManyComments)
+ -&gt; ExceptT ArticleError m ManyComments)
+-&gt; m (Either ArticleError ManyComments)
+-&gt; ExceptT ArticleError m ManyComments
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; Maybe UserID -&gt; m (Either ArticleError ManyComments)
+forall (m :: * -&gt; *).
+AquireComment m =&gt;
+Slug -&gt; Maybe UserID -&gt; m (Either ArticleError ManyComments)
+</span><a href="Conduit.Features.Articles.Comments.GetComments.html#getComments"><span class="hs-identifier hs-var">getComments</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679284818"><span class="hs-identifier hs-var">slug</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679284819"><span class="hs-identifier hs-var">authorID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">m (Either ArticleError OneComment)
+-&gt; ExceptT ArticleError m OneComment
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError OneComment)
+ -&gt; ExceptT ArticleError m OneComment)
+-&gt; (Maybe OneComment -&gt; m (Either ArticleError OneComment))
+-&gt; Maybe OneComment
+-&gt; ExceptT ArticleError m OneComment
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either ArticleError OneComment
+-&gt; m (Either ArticleError OneComment)
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either ArticleError OneComment
+ -&gt; m (Either ArticleError OneComment))
+-&gt; (Maybe OneComment -&gt; Either ArticleError OneComment)
+-&gt; Maybe OneComment
+-&gt; m (Either ArticleError OneComment)
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">ArticleError -&gt; Maybe OneComment -&gt; Either ArticleError OneComment
+forall l r. l -&gt; Maybe r -&gt; Either l r
+</span><span class="hs-identifier hs-var">maybeToRight</span></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe OneComment -&gt; ExceptT ArticleError m OneComment)
+-&gt; Maybe OneComment -&gt; ExceptT ArticleError m OneComment
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(OneComment -&gt; Bool) -&gt; [OneComment] -&gt; Maybe OneComment
+forall (t :: * -&gt; *) a. Foldable t =&gt; (a -&gt; Bool) -&gt; t a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">find</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679284835"><span class="annot"><span class="annottext">OneComment
+</span><a href="#local-6989586621679284835"><span class="hs-identifier hs-var">c</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">OneComment
+</span><a href="#local-6989586621679284835"><span class="hs-identifier hs-var">c</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">commentID</span><span> </span><span class="annot"><span class="annottext">CommentID -&gt; CommentID -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">CommentID
+</span><a href="#local-6989586621679284824"><span class="hs-identifier hs-var">commentID</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[OneComment]
+</span><a href="#local-6989586621679284831"><span class="hs-identifier hs-var">comments</span></a></span><span> </span><span class="hs-comment">-- def don't do this in actual code, I'm just lazy :)</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679284665"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="CreateComment"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateComment"><span class="hs-identifier hs-var">CreateComment</span></a></span></span><span> </span><span id="local-6989586621679284665"><span class="annot"><a href="#local-6989586621679284665"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span id="insertComment"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#insertComment"><span class="hs-identifier hs-type">insertComment</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-type">CommentInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679284665"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier hs-type">CommentID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span class="hs-keyword">data</span><span> </span><span id="CommentInfo"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-var">CommentInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CommentInfo"><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-var">CommentInfo</span></a></span></span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AauthorID%3ACommentInfo"><span class="annot"><span class="annottext">CommentInfo -&gt; UserID
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3AauthorID%3ACommentInfo"><span class="hs-identifier hs-var hs-var">authorID</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AarticleID%3ACommentInfo"><span class="annot"><span class="annottext">CommentInfo -&gt; ArticleID
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3AarticleID%3ACommentInfo"><span class="hs-identifier hs-var hs-var">articleID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Abody%3ACommentInfo"><span class="annot"><span class="annottext">CommentInfo -&gt; Text
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3Abody%3ACommentInfo"><span class="hs-identifier hs-var hs-var">body</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679284606"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679284606"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679284606"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679284606"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CreateComment"><span class="hs-identifier hs-type">CreateComment</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679284606"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#insertComment"><span class="hs-identifier hs-type">insertComment</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-type">CommentInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679284606"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier hs-type">CommentID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-58"></span><span>  </span><span id="local-6989586621679284864"><span class="annot"><span class="annottext">insertComment :: CommentInfo -&gt; m (Either ArticleError CommentID)
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#insertComment"><span class="hs-identifier hs-var hs-var hs-var hs-var">insertComment</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#CommentInfo"><span class="hs-identifier hs-type">CommentInfo</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679284865"><span id="local-6989586621679284866"><span id="local-6989586621679284867"><span class="annot"><span class="annottext">Text
+UserID
+ArticleID
+$sel:authorID:CommentInfo :: CommentInfo -&gt; UserID
+$sel:articleID:CommentInfo :: CommentInfo -&gt; ArticleID
+$sel:body:CommentInfo :: CommentInfo -&gt; Text
+authorID :: UserID
+articleID :: ArticleID
+body :: Text
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#%24sel%3AauthorID%3ACommentInfo"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Key Comment -&gt; CommentID)
+-&gt; Either DBError (Key Comment) -&gt; Either ArticleError CommentID
+forall e a b.
+FeatureError e =&gt;
+(a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-var">mapDBResult</span></a></span><span> </span><span class="annot"><span class="annottext">Key Comment -&gt; CommentID
+forall t id. SqlKey t id =&gt; Key t -&gt; id
+</span><a href="Conduit.DB.Core.html#sqlKey2ID"><span class="hs-identifier hs-var">sqlKey2ID</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError (Key Comment) -&gt; Either ArticleError CommentID)
+-&gt; m (Either DBError (Key Comment))
+-&gt; m (Either ArticleError CommentID)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m (Key Comment) -&gt; m (Either DBError (Key Comment))
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-59"></span><span>    </span><span class="annot"><span class="annottext">Comment -&gt; SqlPersistT m (Key Comment)
+forall backend record (m :: * -&gt; *).
+(PersistStoreWrite backend, MonadIO m,
+ PersistRecordBackend record backend, SafeToInsert record) =&gt;
+record -&gt; ReaderT backend m (Key record)
+forall record (m :: * -&gt; *).
+(MonadIO m, PersistRecordBackend record SqlBackend,
+ SafeToInsert record) =&gt;
+record -&gt; ReaderT SqlBackend m (Key record)
+</span><span class="hs-identifier hs-var">insert</span></span><span> </span><span class="annot"><span class="annottext">(Comment -&gt; SqlPersistT m (Key Comment))
+-&gt; Comment -&gt; SqlPersistT m (Key Comment)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; ArticleID -&gt; Text -&gt; Comment
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#mkComment"><span class="hs-identifier hs-var">mkComment</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679284865"><span class="hs-identifier hs-var">authorID</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679284866"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679284867"><span class="hs-identifier hs-var">body</span></a></span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span class="annot"><a href="Conduit.Features.Articles.Comments.AddComment.html#mkComment"><span class="hs-identifier hs-type">mkComment</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Comment"><span class="hs-identifier hs-type">Comment</span></a></span><span>
+</span><span id="line-62"></span><span id="mkComment"><span class="annot"><span class="annottext">mkComment :: UserID -&gt; ArticleID -&gt; Text -&gt; Comment
+</span><a href="Conduit.Features.Articles.Comments.AddComment.html#mkComment"><span class="hs-identifier hs-var hs-var">mkComment</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Key User
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679284871"><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679284871"><span class="hs-identifier hs-var">authorID</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">ArticleID -&gt; Key Article
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679284872"><span class="annot"><span class="annottext">Key Article
+</span><a href="#local-6989586621679284872"><span class="hs-identifier hs-var">articleID</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679284873"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679284873"><span class="hs-identifier hs-var">body</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key User -&gt; Key Article -&gt; Text -&gt; UTCTime -&gt; UTCTime -&gt; Comment
+</span><a href="Conduit.Features.Articles.DB.html#Comment"><span class="hs-identifier hs-var">Comment</span></a></span><span> </span><span class="annot"><span class="annottext">Key User
+</span><a href="#local-6989586621679284871"><span class="hs-identifier hs-var">authorID</span></a></span><span> </span><span class="annot"><span class="annottext">Key Article
+</span><a href="#local-6989586621679284872"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679284873"><span class="hs-identifier hs-var">body</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="Conduit.DB.Utils.html#dbTimeNow"><span class="hs-identifier hs-var">dbTimeNow</span></a></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="Conduit.DB.Utils.html#dbTimeNow"><span class="hs-identifier hs-var">dbTimeNow</span></a></span><span>
+</span><span id="line-63"></span></pre></body></html>

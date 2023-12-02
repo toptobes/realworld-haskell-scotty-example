@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.DB.Utils</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">fromGregorian</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">secondsToDiffTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SqlExpr</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">SqlQuery</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">where_</span></span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>
+</span><span id="line-6"></span><span class="hs-comment">-- | Temporarily sets the time to some irrelevant number for typing reasons.</span><span>
+</span><span id="line-7"></span><span class="hs-comment">--   Used for rows where the DB sets the timestamp using some trigger.</span><span>
+</span><span id="line-8"></span><span class="annot"><a href="Conduit.DB.Utils.html#dbTimeNow"><span class="hs-identifier hs-type">dbTimeNow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-9"></span><span id="dbTimeNow"><span class="annot"><span class="annottext">dbTimeNow :: UTCTime
+</span><a href="Conduit.DB.Utils.html#dbTimeNow"><span class="hs-identifier hs-var hs-var">dbTimeNow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Day -&gt; DiffTime -&gt; UTCTime
+</span><span class="hs-identifier hs-var">UTCTime</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Year -&gt; MonthOfYear -&gt; MonthOfYear -&gt; Day
+</span><span class="hs-identifier hs-var">fromGregorian</span></span><span> </span><span class="annot"><span class="annottext">Year
+</span><span class="hs-number">1</span></span><span> </span><span class="annot"><span class="annottext">MonthOfYear
+</span><span class="hs-number">0</span></span><span> </span><span class="annot"><span class="annottext">MonthOfYear
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Year -&gt; DiffTime
+</span><span class="hs-identifier hs-var">secondsToDiffTime</span></span><span> </span><span class="annot"><span class="annottext">Year
+</span><span class="hs-number">0</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- | Shorthand for DB queries that select from a table just applying some filter</span><span>
+</span><span id="line-12"></span><span class="hs-comment">--</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- &gt; select $ do </span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- &gt;   e &lt;- from table `suchThat` \e -&gt; e.id ==. ???</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- &gt;   ...</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">infixl</span><span> </span><span class="hs-number">5</span><span> </span><span class="annot"><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-type">`suchThat`</span></a></span><span>
+</span><span id="line-17"></span><span id="local-6989586621679276344"><span class="annot"><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-identifier hs-type">suchThat</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlQuery</span></span><span> </span><span class="annot"><a href="#local-6989586621679276344"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679276344"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlExpr</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlQuery</span></span><span> </span><span class="annot"><a href="#local-6989586621679276344"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-18"></span><span id="suchThat"><span class="annot"><span class="annottext">suchThat :: forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-identifier hs-var hs-var">suchThat</span></a></span></span><span> </span><span id="local-6989586621679276362"><span class="annot"><span class="annottext">SqlQuery a
+</span><a href="#local-6989586621679276362"><span class="hs-identifier hs-var">entity</span></a></span></span><span> </span><span id="local-6989586621679276363"><span class="annot"><span class="annottext">a -&gt; SqlExpr (Value Bool)
+</span><a href="#local-6989586621679276363"><span class="hs-identifier hs-var">predicate</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679276364"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679276364"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">SqlQuery a
+</span><a href="#local-6989586621679276362"><span class="hs-identifier hs-var">entity</span></a></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="annottext">SqlExpr (Value Bool) -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">where_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a -&gt; SqlExpr (Value Bool)
+</span><a href="#local-6989586621679276363"><span class="hs-identifier hs-var">predicate</span></a></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679276364"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><span class="annottext">a -&gt; SqlQuery a
+forall a. a -&gt; SqlQuery a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679276364"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-22"></span></pre></body></html>

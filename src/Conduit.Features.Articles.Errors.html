@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Errors</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier">DBError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Errors.html"><span class="hs-identifier">Conduit.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier">FeatureError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Errors.html#FeatureErrorMapper"><span class="hs-identifier">FeatureErrorMapper</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Account</span></span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#.-"><span class="hs-operator">(.-)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Validation.html"><span class="hs-identifier">Conduit.Validation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Validation.html#ValErrs"><span class="hs-identifier">ValErrs</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Validation.html#inErrMsgObj"><span class="hs-identifier">inErrMsgObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status403</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status404</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status500</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types.Status</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status422</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ActionT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">data</span><span> </span><span id="ArticleError"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-var">ArticleError</span></a></span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-glyph">=</span><span> </span><span id="ResourceNotFoundEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span></span><span> </span><span class="hs-comment">-- General exception for simplicity's sake since spec doesn't need specific 404 error msgs</span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UserUnauthorizedEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#UserUnauthorizedEx"><span class="hs-identifier hs-var">UserUnauthorizedEx</span></a></span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="IllegalArticleDelEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#IllegalArticleDelEx"><span class="hs-identifier hs-var">IllegalArticleDelEx</span></a></span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="IllegalCommentDelEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#IllegalCommentDelEx"><span class="hs-identifier hs-var">IllegalCommentDelEx</span></a></span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="UniquenessEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#UniquenessEx"><span class="hs-identifier hs-var">UniquenessEx</span></a></span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="InvalidSlugEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#InvalidSlugEx"><span class="hs-identifier hs-var">InvalidSlugEx</span></a></span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-glyph">|</span><span> </span><span id="SomeDBEx"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#SomeDBEx"><span class="hs-identifier hs-var">SomeDBEx</span></a></span></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679283629"><span id="local-6989586621679283637"><span id="local-6989586621679283641"><span class="annot"><span class="annottext">Int -&gt; ArticleError -&gt; ShowS
+[ArticleError] -&gt; ShowS
+ArticleError -&gt; String
+(Int -&gt; ArticleError -&gt; ShowS)
+-&gt; (ArticleError -&gt; String)
+-&gt; ([ArticleError] -&gt; ShowS)
+-&gt; Show ArticleError
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; ArticleError -&gt; ShowS
+showsPrec :: Int -&gt; ArticleError -&gt; ShowS
+$cshow :: ArticleError -&gt; String
+show :: ArticleError -&gt; String
+$cshowList :: [ArticleError] -&gt; ShowS
+showList :: [ArticleError] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679283645"><span id="local-6989586621679283651"><span class="annot"><span class="annottext">ArticleError -&gt; ArticleError -&gt; Bool
+(ArticleError -&gt; ArticleError -&gt; Bool)
+-&gt; (ArticleError -&gt; ArticleError -&gt; Bool) -&gt; Eq ArticleError
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: ArticleError -&gt; ArticleError -&gt; Bool
+== :: ArticleError -&gt; ArticleError -&gt; Bool
+$c/= :: ArticleError -&gt; ArticleError -&gt; Bool
+/= :: ArticleError -&gt; ArticleError -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679283656"><span id="local-6989586621679283659"><span id="local-6989586621679283662"><span id="local-6989586621679283680"><span class="annot"><span class="annottext">ReadPrec [ArticleError]
+ReadPrec ArticleError
+Int -&gt; ReadS ArticleError
+ReadS [ArticleError]
+(Int -&gt; ReadS ArticleError)
+-&gt; ReadS [ArticleError]
+-&gt; ReadPrec ArticleError
+-&gt; ReadPrec [ArticleError]
+-&gt; Read ArticleError
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS ArticleError
+readsPrec :: Int -&gt; ReadS ArticleError
+$creadList :: ReadS [ArticleError]
+readList :: ReadS [ArticleError]
+$creadPrec :: ReadPrec ArticleError
+readPrec :: ReadPrec ArticleError
+$creadListPrec :: ReadPrec [ArticleError]
+readListPrec :: ReadPrec [ArticleError]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-24"></span><span>  </span><span id="local-6989586621679283689"><span class="annot"><span class="annottext">handleFeatureError :: forall (m :: * -&gt; *). MonadIO m =&gt; ArticleError -&gt; ActionT m ()
+</span><a href="#local-6989586621679283689"><span class="hs-identifier hs-var hs-var hs-var hs-var">handleFeatureError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArticleError -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; ArticleError -&gt; ActionT m ()
+</span><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span id="local-6989586621679283692"><span class="annot"><span class="annottext">handleDBError :: DBError -&gt; ArticleError
+</span><a href="#local-6989586621679283692"><span class="hs-identifier hs-var hs-var hs-var hs-var">handleDBError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span id="local-6989586621679283695"><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-type">handleFeatureError'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679283695"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679283695"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-28"></span><span id="handleFeatureError%27"><span class="annot"><span class="annottext">handleFeatureError' :: forall (m :: * -&gt; *). MonadIO m =&gt; ArticleError -&gt; ActionT m ()
+</span><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var hs-var">handleFeatureError'</span></a></span></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status404</span></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#InvalidSlugEx"><span class="hs-identifier hs-var">InvalidSlugEx</span></a></span><span>       </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status404</span></span><span>
+</span><span id="line-30"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#UserUnauthorizedEx"><span class="hs-identifier hs-var">UserUnauthorizedEx</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status403</span></span><span>
+</span><span id="line-31"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#IllegalArticleDelEx"><span class="hs-identifier hs-var">IllegalArticleDelEx</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status403</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">InObj Text -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Validation.html#inErrMsgObj"><span class="hs-identifier hs-var">inErrMsgObj</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;You are not authorized to delete this article&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#IllegalCommentDelEx"><span class="hs-identifier hs-var">IllegalCommentDelEx</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status403</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">InObj Text -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Validation.html#inErrMsgObj"><span class="hs-identifier hs-var">inErrMsgObj</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;You are not authorized to delete this comment&quot;</span></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#UniquenessEx"><span class="hs-identifier hs-type">UniquenessEx</span></a></span><span> </span><span id="local-6989586621679283727"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283727"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span>    </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status422</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">ValErrs -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">[(Text, Text)] -&gt; ValErrs
+</span><a href="Conduit.Validation.html#ValErrs"><span class="hs-identifier hs-var">ValErrs</span></a></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283727"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;must be unique&quot;</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleFeatureError%27"><span class="hs-identifier hs-var">handleFeatureError'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#SomeDBEx"><span class="hs-identifier hs-type">SomeDBEx</span></a></span><span> </span><span id="local-6989586621679283729"><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283729"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (MonadIO m, Show a) =&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">print</span></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283729"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status500</span></span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-type">handleDBErr'</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBError"><span class="hs-identifier hs-type">DBError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span>
+</span><span id="line-37"></span><span id="handleDBErr%27"><span class="annot"><span class="annottext">handleDBErr' :: DBError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var hs-var">handleDBErr'</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#AuthorizationError"><span class="hs-identifier hs-type">AuthorizationError</span></a></span><span> </span><span id="local-6989586621679283732"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283732"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283732"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; (Text -&gt; ArticleError) -&gt; ArticleError
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; String)
+-&gt; (String -&gt; Maybe ArticleError) -&gt; Text -&gt; Maybe ArticleError
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe ArticleError
+forall a. Read a =&gt; String -&gt; Maybe a
+</span><span class="hs-identifier hs-var">readMaybe</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Maybe ArticleError)
+-&gt; (Maybe ArticleError -&gt; ArticleError) -&gt; Text -&gt; ArticleError
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError -&gt; Maybe ArticleError -&gt; ArticleError
+forall a. a -&gt; Maybe a -&gt; a
+</span><span class="hs-identifier hs-var">fromMaybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; ArticleError
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; ArticleError) -&gt; Text -&gt; ArticleError
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;invalid authorization error: &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283732"><span class="hs-identifier hs-var">e</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="Conduit.DB.Core.html#NotFoundError"><span class="hs-identifier hs-var">NotFoundError</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span><span>
+</span><span id="line-39"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#UniquenessError"><span class="hs-identifier hs-type">UniquenessError</span></a></span><span> </span><span id="local-6989586621679283741"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283741"><span class="hs-identifier hs-var">e</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#UniquenessEx"><span class="hs-identifier hs-var">UniquenessEx</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679283741"><span class="hs-identifier hs-var">e</span></a></span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#handleDBErr%27"><span class="hs-identifier hs-var">handleDBErr'</span></a></span><span> </span><span id="local-6989586621679283742"><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283742"><span class="hs-identifier hs-var">err</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#SomeDBEx"><span class="hs-identifier hs-var">SomeDBEx</span></a></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283742"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-41"></span><span>
+</span><span id="line-42"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Conduit.Errors.html#FeatureErrorMapper"><span class="hs-identifier hs-type">FeatureErrorMapper</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-43"></span><span>  </span><span class="annot"><a href="Conduit.Errors.html#mapFeatureError"><span class="hs-identifier hs-type">mapFeatureError</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span>
+</span><span id="line-44"></span><span>  </span><span id="local-6989586621679283747"><span class="annot"><span class="annottext">mapFeatureError :: AccountError -&gt; ArticleError
+</span><a href="Conduit.Errors.html#mapFeatureError"><span class="hs-identifier hs-var hs-var hs-var hs-var">mapFeatureError</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AccountError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#accountErr2articleErr"><span class="hs-identifier hs-var">accountErr2articleErr</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span>
+</span><span id="line-46"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#accountErr2articleErr"><span class="hs-identifier hs-type">accountErr2articleErr</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span>
+</span><span id="line-47"></span><span id="accountErr2articleErr"><span class="annot"><span class="annottext">accountErr2articleErr :: AccountError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#accountErr2articleErr"><span class="hs-identifier hs-var hs-var">accountErr2articleErr</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#SomeDBEx"><span class="hs-identifier hs-type">Account.SomeDBEx</span></a></span><span> </span><span id="local-6989586621679283750"><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283750"><span class="hs-identifier hs-var">err</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBError -&gt; ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#SomeDBEx"><span class="hs-identifier hs-var">SomeDBEx</span></a></span><span> </span><span class="annot"><span class="annottext">DBError
+</span><a href="#local-6989586621679283750"><span class="hs-identifier hs-var">err</span></a></span><span>
+</span><span id="line-48"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#accountErr2articleErr"><span class="hs-identifier hs-var">accountErr2articleErr</span></a></span><span> </span><span class="annot"><span class="annottext">AccountError
+</span><a href="Conduit.Features.Account.Errors.html#UserNotFoundEx"><span class="hs-identifier hs-var">Account.UserNotFoundEx</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span><span>
+</span><span id="line-49"></span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#accountErr2articleErr"><span class="hs-identifier hs-var">accountErr2articleErr</span></a></span><span> </span><span class="annot"><span class="annottext">AccountError
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ArticleError
+forall a t. (HasCallStack, IsText t) =&gt; t -&gt; a
+</span><span class="hs-identifier hs-var">error</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;shouldn't need other maps; just fail-fast until I add proper logging lol&quot;</span></span><span>
+</span><span id="line-50"></span></pre></body></html>

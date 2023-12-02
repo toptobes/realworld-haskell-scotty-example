@@ -1,0 +1,208 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit</span><span>
+</span><span id="line-2"></span><span>  </span><span class="hs-special">(</span><span> </span><span class="annot"><a href="Conduit.html#ConduitOps"><span class="hs-identifier">ConduitOps</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-3"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier">PGConnOps</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Env.html#EnvType"><span class="hs-identifier">EnvType</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier">JWTOps</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.html#main"><span class="hs-identifier">main</span></a></span><span>
+</span><span id="line-7"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Env.html"><span class="hs-identifier">Conduit.App.Env</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Env.html#Env"><span class="hs-identifier">Env</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Env.html#EnvType"><span class="hs-identifier">EnvType</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#%24sel%3ArunAppM%3AAppM"><span class="hs-identifier">runAppM</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html"><span class="hs-identifier">Conduit.DB.Init</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier">PGConnOps</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#initDB"><span class="hs-identifier">initDB</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#mkDBPool"><span class="hs-identifier">mkDBPool</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Handlers.html"><span class="hs-identifier">Conduit.Features.Account.Handlers</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Account</span></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Handlers.html"><span class="hs-identifier">Conduit.Features.Articles.Handlers</span></a></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Articles</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html"><span class="hs-identifier">Conduit.Identity.JWT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier">JWTOps</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#mkJWTInfo"><span class="hs-identifier">mkJWTInfo</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.PostgreSQL.Simple</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SqlError</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status500</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.Wai.Middleware.RequestLogger</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">logStdout</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">logStdoutDev</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.Wai.Middleware.Static</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">CachingStrategy</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">addBase</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">cacheContainer</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hasPrefix</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">initCaching</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">staticPolicyWithOptions</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.Wai.Middleware.Static</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Static</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Handler</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">defaultHandler</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">middleware</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">scottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="ConduitOps"><span class="annot"><a href="Conduit.html#ConduitOps"><span class="hs-identifier hs-var">ConduitOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ConduitOps"><span class="annot"><a href="Conduit.html#ConduitOps"><span class="hs-identifier hs-var">ConduitOps</span></a></span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aport%3AConduitOps"><span class="annot"><span class="annottext">ConduitOps -&gt; Int
+</span><a href="Conduit.html#%24sel%3Aport%3AConduitOps"><span class="hs-identifier hs-var hs-var">port</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AdbConnOps%3AConduitOps"><span class="annot"><span class="annottext">ConduitOps -&gt; PGConnOps
+</span><a href="Conduit.html#%24sel%3AdbConnOps%3AConduitOps"><span class="hs-identifier hs-var hs-var">dbConnOps</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-type">PGConnOps</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AjwtOps%3AConduitOps"><span class="annot"><span class="annottext">ConduitOps -&gt; JWTOps
+</span><a href="Conduit.html#%24sel%3AjwtOps%3AConduitOps"><span class="hs-identifier hs-var hs-var">jwtOps</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier hs-type">JWTOps</span></a></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AenvType%3AConduitOps"><span class="annot"><span class="annottext">ConduitOps -&gt; EnvType
+</span><a href="Conduit.html#%24sel%3AenvType%3AConduitOps"><span class="hs-identifier hs-var hs-var">envType</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.App.Env.html#EnvType"><span class="hs-identifier hs-type">EnvType</span></a></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Conduit.html#main"><span class="hs-identifier hs-type">main</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.html#ConduitOps"><span class="hs-identifier hs-type">ConduitOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span id="main"><span class="annot"><span class="annottext">main :: ConduitOps -&gt; IO ()
+</span><a href="Conduit.html#main"><span class="hs-identifier hs-var hs-var">main</span></a></span></span><span> </span><span class="annot"><a href="Conduit.html#ConduitOps"><span class="hs-identifier hs-type">ConduitOps</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679290563"><span id="local-6989586621679290564"><span id="local-6989586621679290565"><span id="local-6989586621679290566"><span class="annot"><span class="annottext">Int
+JWTOps
+PGConnOps
+EnvType
+$sel:port:ConduitOps :: ConduitOps -&gt; Int
+$sel:dbConnOps:ConduitOps :: ConduitOps -&gt; PGConnOps
+$sel:jwtOps:ConduitOps :: ConduitOps -&gt; JWTOps
+$sel:envType:ConduitOps :: ConduitOps -&gt; EnvType
+port :: Int
+dbConnOps :: PGConnOps
+jwtOps :: JWTOps
+envType :: EnvType
+</span><a href="Conduit.html#%24sel%3Aport%3AConduitOps"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679290567"><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO Env
+</span><a href="#local-6989586621679290568"><span class="hs-identifier hs-var">defaultEnv</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679290569"><span class="annot"><span class="annottext">runAppToIO :: AppM Response -&gt; IO Response
+</span><a href="#local-6989586621679290569"><span class="hs-identifier hs-var hs-var">runAppToIO</span></a></span></span><span> </span><span id="local-6989586621679290570"><span class="annot"><span class="annottext">AppM Response
+</span><a href="#local-6989586621679290570"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ReaderT Env IO Response -&gt; Env -&gt; IO Response
+forall r (m :: * -&gt; *) a. ReaderT r m a -&gt; r -&gt; m a
+</span><span class="hs-identifier hs-var">runReaderT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">AppM Response -&gt; ReaderT Env IO Response
+forall a. AppM a -&gt; ReaderT Env IO a
+</span><a href="Conduit.App.Monad.html#%24sel%3ArunAppM%3AAppM"><span class="hs-identifier hs-var">runAppM</span></a></span><span> </span><span class="annot"><span class="annottext">AppM Response
+</span><a href="#local-6989586621679290570"><span class="hs-identifier hs-var">m</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span><span>
+</span><span id="line-33"></span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">String -&gt; IO ()
+forall (m :: * -&gt; *). MonadIO m =&gt; String -&gt; m ()
+</span><span class="hs-identifier hs-var">putStrLn</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; IO ()) -&gt; String -&gt; IO ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[String] -&gt; String
+forall m. Monoid m =&gt; [m] -&gt; m
+forall (t :: * -&gt; *) m. (Foldable t, Monoid m) =&gt; t m -&gt; m
+</span><span class="hs-identifier hs-var">fold</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;Running in '&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">EnvType -&gt; String
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">envType</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;'&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; IO () -&gt; IO ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">envType</span><span> </span><span class="annot"><span class="annottext">EnvType -&gt; EnvType -&gt; Bool
+forall a. Eq a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">==</span></span><span> </span><span class="annot"><span class="annottext">EnvType
+</span><a href="Conduit.App.Env.html#Development"><span class="hs-identifier hs-var">Development</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>    </span><span class="annot"><span class="annottext">DBPool -&gt; PGConnOps -&gt; IO ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+DBPool -&gt; PGConnOps -&gt; m ()
+</span><a href="Conduit.DB.Init.html#initDB"><span class="hs-identifier hs-var">initDB</span></a></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">envDBPool</span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679290564"><span class="hs-identifier hs-var">dbConnOps</span></a></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679290577"><span class="annot"><span class="annottext">CacheContainer
+</span><a href="#local-6989586621679290577"><span class="hs-identifier hs-var">cache</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">CachingStrategy -&gt; IO CacheContainer
+</span><span class="hs-identifier hs-var">initCaching</span></span><span> </span><span class="annot"><span class="annottext">CachingStrategy
+</span><span class="hs-identifier hs-var">PublicStaticCaching</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="annottext">Int -&gt; (AppM Response -&gt; IO Response) -&gt; ScottyT AppM () -&gt; IO ()
+forall (m :: * -&gt; *) (n :: * -&gt; *).
+(Monad m, MonadIO n) =&gt;
+Int -&gt; (m Response -&gt; IO Response) -&gt; ScottyT m () -&gt; n ()
+</span><span class="hs-identifier hs-var">scottyT</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679290563"><span class="hs-identifier hs-var">port</span></a></span><span> </span><span class="annot"><span class="annottext">AppM Response -&gt; IO Response
+</span><a href="#local-6989586621679290569"><span class="hs-identifier hs-var">runAppToIO</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>    </span><span class="annot"><span class="annottext">ErrorHandler AppM -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *). Monad m =&gt; ErrorHandler m -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">defaultHandler</span></span><span> </span><span class="annot"><span class="annottext">(ErrorHandler AppM -&gt; ScottyT AppM ())
+-&gt; ErrorHandler AppM -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(SqlError -&gt; ActionT AppM ()) -&gt; ErrorHandler AppM
+forall (m :: * -&gt; *) a e. Exception e =&gt; (e -&gt; m a) -&gt; Handler m a
+</span><span class="hs-identifier hs-var">Handler</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-special">(</span><span id="local-6989586621679290580"><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679290580"><span class="hs-identifier hs-var">e</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlError</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span> </span><span class="hs-comment">-- temp for debugging reasons</span><span>
+</span><span id="line-43"></span><span>      </span><span class="annot"><span class="annottext">SqlError -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (MonadIO m, Show a) =&gt; a -&gt; m ()
+</span><span class="hs-identifier hs-var">print</span></span><span> </span><span class="annot"><span class="annottext">SqlError
+</span><a href="#local-6989586621679290580"><span class="hs-identifier hs-var">e</span></a></span><span> </span><span class="annot"><span class="annottext">ActionT AppM () -&gt; ActionT AppM () -&gt; ActionT AppM ()
+forall a b. ActionT AppM a -&gt; ActionT AppM b -&gt; ActionT AppM b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT AppM ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status500</span></span><span>
+</span><span id="line-44"></span><span>    </span><span>
+</span><span id="line-45"></span><span>    </span><span class="annot"><span class="annottext">Middleware -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *). Middleware -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">middleware</span></span><span> </span><span class="annot"><span class="annottext">(Middleware -&gt; ScottyT AppM ()) -&gt; Middleware -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">EnvType -&gt; Middleware
+</span><a href="#local-6989586621679290582"><span class="hs-identifier hs-var">loggerFor</span></a></span><span> </span><span class="annot"><span class="annottext">Env
+</span><a href="#local-6989586621679290567"><span class="hs-identifier hs-var">env</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">envType</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>    </span><span class="annot"><span class="annottext">Middleware -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *). Middleware -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">middleware</span></span><span> </span><span class="annot"><span class="annottext">(Middleware -&gt; ScottyT AppM ()) -&gt; Middleware -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Options -&gt; Policy -&gt; Middleware
+</span><span class="hs-identifier hs-var">staticPolicyWithOptions</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">CacheContainer -&gt; Options
+</span><a href="#local-6989586621679290583"><span class="hs-identifier hs-var">staticOps</span></a></span><span> </span><span class="annot"><span class="annottext">CacheContainer
+</span><a href="#local-6989586621679290577"><span class="hs-identifier hs-var">cache</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Policy
+</span><a href="#local-6989586621679290584"><span class="hs-identifier hs-var">policy</span></a></span><span>
+</span><span id="line-48"></span><span>    </span><span>
+</span><span id="line-49"></span><span>    </span><span class="annot"><span class="annottext">ScottyT AppM ()
+</span><a href="#local-6989586621679290585"><span class="hs-identifier hs-var">applicationHandlers</span></a></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-keyword">where</span><span>
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679290568"><span class="annot"><span class="annottext">defaultEnv :: IO Env
+</span><a href="#local-6989586621679290568"><span class="hs-identifier hs-var hs-var">defaultEnv</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">DBPool -&gt; JWTInfo -&gt; EnvType -&gt; Env
+</span><a href="Conduit.App.Env.html#Env"><span class="hs-identifier hs-var">Env</span></a></span><span>
+</span><span id="line-52"></span><span>      </span><span class="annot"><span class="annottext">(DBPool -&gt; JWTInfo -&gt; EnvType -&gt; Env)
+-&gt; IO DBPool -&gt; IO (JWTInfo -&gt; EnvType -&gt; Env)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">PGConnOps -&gt; IO DBPool
+forall (m :: * -&gt; *). MonadIO m =&gt; PGConnOps -&gt; m DBPool
+</span><a href="Conduit.DB.Init.html#mkDBPool"><span class="hs-identifier hs-var">mkDBPool</span></a></span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679290564"><span class="hs-identifier hs-var">dbConnOps</span></a></span><span>
+</span><span id="line-53"></span><span>      </span><span class="annot"><span class="annottext">IO (JWTInfo -&gt; EnvType -&gt; Env) -&gt; IO JWTInfo -&gt; IO (EnvType -&gt; Env)
+forall a b. IO (a -&gt; b) -&gt; IO a -&gt; IO b
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">JWTInfo -&gt; IO JWTInfo
+forall a. a -&gt; IO a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">JWTOps -&gt; JWTInfo
+</span><a href="Conduit.Identity.JWT.html#mkJWTInfo"><span class="hs-identifier hs-var">mkJWTInfo</span></a></span><span> </span><span class="annot"><span class="annottext">JWTOps
+</span><a href="#local-6989586621679290565"><span class="hs-identifier hs-var">jwtOps</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>      </span><span class="annot"><span class="annottext">IO (EnvType -&gt; Env) -&gt; IO EnvType -&gt; IO Env
+forall a b. IO (a -&gt; b) -&gt; IO a -&gt; IO b
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">EnvType -&gt; IO EnvType
+forall a. a -&gt; IO a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">EnvType
+</span><a href="#local-6989586621679290566"><span class="hs-identifier hs-var">envType</span></a></span><span>
+</span><span id="line-55"></span><span>
+</span><span id="line-56"></span><span>    </span><span id="local-6989586621679290582"><span class="annot"><span class="annottext">loggerFor :: EnvType -&gt; Middleware
+</span><a href="#local-6989586621679290582"><span class="hs-identifier hs-var hs-var">loggerFor</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-57"></span><span>      </span><span class="annot"><span class="annottext">EnvType
+</span><a href="Conduit.App.Env.html#Development"><span class="hs-identifier hs-var">Development</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Middleware
+</span><span class="hs-identifier hs-var">logStdoutDev</span></span><span>
+</span><span id="line-58"></span><span>      </span><span class="annot"><span class="annottext">EnvType
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Middleware
+</span><span class="hs-identifier hs-var">logStdout</span></span><span>
+</span><span id="line-59"></span><span>
+</span><span id="line-60"></span><span>    </span><span id="local-6989586621679290585"><span class="annot"><span class="annottext">applicationHandlers :: ScottyT AppM ()
+</span><a href="#local-6989586621679290585"><span class="hs-identifier hs-var hs-var">applicationHandlers</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[ScottyT AppM ()] -&gt; ScottyT AppM ()
+forall m. Monoid m =&gt; [m] -&gt; m
+forall (t :: * -&gt; *) m. (Foldable t, Monoid m) =&gt; t m -&gt; m
+</span><span class="hs-identifier hs-var">fold</span></span><span>
+</span><span id="line-61"></span><span>      </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">ScottyT AppM ()
+</span><a href="Conduit.Features.Account.Handlers.html#handlers"><span class="hs-identifier hs-var">Account.handlers</span></a></span><span>
+</span><span id="line-62"></span><span>      </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">ScottyT AppM ()
+</span><a href="Conduit.Features.Articles.Handlers.html#handlers"><span class="hs-identifier hs-var">Articles.handlers</span></a></span><span>
+</span><span id="line-63"></span><span>      </span><span class="hs-special">]</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span>    </span><span id="local-6989586621679290583"><span class="annot"><span class="annottext">staticOps :: CacheContainer -&gt; Options
+</span><a href="#local-6989586621679290583"><span class="hs-identifier hs-var hs-var">staticOps</span></a></span></span><span> </span><span id="local-6989586621679290595"><span class="annot"><span class="annottext">CacheContainer
+</span><a href="#local-6989586621679290595"><span class="hs-identifier hs-var">container</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Options
+</span><span class="hs-identifier hs-var">Static.defaultOptions</span></span><span>
+</span><span id="line-66"></span><span>      </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">cacheContainer :: CacheContainer
+</span><span class="hs-identifier hs-var">cacheContainer</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">CacheContainer
+</span><a href="#local-6989586621679290595"><span class="hs-identifier hs-var">container</span></a></span><span>
+</span><span id="line-67"></span><span>      </span><span class="hs-special">}</span><span>
+</span><span id="line-68"></span><span>
+</span><span id="line-69"></span><span>    </span><span id="local-6989586621679290584"><span class="annot"><span class="annottext">policy :: Policy
+</span><a href="#local-6989586621679290584"><span class="hs-identifier hs-var hs-var">policy</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; Policy
+</span><span class="hs-identifier hs-var">hasPrefix</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;images&quot;</span></span><span> </span><span class="annot"><span class="annottext">Policy -&gt; Policy -&gt; Policy
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Policy
+</span><span class="hs-identifier hs-var">addBase</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;static&quot;</span></span><span>
+</span><span id="line-70"></span></pre></body></html>

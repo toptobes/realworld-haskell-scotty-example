@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Articles.DeleteArticle</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#expectDBNonZero"><span class="hs-identifier">expectDBNonZero</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Article"><span class="hs-identifier">Article</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html#assumingUserIsOwner"><span class="hs-identifier">assumingUserIsOwner</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html"><span class="hs-identifier">Conduit.Features.Articles.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html"><span class="hs-identifier">Conduit.Features.Articles.Slugs</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier">extractIDFromSlug</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html"><span class="hs-identifier">Conduit.Features.Articles.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier">ArticleID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier">Slug</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#%24sel%3AauthedUserID%3AAuthedUser"><span class="hs-identifier">authedUserID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">deleteCount</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">from</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">table</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">valkey</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">where_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status204</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParam</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Scotty</span></span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#handleArticleDelete"><span class="hs-identifier hs-type">handleArticleDelete</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span id="handleArticleDelete"><span class="annot"><span class="annottext">handleArticleDelete :: ScottyT AppM ()
+</span><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#handleArticleDelete"><span class="hs-identifier hs-var hs-var">handleArticleDelete</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">Scotty.delete</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/articles/:slug&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679285508"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679285508"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-21"></span><span>  </span><span id="local-6989586621679285509"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679285509"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT AppM Text
+forall a (m :: * -&gt; *).
+(Parsable a, Monad m) =&gt;
+Text -&gt; ActionT m a
+</span><span class="hs-identifier hs-var">captureParam</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;slug&quot;</span></span><span> </span><span class="annot"><span class="annottext">ActionT AppM Text -&gt; (Text -&gt; Slug) -&gt; ActionT AppM Slug
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Slug
+</span><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="annot"><span class="annottext">AppM (Either ArticleError ()) -&gt; ActionT AppM ()
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either ArticleError ()) -&gt; ActionT AppM ())
+-&gt; AppM (Either ArticleError ()) -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; UserID -&gt; AppM (Either ArticleError ())
+forall (m :: * -&gt; *).
+DeleteArticle m =&gt;
+Slug -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticle"><span class="hs-identifier hs-var">deleteArticle</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679285509"><span class="hs-identifier hs-var">slug</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679285508"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="annottext">Status -&gt; ActionT AppM ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status204</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span id="local-6989586621679285381"><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticle"><span class="hs-identifier hs-type">deleteArticle</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#DeleteArticle"><span class="hs-identifier hs-type">DeleteArticle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679285381"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679285381"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-26"></span><span id="deleteArticle"><span class="annot"><span class="annottext">deleteArticle :: forall (m :: * -&gt; *).
+DeleteArticle m =&gt;
+Slug -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticle"><span class="hs-identifier hs-var hs-var">deleteArticle</span></a></span></span><span> </span><span id="local-6989586621679285522"><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679285522"><span class="hs-identifier hs-var">slug</span></a></span></span><span> </span><span id="local-6989586621679285523"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679285523"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT ArticleError m () -&gt; m (Either ArticleError ())
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679285525"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679285525"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError ArticleID)
+-&gt; ExceptT ArticleError m ArticleID
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ArticleID)
+ -&gt; ExceptT ArticleError m ArticleID)
+-&gt; (Either ArticleError ArticleID
+    -&gt; m (Either ArticleError ArticleID))
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either ArticleError ArticleID -&gt; m (Either ArticleError ArticleID)
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either ArticleError ArticleID -&gt; ExceptT ArticleError m ArticleID)
+-&gt; Either ArticleError ArticleID
+-&gt; ExceptT ArticleError m ArticleID
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Slug -&gt; Either ArticleError ArticleID
+</span><a href="Conduit.Features.Articles.Slugs.html#extractIDFromSlug"><span class="hs-identifier hs-var">extractIDFromSlug</span></a></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679285522"><span class="hs-identifier hs-var">slug</span></a></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="annottext">m (Either ArticleError ()) -&gt; ExceptT ArticleError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ()) -&gt; ExceptT ArticleError m ())
+-&gt; m (Either ArticleError ()) -&gt; ExceptT ArticleError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+forall (m :: * -&gt; *).
+DeleteArticle m =&gt;
+ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticleByID"><span class="hs-identifier hs-var">deleteArticleByID</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679285525"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679285523"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679285389"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="DeleteArticle"><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#DeleteArticle"><span class="hs-identifier hs-var">DeleteArticle</span></a></span></span><span> </span><span id="local-6989586621679285389"><span class="annot"><a href="#local-6989586621679285389"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-31"></span><span>  </span><span id="deleteArticleByID"><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticleByID"><span class="hs-identifier hs-type">deleteArticleByID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679285389"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679285365"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679285365"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679285365"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679285365"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#DeleteArticle"><span class="hs-identifier hs-type">DeleteArticle</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679285365"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticleByID"><span class="hs-identifier hs-type">deleteArticleByID</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-type">ArticleID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679285365"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679285588"><span class="annot"><span class="annottext">deleteArticleByID :: ArticleID -&gt; UserID -&gt; m (Either ArticleError ())
+</span><a href="Conduit.Features.Articles.Articles.DeleteArticle.html#deleteArticleByID"><span class="hs-identifier hs-var hs-var hs-var hs-var">deleteArticleByID</span></a></span></span><span> </span><span id="local-6989586621679285589"><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679285589"><span class="hs-identifier hs-var">articleID</span></a></span></span><span> </span><span id="local-6989586621679285590"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679285590"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ArticleError -&gt; Either DBError Int64 -&gt; Either ArticleError ()
+forall e cnt.
+(FeatureError e, Num cnt, Ord cnt) =&gt;
+e -&gt; Either DBError cnt -&gt; Either e ()
+</span><a href="Conduit.DB.Core.html#expectDBNonZero"><span class="hs-identifier hs-var">expectDBNonZero</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#ResourceNotFoundEx"><span class="hs-identifier hs-var">ResourceNotFoundEx</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError Int64 -&gt; Either ArticleError ())
+-&gt; m (Either DBError Int64) -&gt; m (Either ArticleError ())
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m Int64 -&gt; m (Either DBError Int64)
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-36"></span><span>    </span><span class="annot"><span class="annottext">ArticleError
+-&gt; UserID
+-&gt; ArticleID
+-&gt; SqlPersistT m Int64
+-&gt; SqlPersistT m Int64
+forall table id (m :: * -&gt; *) a e.
+(OwnableEntity table, SqlKey table id, MonadIO m, Show e) =&gt;
+e -&gt; UserID -&gt; id -&gt; SqlPersistT m a -&gt; SqlPersistT m a
+</span><a href="Conduit.Features.Articles.DB.html#assumingUserIsOwner"><span class="hs-identifier hs-var">assumingUserIsOwner</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleError
+</span><a href="Conduit.Features.Articles.Errors.html#IllegalArticleDelEx"><span class="hs-identifier hs-var">IllegalArticleDelEx</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679285590"><span class="hs-identifier hs-var">userID</span></a></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679285589"><span class="hs-identifier hs-var">articleID</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>      </span><span class="annot"><span class="annottext">SqlQuery () -&gt; SqlPersistT m Int64
+forall (m :: * -&gt; *) backend.
+(MonadIO m, SqlBackendCanWrite backend) =&gt;
+SqlQuery () -&gt; ReaderT backend m Int64
+</span><span class="hs-identifier hs-var">deleteCount</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery () -&gt; SqlPersistT m Int64)
+-&gt; SqlQuery () -&gt; SqlPersistT m Int64
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>        </span><span id="local-6989586621679285595"><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679285595"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity Article))
+-&gt; SqlQuery (SqlExpr (Entity Article))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#Article"><span class="hs-identifier hs-type">Article</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-39"></span><span>        </span><span class="annot"><span class="annottext">SqlExpr (Value Bool) -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">where_</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679285595"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key Article))
+-&gt; SqlExpr (Value (Key Article)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; SqlExpr (Value (Key Article))
+forall entity.
+(ToBackendKey SqlBackend entity, PersistField (Key entity)) =&gt;
+Int64 -&gt; SqlExpr (Value (Key entity))
+</span><span class="hs-identifier hs-var">valkey</span></span><span> </span><span class="annot"><span class="annottext">ArticleID
+</span><a href="#local-6989586621679285589"><span class="hs-identifier hs-var">articleID</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span></pre></body></html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.User.RegisterUser</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">pass</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier">mapDBResult</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#sqlKey2ID"><span class="hs-identifier">sqlKey2ID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html"><span class="hs-identifier">Conduit.Features.Account.Common.EnsureUserCredsUnique</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ReadUsers"><span class="hs-identifier">ReadUsers</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ensureUserCredsUnique"><span class="hs-identifier">ensureUserCredsUnique</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#User"><span class="hs-identifier">User</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier">UserAuth</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#inUserObj"><span class="hs-identifier">inUserObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthTokenGen"><span class="hs-identifier">AuthTokenGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Password.html"><span class="hs-identifier">Conduit.Identity.Password</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Password.html#HashedPassword"><span class="hs-identifier">HashedPassword</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Password.html#PasswordGen"><span class="hs-identifier">PasswordGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Password.html#UnsafePassword"><span class="hs-identifier">UnsafePassword</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Validation.html"><span class="hs-identifier">Conduit.Validation</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier">NotBlank</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Validation.html#parseJsonBody"><span class="hs-identifier">parseJsonBody</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator">(&lt;!&lt;)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">withObject</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.:)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">insert</span></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status201</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">post</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-20"></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">data</span><span> </span><span id="RegisterUserAction"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-var">RegisterUserAction</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="RegisterUserAction"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-var">RegisterUserAction</span></a></span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Ausername%3ARegisterUserAction"><span class="annot"><span class="annottext">RegisterUserAction -&gt; Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Ausername%3ARegisterUserAction"><span class="hs-identifier hs-var hs-var">username</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Apassword%3ARegisterUserAction"><span class="annot"><span class="annottext">RegisterUserAction -&gt; UnsafePassword
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Apassword%3ARegisterUserAction"><span class="hs-identifier hs-var hs-var">password</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.Password.html#UnsafePassword"><span class="hs-identifier hs-type">UnsafePassword</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aemail%3ARegisterUserAction"><span class="annot"><span class="annottext">RegisterUserAction -&gt; Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aemail%3ARegisterUserAction"><span class="hs-identifier hs-var hs-var">email</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679290275"><span id="local-6989586621679290278"><span class="annot"><span class="hs-identifier hs-type">FromJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-type">RegisterUserAction</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span id="local-6989586621679290302"><span class="annot"><span class="annottext">parseJSON :: Value -&gt; Parser RegisterUserAction
+</span><a href="#local-6989586621679290302"><span class="hs-identifier hs-var hs-var hs-var hs-var">parseJSON</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String
+-&gt; (Object -&gt; Parser RegisterUserAction)
+-&gt; Value
+-&gt; Parser RegisterUserAction
+forall a. String -&gt; (Object -&gt; Parser a) -&gt; Value -&gt; Parser a
+</span><span class="hs-identifier hs-var">withObject</span></span><span> </span><span class="annot"><span class="annottext">String
+</span><span class="hs-string">&quot;RegisterUserAction&quot;</span></span><span> </span><span class="annot"><span class="annottext">((Object -&gt; Parser RegisterUserAction)
+ -&gt; Value -&gt; Parser RegisterUserAction)
+-&gt; (Object -&gt; Parser RegisterUserAction)
+-&gt; Value
+-&gt; Parser RegisterUserAction
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679290304"><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679290304"><span class="hs-identifier hs-var">v</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; UnsafePassword -&gt; Text -&gt; RegisterUserAction
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-var">RegisterUserAction</span></a></span><span>
+</span><span id="line-29"></span><span>    </span><span class="annot"><span class="annottext">(Text -&gt; UnsafePassword -&gt; Text -&gt; RegisterUserAction)
+-&gt; Parser Text
+-&gt; Parser (UnsafePassword -&gt; Text -&gt; RegisterUserAction)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679290304"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Key -&gt; Parser (Assurance NotBlank Text)
+forall a. FromJSON a =&gt; Object -&gt; Key -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;username&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Parser (Assurance NotBlank Text) -&gt; NotBlank -&gt; Parser Text
+forall prop on. Parser (Assurance prop on) -&gt; prop -&gt; Parser on
+</span><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator hs-var">&lt;!&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">NotBlank
+</span><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier hs-var">NotBlank</span></a></span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">Parser (UnsafePassword -&gt; Text -&gt; RegisterUserAction)
+-&gt; Parser UnsafePassword -&gt; Parser (Text -&gt; RegisterUserAction)
+forall a b. Parser (a -&gt; b) -&gt; Parser a -&gt; Parser b
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679290304"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Key -&gt; Parser (Assurance NotBlank UnsafePassword)
+forall a. FromJSON a =&gt; Object -&gt; Key -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;password&quot;</span></span><span>  </span><span class="annot"><span class="annottext">Parser (Assurance NotBlank UnsafePassword)
+-&gt; NotBlank -&gt; Parser UnsafePassword
+forall prop on. Parser (Assurance prop on) -&gt; prop -&gt; Parser on
+</span><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator hs-var">&lt;!&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">NotBlank
+</span><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier hs-var">NotBlank</span></a></span><span>
+</span><span id="line-31"></span><span>    </span><span class="annot"><span class="annottext">Parser (Text -&gt; RegisterUserAction)
+-&gt; Parser Text -&gt; Parser RegisterUserAction
+forall a b. Parser (a -&gt; b) -&gt; Parser a -&gt; Parser b
+forall (f :: * -&gt; *) a b. Applicative f =&gt; f (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;*&gt;</span></span><span> </span><span class="annot"><span class="annottext">Object
+</span><a href="#local-6989586621679290304"><span class="hs-identifier hs-var">v</span></a></span><span> </span><span class="annot"><span class="annottext">Object -&gt; Key -&gt; Parser (Assurance NotBlank Text)
+forall a. FromJSON a =&gt; Object -&gt; Key -&gt; Parser a
+</span><span class="hs-operator hs-var">.:</span></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;email&quot;</span></span><span>     </span><span class="annot"><span class="annottext">Parser (Assurance NotBlank Text) -&gt; NotBlank -&gt; Parser Text
+forall prop on. Parser (Assurance prop on) -&gt; prop -&gt; Parser on
+</span><a href="Conduit.Validation.html#%3C%21%3C"><span class="hs-operator hs-var">&lt;!&lt;</span></a></span><span> </span><span class="annot"><span class="annottext">NotBlank
+</span><a href="Conduit.Validation.html#NotBlank"><span class="hs-identifier hs-var">NotBlank</span></a></span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#handleUserRegistration"><span class="hs-identifier hs-type">handleUserRegistration</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span id="handleUserRegistration"><span class="annot"><span class="annottext">handleUserRegistration :: ScottyT AppM ()
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#handleUserRegistration"><span class="hs-identifier hs-var hs-var">handleUserRegistration</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">post</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/users&quot;</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-35"></span><span>  </span><span id="local-6989586621679290308"><span class="annot"><span class="annottext">RegisterUserAction
+</span><a href="#local-6989586621679290308"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ActionT AppM RegisterUserAction
+forall a (m :: * -&gt; *).
+(MonadUnliftIO m, FromJSON a) =&gt;
+ActionT m a
+</span><a href="Conduit.Validation.html#parseJsonBody"><span class="hs-identifier hs-var">parseJsonBody</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span id="local-6989586621679290309"><span class="annot"><span class="annottext">UserAuth
+</span><a href="#local-6989586621679290309"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either AccountError UserAuth) -&gt; ActionT AppM UserAuth
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either AccountError UserAuth) -&gt; ActionT AppM UserAuth)
+-&gt; AppM (Either AccountError UserAuth) -&gt; ActionT AppM UserAuth
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">RegisterUserAction -&gt; AppM (Either AccountError UserAuth)
+forall (m :: * -&gt; *).
+(PasswordGen m, CreateUser m, ReadUsers m, AuthTokenGen m) =&gt;
+RegisterUserAction -&gt; m (Either AccountError UserAuth)
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#registerUser"><span class="hs-identifier hs-var">registerUser</span></a></span><span> </span><span class="annot"><span class="annottext">RegisterUserAction
+</span><a href="#local-6989586621679290308"><span class="hs-identifier hs-var">action</span></a></span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><span class="annottext">Status -&gt; ActionT AppM ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status201</span></span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">InObj UserAuth -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">(InObj UserAuth -&gt; ActionT AppM ())
+-&gt; InObj UserAuth -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserAuth -&gt; InObj UserAuth
+forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Account.Types.html#inUserObj"><span class="hs-identifier hs-var">inUserObj</span></a></span><span> </span><span class="annot"><span class="annottext">UserAuth
+</span><a href="#local-6989586621679290309"><span class="hs-identifier hs-var">user</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#defaultImage"><span class="hs-identifier hs-type">defaultImage</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-41"></span><span id="defaultImage"><span class="annot"><span class="annottext">defaultImage :: Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#defaultImage"><span class="hs-identifier hs-var hs-var">defaultImage</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;https://api.realworld.io/images/smiley-cyrus.jpeg&quot;</span></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span id="local-6989586621679290151"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#registerUser"><span class="hs-identifier hs-type">registerUser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Password.html#PasswordGen"><span class="hs-identifier hs-type">PasswordGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290151"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#CreateUser"><span class="hs-identifier hs-type">CreateUser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290151"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ReadUsers"><span class="hs-identifier hs-type">ReadUsers</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290151"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthTokenGen"><span class="hs-identifier hs-type">AuthTokenGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290151"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-type">RegisterUserAction</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679290151"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-type">UserAuth</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-44"></span><span id="registerUser"><span class="annot"><span class="annottext">registerUser :: forall (m :: * -&gt; *).
+(PasswordGen m, CreateUser m, ReadUsers m, AuthTokenGen m) =&gt;
+RegisterUserAction -&gt; m (Either AccountError UserAuth)
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#registerUser"><span class="hs-identifier hs-var hs-var">registerUser</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#RegisterUserAction"><span class="hs-identifier hs-type">RegisterUserAction</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679290338"><span id="local-6989586621679290339"><span id="local-6989586621679290340"><span class="annot"><span class="annottext">Text
+UnsafePassword
+$sel:username:RegisterUserAction :: RegisterUserAction -&gt; Text
+$sel:password:RegisterUserAction :: RegisterUserAction -&gt; UnsafePassword
+$sel:email:RegisterUserAction :: RegisterUserAction -&gt; Text
+username :: Text
+password :: UnsafePassword
+email :: Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Ausername%3ARegisterUserAction"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT AccountError m UserAuth -&gt; m (Either AccountError UserAuth)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-45"></span><span>  </span><span class="annot"><span class="annottext">m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError ()) -&gt; ExceptT AccountError m ())
+-&gt; m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Name -&gt; Name -&gt; m (Either AccountError ())
+forall (m :: * -&gt; *).
+ReadUsers m =&gt;
+Name -&gt; Name -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ensureUserCredsUnique"><span class="hs-identifier hs-var">ensureUserCredsUnique</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Name
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290338"><span class="hs-identifier hs-var">username</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Name
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290340"><span class="hs-identifier hs-var">email</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span>  </span><span id="local-6989586621679290343"><span class="annot"><span class="annottext">HashedPassword
+</span><a href="#local-6989586621679290343"><span class="hs-identifier hs-var">hashedPass</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m HashedPassword -&gt; ExceptT AccountError m HashedPassword
+forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ExceptT AccountError m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(m HashedPassword -&gt; ExceptT AccountError m HashedPassword)
+-&gt; m HashedPassword -&gt; ExceptT AccountError m HashedPassword
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UnsafePassword -&gt; m HashedPassword
+forall (m :: * -&gt; *).
+PasswordGen m =&gt;
+UnsafePassword -&gt; m HashedPassword
+</span><a href="Conduit.Identity.Password.html#hashPassword"><span class="hs-identifier hs-var">hashPassword</span></a></span><span> </span><span class="annot"><span class="annottext">UnsafePassword
+</span><a href="#local-6989586621679290339"><span class="hs-identifier hs-var">password</span></a></span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679290346"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679290346"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either AccountError UserID) -&gt; ExceptT AccountError m UserID
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError UserID) -&gt; ExceptT AccountError m UserID)
+-&gt; m (Either AccountError UserID) -&gt; ExceptT AccountError m UserID
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserInfo -&gt; m (Either AccountError UserID)
+forall (m :: * -&gt; *).
+CreateUser m =&gt;
+UserInfo -&gt; m (Either AccountError UserID)
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#insertUser"><span class="hs-identifier hs-var">insertUser</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-type">UserInfo</span></a></span><span>
+</span><span id="line-50"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:name:UserInfo :: Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aname%3AUserInfo"><span class="hs-identifier hs-var">name</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290338"><span class="hs-identifier hs-var">username</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:pass:UserInfo :: HashedPassword
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Apass%3AUserInfo"><span class="hs-identifier hs-var">pass</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">HashedPassword
+</span><a href="#local-6989586621679290343"><span class="hs-identifier hs-var">hashedPass</span></a></span><span>
+</span><span id="line-52"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:email:UserInfo :: Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aemail%3AUserInfo"><span class="hs-identifier hs-var">email</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290340"><span class="hs-identifier hs-var">email</span></a></span><span>
+</span><span id="line-53"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-54"></span><span>
+</span><span id="line-55"></span><span>  </span><span id="local-6989586621679290352"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290352"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m Text -&gt; ExceptT AccountError m Text
+forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ExceptT AccountError m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(m Text -&gt; ExceptT AccountError m Text)
+-&gt; m Text -&gt; ExceptT AccountError m Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; m Text
+forall (m :: * -&gt; *). AuthTokenGen m =&gt; UserID -&gt; m Text
+</span><a href="Conduit.Identity.Auth.html#mkAuthToken"><span class="hs-identifier hs-var">mkAuthToken</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679290346"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="annottext">UserAuth -&gt; ExceptT AccountError m UserAuth
+forall a. a -&gt; ExceptT AccountError m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserAuth"><span class="hs-identifier hs-type">UserAuth</span></a></span><span>
+</span><span id="line-58"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:token:UserAuth :: Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Atoken%3AUserAuth"><span class="hs-identifier hs-var">token</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290352"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-59"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:name:UserAuth :: Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aname%3AUserAuth"><span class="hs-identifier hs-var">name</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290338"><span class="hs-identifier hs-var">username</span></a></span><span>
+</span><span id="line-60"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:email:UserAuth :: Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aemail%3AUserAuth"><span class="hs-identifier hs-var">email</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290340"><span class="hs-identifier hs-var">email</span></a></span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:bio:UserAuth :: Name
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Abio%3AUserAuth"><span class="hs-identifier hs-var">bio</span></a></span><span>   </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:image:UserAuth :: Text
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Aimage%3AUserAuth"><span class="hs-identifier hs-var">image</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#defaultImage"><span class="hs-identifier hs-var">defaultImage</span></a></span><span>
+</span><span id="line-63"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-64"></span><span>
+</span><span id="line-65"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679290182"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="CreateUser"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#CreateUser"><span class="hs-identifier hs-var">CreateUser</span></a></span></span><span> </span><span id="local-6989586621679290182"><span class="annot"><a href="#local-6989586621679290182"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-66"></span><span>  </span><span id="insertUser"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#insertUser"><span class="hs-identifier hs-type">insertUser</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-type">UserInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679290182"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="hs-keyword">data</span><span> </span><span id="UserInfo"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-var">UserInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="UserInfo"><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-var">UserInfo</span></a></span></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aname%3AUserInfo"><span class="annot"><span class="annottext">UserInfo -&gt; Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aname%3AUserInfo"><span class="hs-identifier hs-var hs-var">name</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Apass%3AUserInfo"><span class="annot"><span class="annottext">UserInfo -&gt; HashedPassword
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Apass%3AUserInfo"><span class="hs-identifier hs-var hs-var">pass</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Conduit.Identity.Password.html#HashedPassword"><span class="hs-identifier hs-type">HashedPassword</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aemail%3AUserInfo"><span class="annot"><span class="annottext">UserInfo -&gt; Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aemail%3AUserInfo"><span class="hs-identifier hs-var hs-var">email</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-73"></span><span>
+</span><span id="line-74"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679290119"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679290119"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290119"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679290119"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#CreateUser"><span class="hs-identifier hs-type">CreateUser</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679290119"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#insertUser"><span class="hs-identifier hs-type">insertUser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-type">UserInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679290119"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-76"></span><span>  </span><span id="local-6989586621679290392"><span class="annot"><span class="annottext">insertUser :: UserInfo -&gt; m (Either AccountError UserID)
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#insertUser"><span class="hs-identifier hs-var hs-var hs-var hs-var">insertUser</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.RegisterUser.html#UserInfo"><span class="hs-identifier hs-type">UserInfo</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679290393"><span id="local-6989586621679290394"><span id="local-6989586621679290395"><span class="annot"><span class="annottext">Text
+HashedPassword
+$sel:name:UserInfo :: UserInfo -&gt; Text
+$sel:pass:UserInfo :: UserInfo -&gt; HashedPassword
+$sel:email:UserInfo :: UserInfo -&gt; Text
+name :: Text
+pass :: HashedPassword
+email :: Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#%24sel%3Aname%3AUserInfo"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Key User -&gt; UserID)
+-&gt; Either DBError (Key User) -&gt; Either AccountError UserID
+forall e a b.
+FeatureError e =&gt;
+(a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-var">mapDBResult</span></a></span><span> </span><span class="annot"><span class="annottext">Key User -&gt; UserID
+forall t id. SqlKey t id =&gt; Key t -&gt; id
+</span><a href="Conduit.DB.Core.html#sqlKey2ID"><span class="hs-identifier hs-var">sqlKey2ID</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError (Key User) -&gt; Either AccountError UserID)
+-&gt; m (Either DBError (Key User)) -&gt; m (Either AccountError UserID)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m (Key User) -&gt; m (Either DBError (Key User))
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-77"></span><span>    </span><span class="annot"><span class="annottext">User -&gt; SqlPersistT m (Key User)
+forall backend record (m :: * -&gt; *).
+(PersistStoreWrite backend, MonadIO m,
+ PersistRecordBackend record backend, SafeToInsert record) =&gt;
+record -&gt; ReaderT backend m (Key record)
+forall record (m :: * -&gt; *).
+(MonadIO m, PersistRecordBackend record SqlBackend,
+ SafeToInsert record) =&gt;
+record -&gt; ReaderT SqlBackend m (Key record)
+</span><span class="hs-identifier hs-var">insert</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text -&gt; Name -&gt; Text -&gt; User
+</span><a href="Conduit.Features.Account.DB.html#User"><span class="hs-identifier hs-var">User</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290393"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">HashedPassword
+</span><a href="#local-6989586621679290394"><span class="hs-identifier hs-var">pass</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">getHashed</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679290395"><span class="hs-identifier hs-var">email</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="Conduit.Features.Account.User.RegisterUser.html#defaultImage"><span class="hs-identifier hs-var">defaultImage</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-78"></span></pre></body></html>

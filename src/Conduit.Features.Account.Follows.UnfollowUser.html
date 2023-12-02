@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Follows.UnfollowUser</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier">mapDBError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#Follow"><span class="hs-identifier">Follow</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier">UserProfile</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier">inProfileObj</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html"><span class="hs-identifier">Conduit.Features.Account.User.GetProfile</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html#AcquireProfile"><span class="hs-identifier">AcquireProfile</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier">AuthedUser</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">delete</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">from</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">table</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">valkey</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">where_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(&amp;&amp;.)</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParam</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">Scotty</span></span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#handleUserUnfollow"><span class="hs-identifier hs-type">handleUserUnfollow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span id="handleUserUnfollow"><span class="annot"><span class="annottext">handleUserUnfollow :: ScottyT AppM ()
+</span><a href="Conduit.Features.Account.Follows.UnfollowUser.html#handleUserUnfollow"><span class="hs-identifier hs-var hs-var">handleUserUnfollow</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">Scotty.delete</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/profiles/:username/follow&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679286888"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679286888"><span class="hs-identifier hs-var">follower</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-19"></span><span>  </span><span id="local-6989586621679286889"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679286889"><span class="hs-identifier hs-var">followed</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT AppM Text
+forall a (m :: * -&gt; *).
+(Parsable a, Monad m) =&gt;
+Text -&gt; ActionT m a
+</span><span class="hs-identifier hs-var">captureParam</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;username&quot;</span></span><span>
+</span><span id="line-20"></span><span>  </span><span id="local-6989586621679286890"><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679286890"><span class="hs-identifier hs-var">profile</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either AccountError UserProfile) -&gt; ActionT AppM UserProfile
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either AccountError UserProfile)
+ -&gt; ActionT AppM UserProfile)
+-&gt; AppM (Either AccountError UserProfile)
+-&gt; ActionT AppM UserProfile
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; Text -&gt; AppM (Either AccountError UserProfile)
+forall (m :: * -&gt; *).
+(AcquireProfile m, DeleteFollow m) =&gt;
+UserID -&gt; Text -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Follows.UnfollowUser.html#unfollowUser"><span class="hs-identifier hs-var">unfollowUser</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679286888"><span class="hs-identifier hs-var">follower</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679286889"><span class="hs-identifier hs-var">followed</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><span class="annottext">InObj UserProfile -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">(InObj UserProfile -&gt; ActionT AppM ())
+-&gt; InObj UserProfile -&gt; ActionT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserProfile -&gt; InObj UserProfile
+forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Account.Types.html#inProfileObj"><span class="hs-identifier hs-var">inProfileObj</span></a></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679286890"><span class="hs-identifier hs-var">profile</span></a></span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span id="local-6989586621679286766"><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#unfollowUser"><span class="hs-identifier hs-type">unfollowUser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.User.GetProfile.html#AcquireProfile"><span class="hs-identifier hs-type">AcquireProfile</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679286766"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#DeleteFollow"><span class="hs-identifier hs-type">DeleteFollow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679286766"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679286766"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-24"></span><span id="unfollowUser"><span class="annot"><span class="annottext">unfollowUser :: forall (m :: * -&gt; *).
+(AcquireProfile m, DeleteFollow m) =&gt;
+UserID -&gt; Text -&gt; m (Either AccountError UserProfile)
+</span><a href="Conduit.Features.Account.Follows.UnfollowUser.html#unfollowUser"><span class="hs-identifier hs-var hs-var">unfollowUser</span></a></span></span><span> </span><span id="local-6989586621679286907"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286907"><span class="hs-identifier hs-var">followerID</span></a></span></span><span> </span><span id="local-6989586621679286908"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679286908"><span class="hs-identifier hs-var">followedName</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT AccountError m UserProfile
+-&gt; m (Either AccountError UserProfile)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">(</span><span id="local-6989586621679286910"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286910"><span class="hs-identifier hs-var">followedID</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679286911"><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679286911"><span class="hs-identifier hs-var">followedProfile</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either AccountError (UserID, UserProfile))
+-&gt; ExceptT AccountError m (UserID, UserProfile)
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError (UserID, UserProfile))
+ -&gt; ExceptT AccountError m (UserID, UserProfile))
+-&gt; m (Either AccountError (UserID, UserProfile))
+-&gt; ExceptT AccountError m (UserID, UserProfile)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text
+-&gt; Maybe UserID -&gt; m (Either AccountError (UserID, UserProfile))
+forall (m :: * -&gt; *).
+AcquireProfile m =&gt;
+Text
+-&gt; Maybe UserID -&gt; m (Either AccountError (UserID, UserProfile))
+</span><a href="Conduit.Features.Account.User.GetProfile.html#findUserByName"><span class="hs-identifier hs-var">findUserByName</span></a></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679286908"><span class="hs-identifier hs-var">followedName</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286907"><span class="hs-identifier hs-var">followerID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span>  </span><span class="annot"><span class="annottext">m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError ()) -&gt; ExceptT AccountError m ())
+-&gt; m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; UserID -&gt; m (Either AccountError ())
+forall (m :: * -&gt; *).
+DeleteFollow m =&gt;
+UserID -&gt; UserID -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Follows.UnfollowUser.html#deleteFollow"><span class="hs-identifier hs-var">deleteFollow</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286907"><span class="hs-identifier hs-var">followerID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286910"><span class="hs-identifier hs-var">followedID</span></a></span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><span class="annottext">UserProfile -&gt; ExceptT AccountError m UserProfile
+forall a. a -&gt; ExceptT AccountError m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679286911"><span class="hs-identifier hs-var">followedProfile</span></a></span><span>
+</span><span id="line-30"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:followed:UserProfile :: Bool
+</span><a href="Conduit.Features.Account.Types.html#%24sel%3Afollowed%3AUserProfile"><span class="hs-identifier hs-var">followed</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span>
+</span><span id="line-31"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-32"></span><span>
+</span><span id="line-33"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679286786"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="DeleteFollow"><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#DeleteFollow"><span class="hs-identifier hs-var">DeleteFollow</span></a></span></span><span> </span><span id="local-6989586621679286786"><span class="annot"><a href="#local-6989586621679286786"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-34"></span><span>  </span><span id="deleteFollow"><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#deleteFollow"><span class="hs-identifier hs-type">deleteFollow</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679286786"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-35"></span><span>
+</span><span id="line-36"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679286754"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679286754"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679286754"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679286754"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#DeleteFollow"><span class="hs-identifier hs-type">DeleteFollow</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679286754"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-37"></span><span>  </span><span class="annot"><a href="Conduit.Features.Account.Follows.UnfollowUser.html#deleteFollow"><span class="hs-identifier hs-type">deleteFollow</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679286754"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679286971"><span class="annot"><span class="annottext">deleteFollow :: UserID -&gt; UserID -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Follows.UnfollowUser.html#deleteFollow"><span class="hs-identifier hs-var hs-var hs-var hs-var">deleteFollow</span></a></span></span><span> </span><span id="local-6989586621679286972"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286972"><span class="hs-identifier hs-var">followed</span></a></span></span><span> </span><span id="local-6989586621679286973"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286973"><span class="hs-identifier hs-var">follower</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Either DBError () -&gt; Either AccountError ()
+forall e a. FeatureError e =&gt; Either DBError a -&gt; Either e a
+</span><a href="Conduit.DB.Core.html#mapDBError"><span class="hs-identifier hs-var">mapDBError</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError () -&gt; Either AccountError ())
+-&gt; m (Either DBError ()) -&gt; m (Either AccountError ())
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m () -&gt; m (Either DBError ())
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-39"></span><span>    </span><span class="annot"><span class="annottext">SqlQuery () -&gt; SqlPersistT m ()
+forall (m :: * -&gt; *) backend.
+(MonadIO m, SqlBackendCanWrite backend) =&gt;
+SqlQuery () -&gt; ReaderT backend m ()
+</span><span class="hs-identifier hs-var">delete</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery () -&gt; SqlPersistT m ())
+-&gt; SqlQuery () -&gt; SqlPersistT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-40"></span><span>      </span><span id="local-6989586621679286976"><span class="annot"><span class="annottext">SqlExpr (Entity Follow)
+</span><a href="#local-6989586621679286976"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity Follow))
+-&gt; SqlQuery (SqlExpr (Entity Follow))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="annot"><span class="annottext">(From (SqlExpr (Entity Follow))
+ -&gt; SqlQuery (SqlExpr (Entity Follow)))
+-&gt; From (SqlExpr (Entity Follow))
+-&gt; SqlQuery (SqlExpr (Entity Follow))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Account.DB.html#Follow"><span class="hs-identifier hs-type">Follow</span></a></span><span>
+</span><span id="line-41"></span><span>      </span><span class="annot"><span class="annottext">SqlExpr (Value Bool) -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">where_</span></span><span> </span><span class="annot"><span class="annottext">(SqlExpr (Value Bool) -&gt; SqlQuery ())
+-&gt; SqlExpr (Value Bool) -&gt; SqlQuery ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity Follow)
+</span><a href="#local-6989586621679286976"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">followerID</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key User))
+-&gt; SqlExpr (Value (Key User)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; SqlExpr (Value (Key User))
+forall entity.
+(ToBackendKey SqlBackend entity, PersistField (Key entity)) =&gt;
+Int64 -&gt; SqlExpr (Value (Key entity))
+</span><span class="hs-identifier hs-var">valkey</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286973"><span class="hs-identifier hs-var">follower</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+-&gt; SqlExpr (Value Bool) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">&amp;&amp;.</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity Follow)
+</span><a href="#local-6989586621679286976"><span class="hs-identifier hs-var">f</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">followedID</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value (Key User))
+-&gt; SqlExpr (Value (Key User)) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; SqlExpr (Value (Key User))
+forall entity.
+(ToBackendKey SqlBackend entity, PersistField (Key entity)) =&gt;
+Int64 -&gt; SqlExpr (Value (Key entity))
+</span><span class="hs-identifier hs-var">valkey</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679286972"><span class="hs-identifier hs-var">followed</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span></pre></body></html>

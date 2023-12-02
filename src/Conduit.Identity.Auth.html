@@ -1,0 +1,344 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances, FieldSelectors #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Identity.Auth</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Has.html"><span class="hs-identifier">Conduit.App.Has</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier">Has</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#grab"><span class="hs-identifier">grab</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html"><span class="hs-identifier">Conduit.Identity.JWT</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier">JWTInfo</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#%24sel%3AjwtExpTime%3AJWTInfo"><span class="hs-identifier">jwtExpTime</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#mkClaims"><span class="hs-identifier">mkClaims</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#.-"><span class="hs-operator">(.-)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Map.Strict</span></span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">M</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">fromList</span></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Text</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">splitOn</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time.Clock.POSIX</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">POSIXTime</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">getPOSIXTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Network.HTTP.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">status401</span></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Relude.Extra</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">dup</span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.JWT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">JWTClaimsSet</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">claims</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">decodeAndVerifySignature</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">encodeSigned</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">numericDate</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">stringOrURIToText</span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ActionT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">header</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">status</span></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span>
+</span><span id="line-17"></span><span class="annot"><span class="hs-comment">-- | The form of an authenticated user passed into any endpoint using 'withAuth'/'maybeWithAuth'.</span></span><span>
+</span><span id="line-18"></span><span class="hs-keyword">data</span><span> </span><span id="AuthedUser"><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-var">AuthedUser</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AuthedUser"><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-var">AuthedUser</span></a></span></span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AauthedToken%3AAuthedUser"><span class="annot"><span class="annottext">AuthedUser -&gt; Text
+</span><a href="Conduit.Identity.Auth.html#%24sel%3AauthedToken%3AAuthedUser"><span class="hs-identifier hs-var hs-var">authedToken</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-20"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AauthedUserID%3AAuthedUser"><span class="annot"><span class="annottext">AuthedUser -&gt; UserID
+</span><a href="Conduit.Identity.Auth.html#%24sel%3AauthedUserID%3AAuthedUser"><span class="hs-identifier hs-var hs-var">authedUserID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277050"><span id="local-6989586621679277055"><span class="annot"><span class="annottext">AuthedUser -&gt; AuthedUser -&gt; Bool
+(AuthedUser -&gt; AuthedUser -&gt; Bool)
+-&gt; (AuthedUser -&gt; AuthedUser -&gt; Bool) -&gt; Eq AuthedUser
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: AuthedUser -&gt; AuthedUser -&gt; Bool
+== :: AuthedUser -&gt; AuthedUser -&gt; Bool
+$c/= :: AuthedUser -&gt; AuthedUser -&gt; Bool
+/= :: AuthedUser -&gt; AuthedUser -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277060"><span id="local-6989586621679277068"><span id="local-6989586621679277072"><span class="annot"><span class="annottext">Int -&gt; AuthedUser -&gt; ShowS
+[AuthedUser] -&gt; ShowS
+AuthedUser -&gt; String
+(Int -&gt; AuthedUser -&gt; ShowS)
+-&gt; (AuthedUser -&gt; String)
+-&gt; ([AuthedUser] -&gt; ShowS)
+-&gt; Show AuthedUser
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; AuthedUser -&gt; ShowS
+showsPrec :: Int -&gt; AuthedUser -&gt; ShowS
+$cshow :: AuthedUser -&gt; String
+show :: AuthedUser -&gt; String
+$cshowList :: [AuthedUser] -&gt; ShowS
+showList :: [AuthedUser] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>
+</span><span id="line-23"></span><span class="hs-comment">-- | An endpoint which requires user authentication.</span><span>
+</span><span id="line-24"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-25"></span><span class="hs-comment">-- &gt; endpoint = get &quot;/&quot; $ withAuth \(user :: AuthedUser) -&gt; do</span><span>
+</span><span id="line-26"></span><span class="hs-comment">-- &gt;   ...</span><span>
+</span><span id="line-27"></span><span id="local-6989586621679276898"><span id="local-6989586621679276900"><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-type">withAuth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679276898"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadReader</span></span><span> </span><span class="annot"><a href="#local-6989586621679276900"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276898"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier hs-type">Has</span></a></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276900"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276898"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-type">AuthedUser</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679276898"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679276898"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-28"></span><span id="withAuth"><span class="annot"><span class="annottext">withAuth :: forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var hs-var">withAuth</span></a></span></span><span> </span><span id="local-6989586621679277095"><span class="annot"><span class="annottext">AuthedUser -&gt; ActionT m ()
+</span><a href="#local-6989586621679277095"><span class="hs-identifier hs-var">handler</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Maybe AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, Has JWTInfo c m) =&gt;
+(Maybe AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#maybeWithAuth"><span class="hs-identifier hs-var">maybeWithAuth</span></a></span><span> </span><span class="annot"><span class="annottext">((Maybe AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ())
+-&gt; (Maybe AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span class="hs-glyph">case</span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span id="local-6989586621679277096"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679277096"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AuthedUser -&gt; ActionT m ()
+</span><a href="#local-6989586621679277095"><span class="hs-identifier hs-var">handler</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679277096"><span class="hs-identifier hs-var">user</span></a></span><span>
+</span><span id="line-30"></span><span>  </span><span class="annot"><span class="annottext">Maybe AuthedUser
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Status -&gt; ActionT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; Status -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">status</span></span><span> </span><span class="annot"><span class="annottext">Status
+</span><span class="hs-identifier hs-var">status401</span></span><span> </span><span class="annot"><span class="annottext">ActionT m () -&gt; ActionT m () -&gt; ActionT m ()
+forall a b. ActionT m a -&gt; ActionT m b -&gt; ActionT m b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; m b -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Map Text Text -&gt; ActionT m ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">Map Text Text
+</span><a href="Conduit.Identity.Auth.html#authErrRes"><span class="hs-identifier hs-var">authErrRes</span></a></span><span>
+</span><span id="line-31"></span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- | An endpoint which requests, but does require, user authentication.</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- &gt; endpoint = get &quot;/&quot; $ maybeWithAuth \(user :: Maybe AuthedUser) -&gt; do</span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- &gt;   ...</span><span>
+</span><span id="line-36"></span><span id="local-6989586621679276917"><span id="local-6989586621679276918"><span class="annot"><a href="Conduit.Identity.Auth.html#maybeWithAuth"><span class="hs-identifier hs-type">maybeWithAuth</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679276917"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier hs-type">Has</span></a></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276918"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276917"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-type">AuthedUser</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679276917"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="#local-6989586621679276917"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-37"></span><span id="maybeWithAuth"><span class="annot"><span class="annottext">maybeWithAuth :: forall (m :: * -&gt; *) c.
+(MonadIO m, Has JWTInfo c m) =&gt;
+(Maybe AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#maybeWithAuth"><span class="hs-identifier hs-var hs-var">maybeWithAuth</span></a></span></span><span> </span><span id="local-6989586621679277120"><span class="annot"><span class="annottext">Maybe AuthedUser -&gt; ActionT m ()
+</span><a href="#local-6989586621679277120"><span class="hs-identifier hs-var">handler</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-38"></span><span>  </span><span id="local-6989586621679277121"><span class="annot"><span class="annottext">Maybe Text
+</span><a href="#local-6989586621679277121"><span class="hs-identifier hs-var">authHeader</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Text -&gt; ActionT m (Maybe Text)
+forall (m :: * -&gt; *). Monad m =&gt; Text -&gt; ActionT m (Maybe Text)
+</span><span class="hs-identifier hs-var">header</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Authorization&quot;</span></span><span>
+</span><span id="line-39"></span><span>  </span><span id="local-6989586621679277122"><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277122"><span class="hs-identifier hs-var">jwtInfo</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m JWTInfo -&gt; ActionT m JWTInfo
+forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ActionT m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span> </span><span class="annot"><span class="annottext">(m JWTInfo -&gt; ActionT m JWTInfo) -&gt; m JWTInfo -&gt; ActionT m JWTInfo
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">forall field container (m :: * -&gt; *).
+Has field container m =&gt;
+m field
+</span><a href="Conduit.App.Has.html#grab"><span class="hs-identifier hs-var">grab</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span>
+</span><span id="line-40"></span><span>  </span><span id="local-6989586621679277124"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277124"><span class="hs-identifier hs-var">currTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO POSIXTime -&gt; ActionT m POSIXTime
+forall a. IO a -&gt; ActionT m a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">IO POSIXTime
+</span><span class="hs-identifier hs-var">getPOSIXTime</span></span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="annottext">Maybe AuthedUser -&gt; ActionT m ()
+</span><a href="#local-6989586621679277120"><span class="hs-identifier hs-var">handler</span></a></span><span> </span><span class="annot"><span class="annottext">(Maybe AuthedUser -&gt; ActionT m ())
+-&gt; Maybe AuthedUser -&gt; ActionT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Maybe Text
+</span><a href="#local-6989586621679277121"><span class="hs-identifier hs-var">authHeader</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Text -&gt; (Text -&gt; Maybe AuthedUser) -&gt; Maybe AuthedUser
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">JWTInfo -&gt; POSIXTime -&gt; Text -&gt; Maybe AuthedUser
+forall a. ToText a =&gt; JWTInfo -&gt; POSIXTime -&gt; a -&gt; Maybe AuthedUser
+</span><a href="Conduit.Identity.Auth.html#tryMakeAuthedUser"><span class="hs-identifier hs-var">tryMakeAuthedUser</span></a></span><span> </span><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277122"><span class="hs-identifier hs-var">jwtInfo</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277124"><span class="hs-identifier hs-var">currTime</span></a></span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="annot"><span class="hs-comment">-- | Some monad which can generate a JWT</span></span><span>
+</span><span id="line-44"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679276947"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="AuthTokenGen"><span class="annot"><a href="Conduit.Identity.Auth.html#AuthTokenGen"><span class="hs-identifier hs-var">AuthTokenGen</span></a></span></span><span> </span><span id="local-6989586621679276947"><span class="annot"><a href="#local-6989586621679276947"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-45"></span><span>  </span><span id="mkAuthToken"><span class="annot"><a href="Conduit.Identity.Auth.html#mkAuthToken"><span class="hs-identifier hs-type">mkAuthToken</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679276947"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-46"></span><span>
+</span><span id="line-47"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679276951"><span id="local-6989586621679276952"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679276951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679276951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Has.html#Has"><span class="hs-identifier hs-type">Has</span></a></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276952"><span class="hs-identifier hs-type">c</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276951"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthTokenGen"><span class="hs-identifier hs-type">AuthTokenGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679276951"><span class="hs-identifier hs-type">m</span></a></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-48"></span><span>  </span><span class="annot"><a href="Conduit.Identity.Auth.html#mkAuthToken"><span class="hs-identifier hs-type">mkAuthToken</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679276951"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-49"></span><span>  </span><span id="local-6989586621679277148"><span class="annot"><span class="annottext">mkAuthToken :: UserID -&gt; m Text
+</span><a href="Conduit.Identity.Auth.html#mkAuthToken"><span class="hs-identifier hs-var hs-var hs-var hs-var">mkAuthToken</span></a></span></span><span> </span><span id="local-6989586621679277149"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679277149"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-50"></span><span>    </span><span id="local-6989586621679277150"><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277150"><span class="hs-identifier hs-var">jwtInfo</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">forall field container (m :: * -&gt; *).
+Has field container m =&gt;
+m field
+</span><a href="Conduit.App.Has.html#grab"><span class="hs-identifier hs-var">grab</span></a></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span>
+</span><span id="line-51"></span><span>    </span><span id="local-6989586621679277151"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277151"><span class="hs-identifier hs-var">currTime</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IO POSIXTime -&gt; m POSIXTime
+forall a. IO a -&gt; m a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">IO POSIXTime
+</span><span class="hs-identifier hs-var">getPOSIXTime</span></span><span>
+</span><span id="line-52"></span><span>    </span><span class="annot"><span class="annottext">Text -&gt; m Text
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; m Text) -&gt; Text -&gt; m Text
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">JWTInfo -&gt; POSIXTime -&gt; UserID -&gt; Text
+</span><a href="Conduit.Identity.Auth.html#makeAuthTokenPure"><span class="hs-identifier hs-var">makeAuthTokenPure</span></a></span><span> </span><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277150"><span class="hs-identifier hs-var">jwtInfo</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277151"><span class="hs-identifier hs-var">currTime</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679277149"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-53"></span><span>
+</span><span id="line-54"></span><span class="annot"><a href="Conduit.Identity.Auth.html#makeAuthTokenPure"><span class="hs-identifier hs-type">makeAuthTokenPure</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">POSIXTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-55"></span><span id="makeAuthTokenPure"><span class="annot"><span class="annottext">makeAuthTokenPure :: JWTInfo -&gt; POSIXTime -&gt; UserID -&gt; Text
+</span><a href="Conduit.Identity.Auth.html#makeAuthTokenPure"><span class="hs-identifier hs-var hs-var">makeAuthTokenPure</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679277154"><span id="local-6989586621679277155"><span id="local-6989586621679277156"><span class="annot"><span class="annottext">EncodeSigner
+VerifySigner
+Seconds
+$sel:jwtExpTime:JWTInfo :: JWTInfo -&gt; Seconds
+jwtEncodeSigner :: EncodeSigner
+jwtVerifySigner :: VerifySigner
+jwtExpTime :: Seconds
+$sel:jwtEncodeSigner:JWTInfo :: JWTInfo -&gt; EncodeSigner
+$sel:jwtVerifySigner:JWTInfo :: JWTInfo -&gt; VerifySigner
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtExpTime%3AJWTInfo"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679277159"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277159"><span class="hs-identifier hs-var">currTime</span></a></span></span><span> </span><span id="local-6989586621679277160"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679277160"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679277161"><span class="annot"><span class="annottext">claims' :: JWTClaimsSet
+</span><a href="#local-6989586621679277161"><span class="hs-identifier hs-var hs-var">claims'</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Seconds -&gt; UserID -&gt; JWTClaimsSet
+</span><a href="Conduit.Identity.JWT.html#mkClaims"><span class="hs-identifier hs-var">mkClaims</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277159"><span class="hs-identifier hs-var">currTime</span></a></span><span> </span><span class="annot"><span class="annottext">Seconds
+</span><a href="#local-6989586621679277156"><span class="hs-identifier hs-var">jwtExpTime</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679277160"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-57"></span><span>   </span><span class="hs-keyword">in</span><span> </span><span class="annot"><span class="annottext">EncodeSigner -&gt; JOSEHeader -&gt; JWTClaimsSet -&gt; Text
+</span><span class="hs-identifier hs-var">encodeSigned</span></span><span> </span><span class="annot"><span class="annottext">EncodeSigner
+</span><a href="#local-6989586621679277154"><span class="hs-identifier hs-var">jwtEncodeSigner</span></a></span><span> </span><span class="annot"><span class="annottext">JOSEHeader
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span> </span><span class="annot"><span class="annottext">JWTClaimsSet
+</span><a href="#local-6989586621679277161"><span class="hs-identifier hs-var">claims'</span></a></span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span id="local-6989586621679276946"><span class="annot"><a href="Conduit.Identity.Auth.html#tryMakeAuthedUser"><span class="hs-identifier hs-type">tryMakeAuthedUser</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ToText</span></span><span> </span><span class="annot"><a href="#local-6989586621679276946"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">POSIXTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679276946"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-type">AuthedUser</span></a></span></span><span>
+</span><span id="line-60"></span><span id="tryMakeAuthedUser"><span class="annot"><span class="annottext">tryMakeAuthedUser :: forall a. ToText a =&gt; JWTInfo -&gt; POSIXTime -&gt; a -&gt; Maybe AuthedUser
+</span><a href="Conduit.Identity.Auth.html#tryMakeAuthedUser"><span class="hs-identifier hs-var hs-var">tryMakeAuthedUser</span></a></span></span><span> </span><span id="local-6989586621679277172"><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277172"><span class="hs-identifier hs-var">jwtInfo</span></a></span></span><span> </span><span id="local-6989586621679277173"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277173"><span class="hs-identifier hs-var">time</span></a></span></span><span> </span><span id="local-6989586621679277174"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679277174"><span class="hs-identifier hs-var">authHeader</span></a></span></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679277174"><span class="hs-identifier hs-var">authHeader</span></a></span><span>
+</span><span id="line-61"></span><span>   </span><span class="annot"><span class="annottext">a -&gt; (a -&gt; Text) -&gt; Text
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">a -&gt; Text
+forall a. ToText a =&gt; a -&gt; Text
+</span><span class="hs-identifier hs-var">toText</span></span><span>
+</span><span id="line-62"></span><span>   </span><span class="annot"><span class="annottext">Text -&gt; (Text -&gt; Maybe Text) -&gt; Maybe Text
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+</span><a href="Conduit.Identity.Auth.html#extractToken"><span class="hs-identifier hs-var">extractToken</span></a></span><span>
+</span><span id="line-63"></span><span>  </span><span class="annot"><span class="annottext">Maybe Text
+-&gt; (Text -&gt; (Text, Maybe UserID)) -&gt; Maybe (Text, Maybe UserID)
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; (Text, Text)
+forall a. a -&gt; (a, a)
+</span><span class="hs-identifier hs-var">dup</span></span><span>
+</span><span id="line-64"></span><span>   </span><span class="annot"><span class="annottext">(Text -&gt; (Text, Text))
+-&gt; ((Text, Text) -&gt; (Text, Maybe UserID))
+-&gt; Text
+-&gt; (Text, Maybe UserID)
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Maybe UserID) -&gt; (Text, Text) -&gt; (Text, Maybe UserID)
+forall b c a. (b -&gt; c) -&gt; (a, b) -&gt; (a, c)
+forall (p :: * -&gt; * -&gt; *) b c a.
+Bifunctor p =&gt;
+(b -&gt; c) -&gt; p a b -&gt; p a c
+</span><span class="hs-identifier hs-var">second</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">JWTInfo -&gt; POSIXTime -&gt; Text -&gt; Maybe UserID
+</span><a href="Conduit.Identity.Auth.html#tryGetSubjectFromJWT"><span class="hs-identifier hs-var">tryGetSubjectFromJWT</span></a></span><span> </span><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277172"><span class="hs-identifier hs-var">jwtInfo</span></a></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277173"><span class="hs-identifier hs-var">time</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><span class="annottext">Maybe (Text, Maybe UserID)
+-&gt; ((Text, Maybe UserID) -&gt; Maybe (Text, UserID))
+-&gt; Maybe (Text, UserID)
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">(Text, Maybe UserID) -&gt; Maybe (Text, UserID)
+forall (t :: * -&gt; *) (m :: * -&gt; *) a.
+(Traversable t, Monad m) =&gt;
+t (m a) -&gt; m (t a)
+forall (m :: * -&gt; *) a. Monad m =&gt; (Text, m a) -&gt; m (Text, a)
+</span><span class="hs-identifier hs-var">sequence</span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="annot"><span class="annottext">Maybe (Text, UserID)
+-&gt; ((Text, UserID) -&gt; AuthedUser) -&gt; Maybe AuthedUser
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; UserID -&gt; AuthedUser) -&gt; (Text, UserID) -&gt; AuthedUser
+forall a b c. (a -&gt; b -&gt; c) -&gt; (a, b) -&gt; c
+</span><span class="hs-identifier hs-var">uncurry</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; UserID -&gt; AuthedUser
+</span><a href="Conduit.Identity.Auth.html#AuthedUser"><span class="hs-identifier hs-var">AuthedUser</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span class="annot"><a href="Conduit.Identity.Auth.html#tryGetSubjectFromJWT"><span class="hs-identifier hs-type">tryGetSubjectFromJWT</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">POSIXTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span>
+</span><span id="line-69"></span><span id="tryGetSubjectFromJWT"><span class="annot"><span class="annottext">tryGetSubjectFromJWT :: JWTInfo -&gt; POSIXTime -&gt; Text -&gt; Maybe UserID
+</span><a href="Conduit.Identity.Auth.html#tryGetSubjectFromJWT"><span class="hs-identifier hs-var hs-var">tryGetSubjectFromJWT</span></a></span></span><span> </span><span id="local-6989586621679277183"><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277183"><span class="hs-identifier hs-var">jwtInfo</span></a></span></span><span> </span><span id="local-6989586621679277184"><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277184"><span class="hs-identifier hs-var">time</span></a></span></span><span> </span><span id="local-6989586621679277185"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277185"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277185"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-70"></span><span>   </span><span class="annot"><span class="annottext">Text -&gt; (Text -&gt; Maybe JWTClaimsSet) -&gt; Maybe JWTClaimsSet
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">JWTInfo -&gt; Text -&gt; Maybe JWTClaimsSet
+</span><a href="Conduit.Identity.Auth.html#tryGetClaims"><span class="hs-identifier hs-var">tryGetClaims</span></a></span><span> </span><span class="annot"><span class="annottext">JWTInfo
+</span><a href="#local-6989586621679277183"><span class="hs-identifier hs-var">jwtInfo</span></a></span><span>
+</span><span id="line-71"></span><span>  </span><span class="annot"><span class="annottext">Maybe JWTClaimsSet
+-&gt; (JWTClaimsSet -&gt; Maybe UserID) -&gt; Maybe UserID
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679277187"><span class="annot"><span class="annottext">JWTClaimsSet
+</span><a href="#local-6989586621679277187"><span class="hs-identifier hs-var">clms</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; Maybe ()
+forall (f :: * -&gt; *). Alternative f =&gt; Bool -&gt; f ()
+</span><span class="hs-identifier hs-var">guard</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">JWTClaimsSet
+</span><a href="#local-6989586621679277187"><span class="hs-identifier hs-var">clms</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">exp</span><span> </span><span class="annot"><span class="annottext">Maybe NumericDate -&gt; Maybe NumericDate -&gt; Bool
+forall a. Ord a =&gt; a -&gt; a -&gt; Bool
+</span><span class="hs-operator hs-var">&gt;</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime -&gt; Maybe NumericDate
+</span><span class="hs-identifier hs-var">numericDate</span></span><span> </span><span class="annot"><span class="annottext">POSIXTime
+</span><a href="#local-6989586621679277184"><span class="hs-identifier hs-var">time</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe () -&gt; JWTClaimsSet -&gt; Maybe JWTClaimsSet
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; b -&gt; f b
+</span><span class="hs-operator hs-var">$&gt;</span></span><span> </span><span class="annot"><span class="annottext">JWTClaimsSet
+</span><a href="#local-6989586621679277187"><span class="hs-identifier hs-var">clms</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="annot"><span class="annottext">Maybe JWTClaimsSet
+-&gt; (JWTClaimsSet -&gt; Maybe StringOrURI) -&gt; Maybe StringOrURI
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">JWTClaimsSet -&gt; Maybe StringOrURI
+</span><span class="hs-identifier hs-var">sub</span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="annot"><span class="annottext">Maybe StringOrURI -&gt; (StringOrURI -&gt; String) -&gt; Maybe String
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">StringOrURI -&gt; Text
+</span><span class="hs-identifier hs-var">stringOrURIToText</span></span><span>
+</span><span id="line-74"></span><span>   </span><span class="annot"><span class="annottext">(StringOrURI -&gt; Text) -&gt; (Text -&gt; String) -&gt; StringOrURI -&gt; String
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="annottext">Maybe String -&gt; (String -&gt; Maybe UserID) -&gt; Maybe UserID
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe UserID
+forall a. Read a =&gt; String -&gt; Maybe a
+</span><span class="hs-identifier hs-var">readMaybe</span></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span class="annot"><a href="Conduit.Identity.Auth.html#tryGetClaims"><span class="hs-identifier hs-type">tryGetClaims</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">JWTClaimsSet</span></span><span>
+</span><span id="line-78"></span><span id="tryGetClaims"><span class="annot"><span class="annottext">tryGetClaims :: JWTInfo -&gt; Text -&gt; Maybe JWTClaimsSet
+</span><a href="Conduit.Identity.Auth.html#tryGetClaims"><span class="hs-identifier hs-var hs-var">tryGetClaims</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679277193"><span id="local-6989586621679277194"><span id="local-6989586621679277195"><span class="annot"><span class="annottext">EncodeSigner
+VerifySigner
+Seconds
+$sel:jwtExpTime:JWTInfo :: JWTInfo -&gt; Seconds
+$sel:jwtEncodeSigner:JWTInfo :: JWTInfo -&gt; EncodeSigner
+$sel:jwtVerifySigner:JWTInfo :: JWTInfo -&gt; VerifySigner
+jwtEncodeSigner :: EncodeSigner
+jwtVerifySigner :: VerifySigner
+jwtExpTime :: Seconds
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtExpTime%3AJWTInfo"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span><span class="hs-special">}</span><span> </span><span id="local-6989586621679277196"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277196"><span class="hs-identifier hs-var">token</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277196"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-79"></span><span>   </span><span class="annot"><span class="annottext">Text
+-&gt; (Text -&gt; Maybe (JWT VerifiedJWT)) -&gt; Maybe (JWT VerifiedJWT)
+forall a b. a -&gt; (a -&gt; b) -&gt; b
+</span><span class="hs-operator hs-var">&amp;</span></span><span>  </span><span class="annot"><span class="annottext">VerifySigner -&gt; Text -&gt; Maybe (JWT VerifiedJWT)
+</span><span class="hs-identifier hs-var">decodeAndVerifySignature</span></span><span> </span><span class="annot"><span class="annottext">VerifySigner
+</span><a href="#local-6989586621679277194"><span class="hs-identifier hs-var">jwtVerifySigner</span></a></span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="annottext">Maybe (JWT VerifiedJWT)
+-&gt; (JWT VerifiedJWT -&gt; JWTClaimsSet) -&gt; Maybe JWTClaimsSet
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">JWT VerifiedJWT -&gt; JWTClaimsSet
+forall r. JWT r -&gt; JWTClaimsSet
+</span><span class="hs-identifier hs-var">claims</span></span><span>
+</span><span id="line-81"></span><span>
+</span><span id="line-82"></span><span class="annot"><a href="Conduit.Identity.Auth.html#extractToken"><span class="hs-identifier hs-type">extractToken</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-83"></span><span id="extractToken"><span class="annot"><span class="annottext">extractToken :: Text -&gt; Maybe Text
+</span><a href="Conduit.Identity.Auth.html#extractToken"><span class="hs-identifier hs-var hs-var">extractToken</span></a></span></span><span> </span><span id="local-6989586621679277197"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277197"><span class="hs-identifier hs-var">str</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">HasCallStack =&gt; Text -&gt; Text -&gt; [Text]
+Text -&gt; Text -&gt; [Text]
+</span><span class="hs-identifier hs-var">splitOn</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot; &quot;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277197"><span class="hs-identifier hs-var">str</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-84"></span><span>  </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;Token&quot;</span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277198"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277198"><span class="hs-identifier hs-var">token</span></a></span></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe Text
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277198"><span class="hs-identifier hs-var">token</span></a></span><span>
+</span><span id="line-85"></span><span>  </span><span class="annot"><span class="annottext">[Text]
+</span><span class="hs-identifier">_</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Maybe Text
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="annot"><a href="Conduit.Identity.Auth.html#authErrRes"><span class="hs-identifier hs-type">authErrRes</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Map</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-88"></span><span id="authErrRes"><span class="annot"><span class="annottext">authErrRes :: Map Text Text
+</span><a href="Conduit.Identity.Auth.html#authErrRes"><span class="hs-identifier hs-var hs-var">authErrRes</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[(Text, Text)] -&gt; Map Text Text
+forall k a. Ord k =&gt; [(k, a)] -&gt; Map k a
+</span><span class="hs-identifier hs-var">M.fromList</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;message&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;missing authorization credentials&quot;</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-89"></span></pre></body></html>

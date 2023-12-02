@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.DB.Init</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier">DBPool</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#migrateAccountTables"><span class="hs-identifier">migrateAccountTables</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#createArticleFunctions"><span class="hs-identifier">createArticleFunctions</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html#migrateArticleTables"><span class="hs-identifier">migrateArticleTables</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">SqlPersistT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">createPoolConfig</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">rawExecute</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runMigration</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">runSqlPool</span></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Persist.Postgresql</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">PostgresConf</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">data</span><span> </span><span id="PGConnOps"><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-var">PGConnOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="PGConnOps"><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-var">PGConnOps</span></a></span></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AconnStr%3APGConnOps"><span class="annot"><span class="annottext">PGConnOps -&gt; Text
+</span><a href="Conduit.DB.Init.html#%24sel%3AconnStr%3APGConnOps"><span class="hs-identifier hs-var hs-var">connStr</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AconnSize%3APGConnOps"><span class="annot"><span class="annottext">PGConnOps -&gt; Int
+</span><a href="Conduit.DB.Init.html#%24sel%3AconnSize%3APGConnOps"><span class="hs-identifier hs-var hs-var">connSize</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AconnTimeout%3APGConnOps"><span class="annot"><span class="annottext">PGConnOps -&gt; Int
+</span><a href="Conduit.DB.Init.html#%24sel%3AconnTimeout%3APGConnOps"><span class="hs-identifier hs-var hs-var">connTimeout</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AconnStripes%3APGConnOps"><span class="annot"><span class="annottext">PGConnOps -&gt; Int
+</span><a href="Conduit.DB.Init.html#%24sel%3AconnStripes%3APGConnOps"><span class="hs-identifier hs-var hs-var">connStripes</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AtruncTables%3APGConnOps"><span class="annot"><span class="annottext">PGConnOps -&gt; Bool
+</span><a href="Conduit.DB.Init.html#%24sel%3AtruncTables%3APGConnOps"><span class="hs-identifier hs-var hs-var">truncTables</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679282184"><span id="local-6989586621679282188"><span id="local-6989586621679282191"><span id="local-6989586621679282215"><span class="annot"><span class="annottext">ReadPrec [PGConnOps]
+ReadPrec PGConnOps
+Int -&gt; ReadS PGConnOps
+ReadS [PGConnOps]
+(Int -&gt; ReadS PGConnOps)
+-&gt; ReadS [PGConnOps]
+-&gt; ReadPrec PGConnOps
+-&gt; ReadPrec [PGConnOps]
+-&gt; Read PGConnOps
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS PGConnOps
+readsPrec :: Int -&gt; ReadS PGConnOps
+$creadList :: ReadS [PGConnOps]
+readList :: ReadS [PGConnOps]
+$creadPrec :: ReadPrec PGConnOps
+readPrec :: ReadPrec PGConnOps
+$creadListPrec :: ReadPrec [PGConnOps]
+readListPrec :: ReadPrec [PGConnOps]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="annot"><a href="Conduit.DB.Init.html#mkPoolConfig"><span class="hs-identifier hs-type">mkPoolConfig</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-type">PGConnOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PostgresConf</span></span><span>
+</span><span id="line-21"></span><span id="mkPoolConfig"><span class="annot"><span class="annottext">mkPoolConfig :: PGConnOps -&gt; PostgresConf
+</span><a href="Conduit.DB.Init.html#mkPoolConfig"><span class="hs-identifier hs-var hs-var">mkPoolConfig</span></a></span></span><span> </span><span id="local-6989586621679282219"><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282219"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">PostgresConf</span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">pgConnStr :: ConnectionString
+</span><span class="hs-identifier hs-var">pgConnStr</span></span><span>         </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">String -&gt; ConnectionString
+forall a. IsString a =&gt; String -&gt; a
+</span><span class="hs-identifier hs-var">fromString</span></span><span> </span><span class="annot"><span class="annottext">(String -&gt; ConnectionString) -&gt; String -&gt; ConnectionString
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282219"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">connStr</span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">pgPoolSize :: Int
+</span><span class="hs-identifier hs-var">pgPoolSize</span></span><span>        </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282219"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">connSize</span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">pgPoolIdleTimeout :: Integer
+</span><span class="hs-identifier hs-var">pgPoolIdleTimeout</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; Integer
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282219"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">connTimeout</span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">pgPoolStripes :: Int
+</span><span class="hs-identifier hs-var">pgPoolStripes</span></span><span>     </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282219"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">connStripes</span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span id="local-6989586621679282100"><span class="annot"><a href="Conduit.DB.Init.html#mkDBPool"><span class="hs-identifier hs-type">mkDBPool</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282100"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-type">PGConnOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679282100"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-type">DBPool</span></a></span></span><span>
+</span><span id="line-29"></span><span id="mkDBPool"><span class="annot"><span class="annottext">mkDBPool :: forall (m :: * -&gt; *). MonadIO m =&gt; PGConnOps -&gt; m DBPool
+</span><a href="Conduit.DB.Init.html#mkDBPool"><span class="hs-identifier hs-var hs-var">mkDBPool</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO DBPool -&gt; m DBPool
+forall a. IO a -&gt; m a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO DBPool -&gt; m DBPool)
+-&gt; (PGConnOps -&gt; IO DBPool) -&gt; PGConnOps -&gt; m DBPool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">(ConnectionPool -&gt; DBPool) -&gt; IO ConnectionPool -&gt; IO DBPool
+forall a b. (a -&gt; b) -&gt; IO a -&gt; IO b
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">ConnectionPool -&gt; DBPool
+</span><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-var">DBPool</span></a></span><span> </span><span class="annot"><span class="annottext">(IO ConnectionPool -&gt; IO DBPool)
+-&gt; (PGConnOps -&gt; IO ConnectionPool) -&gt; PGConnOps -&gt; IO DBPool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PostgresConf -&gt; IO (PersistConfigPool PostgresConf)
+PostgresConf -&gt; IO ConnectionPool
+forall c. PersistConfig c =&gt; c -&gt; IO (PersistConfigPool c)
+</span><span class="hs-identifier hs-var">createPoolConfig</span></span><span> </span><span class="annot"><span class="annottext">(PostgresConf -&gt; IO ConnectionPool)
+-&gt; (PGConnOps -&gt; PostgresConf) -&gt; PGConnOps -&gt; IO ConnectionPool
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">PGConnOps -&gt; PostgresConf
+</span><a href="Conduit.DB.Init.html#mkPoolConfig"><span class="hs-identifier hs-var">mkPoolConfig</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span id="local-6989586621679282116"><span class="annot"><a href="Conduit.DB.Init.html#initDB"><span class="hs-identifier hs-type">initDB</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282116"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-type">DBPool</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.DB.Init.html#PGConnOps"><span class="hs-identifier hs-type">PGConnOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679282116"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-32"></span><span id="initDB"><span class="annot"><span class="annottext">initDB :: forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+DBPool -&gt; PGConnOps -&gt; m ()
+</span><a href="Conduit.DB.Init.html#initDB"><span class="hs-identifier hs-var hs-var">initDB</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#DBPool"><span class="hs-identifier hs-type">DBPool</span></a></span><span> </span><span id="local-6989586621679282256"><span class="annot"><span class="annottext">ConnectionPool
+</span><a href="#local-6989586621679282256"><span class="hs-identifier hs-var">pool</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679282257"><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282257"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(ReaderT SqlBackend m () -&gt; ConnectionPool -&gt; m ())
+-&gt; ConnectionPool -&gt; ReaderT SqlBackend m () -&gt; m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">ReaderT SqlBackend m () -&gt; ConnectionPool -&gt; m ()
+forall backend (m :: * -&gt; *) a.
+(MonadUnliftIO m, BackendCompatible SqlBackend backend) =&gt;
+ReaderT backend m a -&gt; Pool backend -&gt; m a
+</span><span class="hs-identifier hs-var">runSqlPool</span></span><span> </span><span class="annot"><span class="annottext">ConnectionPool
+</span><a href="#local-6989586621679282256"><span class="hs-identifier hs-var">pool</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-33"></span><span>  </span><span class="annot"><span class="annottext">Bool -&gt; ReaderT SqlBackend m () -&gt; ReaderT SqlBackend m ()
+forall (f :: * -&gt; *). Applicative f =&gt; Bool -&gt; f () -&gt; f ()
+</span><span class="hs-identifier hs-var">when</span></span><span> </span><span class="annot"><span class="annottext">PGConnOps
+</span><a href="#local-6989586621679282257"><span class="hs-identifier hs-var">ops</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">truncTables</span><span> </span><span class="annot"><span class="annottext">ReaderT SqlBackend m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#resetTables"><span class="hs-identifier hs-var">resetTables</span></a></span><span>
+</span><span id="line-34"></span><span>  </span><span class="annot"><span class="annottext">ReaderT SqlBackend m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#runMigrations"><span class="hs-identifier hs-var">runMigrations</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="annot"><span class="annottext">ReaderT SqlBackend m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#runDBFunctions"><span class="hs-identifier hs-var">runDBFunctions</span></a></span><span>
+</span><span id="line-36"></span><span>
+</span><span id="line-37"></span><span class="annot"><a href="Conduit.DB.Init.html#tables"><span class="hs-identifier hs-type">tables</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span>
+</span><span id="line-38"></span><span id="tables"><span class="annot"><span class="annottext">tables :: [Text]
+</span><a href="Conduit.DB.Init.html#tables"><span class="hs-identifier hs-var hs-var">tables</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;user&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;follow&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;article&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;favorite&quot;</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;comment&quot;</span></span><span class="hs-special">]</span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span id="local-6989586621679282264"><span class="annot"><a href="Conduit.DB.Init.html#dropTables"><span class="hs-identifier hs-type">dropTables</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282264"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679282264"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-41"></span><span id="dropTables"><span class="annot"><span class="annottext">dropTables :: forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#dropTables"><span class="hs-identifier hs-var hs-var">dropTables</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; [PersistValue] -&gt; SqlPersistT m ())
+-&gt; [PersistValue] -&gt; Text -&gt; SqlPersistT m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; [PersistValue] -&gt; SqlPersistT m ()
+forall (m :: * -&gt; *) backend.
+(MonadIO m, BackendCompatible SqlBackend backend) =&gt;
+Text -&gt; [PersistValue] -&gt; ReaderT backend m ()
+</span><span class="hs-identifier hs-var">rawExecute</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; SqlPersistT m ()) -&gt; Text -&gt; SqlPersistT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; [Text] -&gt; Text
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; [a] -&gt; m
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">foldMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679282279"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679282279"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;drop table if exists  \&quot;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679282279"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\&quot; cascade;&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="Conduit.DB.Init.html#tables"><span class="hs-identifier hs-var">tables</span></a></span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span id="local-6989586621679282136"><span class="annot"><a href="Conduit.DB.Init.html#resetTables"><span class="hs-identifier hs-type">resetTables</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282136"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679282136"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-45"></span><span id="resetTables"><span class="annot"><span class="annottext">resetTables :: forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#resetTables"><span class="hs-identifier hs-var hs-var">resetTables</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; [PersistValue] -&gt; SqlPersistT m ())
+-&gt; [PersistValue] -&gt; Text -&gt; SqlPersistT m ()
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; [PersistValue] -&gt; SqlPersistT m ()
+forall (m :: * -&gt; *) backend.
+(MonadIO m, BackendCompatible SqlBackend backend) =&gt;
+Text -&gt; [PersistValue] -&gt; ReaderT backend m ()
+</span><span class="hs-identifier hs-var">rawExecute</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="annot"><span class="annottext">(Text -&gt; SqlPersistT m ()) -&gt; Text -&gt; SqlPersistT m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span>
+</span><span id="line-46"></span><span>  </span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; [Text] -&gt; Text
+forall m a. Monoid m =&gt; (a -&gt; m) -&gt; [a] -&gt; m
+forall (t :: * -&gt; *) m a.
+(Foldable t, Monoid m) =&gt;
+(a -&gt; m) -&gt; t a -&gt; m
+</span><span class="hs-identifier hs-var">foldMap</span></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">\</span><span id="local-6989586621679282289"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679282289"><span class="hs-identifier hs-var">t</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;truncate \&quot;&quot;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679282289"><span class="hs-identifier hs-var">t</span></a></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text -&gt; Text
+forall a. Semigroup a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">&lt;&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;\&quot; cascade;&quot;</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="Conduit.DB.Init.html#tables"><span class="hs-identifier hs-var">tables</span></a></span><span>
+</span><span id="line-47"></span><span>
+</span><span id="line-48"></span><span id="local-6989586621679282290"><span class="annot"><a href="Conduit.DB.Init.html#runMigrations"><span class="hs-identifier hs-type">runMigrations</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282290"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679282290"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-49"></span><span id="runMigrations"><span class="annot"><span class="annottext">runMigrations :: forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#runMigrations"><span class="hs-identifier hs-var hs-var">runMigrations</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-50"></span><span>  </span><span class="annot"><span class="annottext">Migration -&gt; SqlPersistT m ()
+forall (m :: * -&gt; *).
+MonadIO m =&gt;
+Migration -&gt; ReaderT SqlBackend m ()
+</span><span class="hs-identifier hs-var">runMigration</span></span><span> </span><span class="annot"><span class="annottext">Migration
+</span><a href="Conduit.Features.Account.DB.html#migrateAccountTables"><span class="hs-identifier hs-var">migrateAccountTables</span></a></span><span>
+</span><span id="line-51"></span><span>  </span><span class="annot"><span class="annottext">Migration -&gt; SqlPersistT m ()
+forall (m :: * -&gt; *).
+MonadIO m =&gt;
+Migration -&gt; ReaderT SqlBackend m ()
+</span><span class="hs-identifier hs-var">runMigration</span></span><span> </span><span class="annot"><span class="annottext">Migration
+</span><a href="Conduit.Features.Articles.DB.html#migrateArticleTables"><span class="hs-identifier hs-var">migrateArticleTables</span></a></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span id="local-6989586621679282296"><span class="annot"><a href="Conduit.DB.Init.html#runDBFunctions"><span class="hs-identifier hs-type">runDBFunctions</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282296"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">SqlPersistT</span></span><span> </span><span class="annot"><a href="#local-6989586621679282296"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span></span><span>
+</span><span id="line-54"></span><span id="runDBFunctions"><span class="annot"><span class="annottext">runDBFunctions :: forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.DB.Init.html#runDBFunctions"><span class="hs-identifier hs-var hs-var">runDBFunctions</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>  </span><span class="annot"><span class="annottext">SqlPersistT m ()
+forall (m :: * -&gt; *). MonadIO m =&gt; SqlPersistT m ()
+</span><a href="Conduit.Features.Articles.DB.html#createArticleFunctions"><span class="hs-identifier hs-var">createArticleFunctions</span></a></span><span>
+</span><span id="line-56"></span></pre></body></html>

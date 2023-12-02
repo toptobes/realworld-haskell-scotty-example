@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Account.Common.EnsureUserCredsUnique</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier">mapDBResult</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Utils.html"><span class="hs-identifier">Conduit.DB.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-identifier">suchThat</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.DB.html"><span class="hs-identifier">Conduit.Features.Account.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.DB.html#User"><span class="hs-identifier">User</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html"><span class="hs-identifier">Conduit.Features.Account.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier">AccountError</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">exists</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">from</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">selectOne</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">table</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">val</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="hs-keyword">type</span><span> </span><span id="Name"><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Name"><span class="hs-identifier hs-var">Name</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">type</span><span> </span><span id="Mail"><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Mail"><span class="hs-identifier hs-var">Mail</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span id="local-6989586621679289439"><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ensureUserCredsUnique"><span class="hs-identifier hs-type">ensureUserCredsUnique</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ReadUsers"><span class="hs-identifier hs-type">ReadUsers</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289439"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Name"><span class="hs-identifier hs-type">Name</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Mail"><span class="hs-identifier hs-type">Mail</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289439"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span class="hs-special">)</span></span><span>
+</span><span id="line-17"></span><span id="ensureUserCredsUnique"><span class="annot"><span class="annottext">ensureUserCredsUnique :: forall (m :: * -&gt; *).
+ReadUsers m =&gt;
+Name -&gt; Name -&gt; m (Either AccountError ())
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ensureUserCredsUnique"><span class="hs-identifier hs-var hs-var">ensureUserCredsUnique</span></a></span></span><span> </span><span id="local-6989586621679289560"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289560"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679289561"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289561"><span class="hs-identifier hs-var">email</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT AccountError m () -&gt; m (Either AccountError ())
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-18"></span><span>  </span><span id="local-6989586621679289563"><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679289563"><span class="hs-identifier hs-var">errs</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either AccountError [Text]) -&gt; ExceptT AccountError m [Text]
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError [Text]) -&gt; ExceptT AccountError m [Text])
+-&gt; m (Either AccountError [Text]) -&gt; ExceptT AccountError m [Text]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Name -&gt; Name -&gt; m (Either AccountError [Text])
+forall (m :: * -&gt; *).
+ReadUsers m =&gt;
+Name -&gt; Name -&gt; m (Either AccountError [Text])
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#findDuplicateCreds"><span class="hs-identifier hs-var">findDuplicateCreds</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289560"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289561"><span class="hs-identifier hs-var">email</span></a></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="annottext">m (Either AccountError ()) -&gt; ExceptT AccountError m ()
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either AccountError ()) -&gt; ExceptT AccountError m ())
+-&gt; (Either AccountError () -&gt; m (Either AccountError ()))
+-&gt; Either AccountError ()
+-&gt; ExceptT AccountError m ()
+forall b c a. (b -&gt; c) -&gt; (a -&gt; b) -&gt; a -&gt; c
+</span><span class="hs-operator hs-var">.</span></span><span> </span><span class="annot"><span class="annottext">Either AccountError () -&gt; m (Either AccountError ())
+forall a. a -&gt; m a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(Either AccountError () -&gt; ExceptT AccountError m ())
+-&gt; Either AccountError () -&gt; ExceptT AccountError m ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679289563"><span class="hs-identifier hs-var">errs</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-21"></span><span>    </span><span class="hs-special">[</span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">() -&gt; Either AccountError ()
+forall a. a -&gt; Either AccountError a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span>    </span><span id="local-6989586621679289567"><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679289567"><span class="hs-identifier hs-var">cs</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">AccountError -&gt; Either AccountError ()
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(AccountError -&gt; Either AccountError ())
+-&gt; AccountError -&gt; Either AccountError ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">[Text] -&gt; AccountError
+</span><a href="Conduit.Features.Account.Errors.html#CredsTaken"><span class="hs-identifier hs-var">CredsTaken</span></a></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679289567"><span class="hs-identifier hs-var">cs</span></a></span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679289449"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="ReadUsers"><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ReadUsers"><span class="hs-identifier hs-var">ReadUsers</span></a></span></span><span> </span><span id="local-6989586621679289449"><span class="annot"><a href="#local-6989586621679289449"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-25"></span><span>  </span><span id="findDuplicateCreds"><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#findDuplicateCreds"><span class="hs-identifier hs-type">findDuplicateCreds</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Name"><span class="hs-identifier hs-type">Name</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Mail"><span class="hs-identifier hs-type">Mail</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289449"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-26"></span><span>
+</span><span id="line-27"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679289471"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679289471"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679289471"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289471"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#ReadUsers"><span class="hs-identifier hs-type">ReadUsers</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289471"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#findDuplicateCreds"><span class="hs-identifier hs-type">findDuplicateCreds</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Name"><span class="hs-identifier hs-type">Name</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#Mail"><span class="hs-identifier hs-type">Mail</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289471"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Account.Errors.html#AccountError"><span class="hs-identifier hs-type">AccountError</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span class="hs-special">)</span><span>
+</span><span id="line-29"></span><span>  </span><span id="local-6989586621679289626"><span class="annot"><span class="annottext">findDuplicateCreds :: Name -&gt; Name -&gt; m (Either AccountError [Text])
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#findDuplicateCreds"><span class="hs-identifier hs-var hs-var hs-var hs-var">findDuplicateCreds</span></a></span></span><span> </span><span id="local-6989586621679289627"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289627"><span class="hs-identifier hs-var">name</span></a></span></span><span> </span><span id="local-6989586621679289628"><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289628"><span class="hs-identifier hs-var">email</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(Maybe (Value Bool, Value Bool) -&gt; [Text])
+-&gt; Either DBError (Maybe (Value Bool, Value Bool))
+-&gt; Either AccountError [Text]
+forall e a b.
+FeatureError e =&gt;
+(a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-var">mapDBResult</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (Value Bool, Value Bool) -&gt; [Text]
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#processResult"><span class="hs-identifier hs-var">processResult</span></a></span><span> </span><span class="annot"><span class="annottext">(Either DBError (Maybe (Value Bool, Value Bool))
+ -&gt; Either AccountError [Text])
+-&gt; m (Either DBError (Maybe (Value Bool, Value Bool)))
+-&gt; m (Either AccountError [Text])
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT m (Maybe (Value Bool, Value Bool))
+-&gt; m (Either DBError (Maybe (Value Bool, Value Bool)))
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-30"></span><span>    </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Value Bool), SqlExpr (Value Bool))
+-&gt; SqlPersistT m (Maybe (Value Bool, Value Bool))
+forall a r (m :: * -&gt; *) backend.
+(SqlSelect a r, MonadIO m, SqlBackendCanRead backend) =&gt;
+SqlQuery a -&gt; ReaderT backend m (Maybe r)
+</span><span class="hs-identifier hs-var">selectOne</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Value Bool), SqlExpr (Value Bool))
+ -&gt; SqlPersistT m (Maybe (Value Bool, Value Bool)))
+-&gt; SqlQuery (SqlExpr (Value Bool), SqlExpr (Value Bool))
+-&gt; SqlPersistT m (Maybe (Value Bool, Value Bool))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679289632"><span class="annot"><span class="annottext">nameExists :: SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289632"><span class="hs-identifier hs-var hs-var">nameExists</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name -&gt; (Text -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+forall {a}.
+Maybe a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289633"><span class="hs-identifier hs-var">checkExists</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289627"><span class="hs-identifier hs-var">name</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289634"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679289634"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span>
+</span><span id="line-32"></span><span>            </span><span class="annot"><span class="annottext">SqlQuery () -&gt; SqlExpr (Value Bool)
+</span><span class="hs-identifier hs-var">exists</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery () -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery () -&gt; SqlExpr (Value Bool)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ())
+-&gt; SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity User)) -&gt; SqlQuery (SqlExpr (Entity User))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Account.DB.html#User"><span class="hs-identifier hs-type">User</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-33"></span><span>              </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User))
+-&gt; (SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity User))
+forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-var">`suchThat`</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289636"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289636"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289636"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">username</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Text)
+-&gt; SqlExpr (Value Text) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; SqlExpr (Value Text)
+forall typ. PersistField typ =&gt; typ -&gt; SqlExpr (Value typ)
+</span><span class="hs-identifier hs-var">val</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679289634"><span class="hs-identifier hs-var">n</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span id="local-6989586621679289637"><span class="annot"><span class="annottext">mailExists :: SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289637"><span class="hs-identifier hs-var hs-var">mailExists</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Name -&gt; (Text -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+forall {a}.
+Maybe a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289633"><span class="hs-identifier hs-var">checkExists</span></a></span><span> </span><span class="annot"><span class="annottext">Name
+</span><a href="#local-6989586621679289628"><span class="hs-identifier hs-var">email</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289638"><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679289638"><span class="hs-identifier hs-var">m</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span>
+</span><span id="line-36"></span><span>            </span><span class="annot"><span class="annottext">SqlQuery () -&gt; SqlExpr (Value Bool)
+</span><span class="hs-identifier hs-var">exists</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery () -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery () -&gt; SqlExpr (Value Bool)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ()
+forall (f :: * -&gt; *) a. Functor f =&gt; f a -&gt; f ()
+</span><span class="hs-identifier hs-var">void</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ())
+-&gt; SqlQuery (SqlExpr (Entity User)) -&gt; SqlQuery ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">From (SqlExpr (Entity User)) -&gt; SqlQuery (SqlExpr (Entity User))
+forall a a'. ToFrom a a' =&gt; a -&gt; SqlQuery a'
+</span><span class="hs-identifier hs-var">from</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">forall ent. PersistEntity ent =&gt; From (SqlExpr (Entity ent))
+</span><span class="hs-identifier hs-var">table</span></span><span> </span><span class="hs-glyph">@</span><span class="annot"><a href="Conduit.Features.Account.DB.html#User"><span class="hs-identifier hs-type">User</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-37"></span><span>              </span><span class="annot"><span class="annottext">SqlQuery (SqlExpr (Entity User))
+-&gt; (SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Entity User))
+forall a. SqlQuery a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlQuery a
+</span><a href="Conduit.DB.Utils.html#suchThat"><span class="hs-operator hs-var">`suchThat`</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289639"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289639"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289639"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">email</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Text)
+-&gt; SqlExpr (Value Text) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; SqlExpr (Value Text)
+forall typ. PersistField typ =&gt; typ -&gt; SqlExpr (Value typ)
+</span><span class="hs-identifier hs-var">val</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679289638"><span class="hs-identifier hs-var">m</span></a></span><span>
+</span><span id="line-38"></span><span>
+</span><span id="line-39"></span><span>      </span><span class="annot"><span class="annottext">(SqlExpr (Value Bool), SqlExpr (Value Bool))
+-&gt; SqlQuery (SqlExpr (Value Bool), SqlExpr (Value Bool))
+forall a. a -&gt; SqlQuery a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289632"><span class="hs-identifier hs-var">nameExists</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289637"><span class="hs-identifier hs-var">mailExists</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-keyword">where</span><span>
+</span><span id="line-41"></span><span>      </span><span id="local-6989586621679289633"><span class="annot"><span class="annottext">checkExists :: Maybe a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289633"><span class="hs-identifier hs-var hs-var">checkExists</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((a -&gt; SqlExpr (Value Bool)) -&gt; Maybe a -&gt; SqlExpr (Value Bool))
+-&gt; Maybe a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool)
+forall a b c. (a -&gt; b -&gt; c) -&gt; b -&gt; a -&gt; c
+</span><span class="hs-identifier hs-var">flip</span></span><span> </span><span class="annot"><span class="annottext">(((a -&gt; SqlExpr (Value Bool)) -&gt; Maybe a -&gt; SqlExpr (Value Bool))
+ -&gt; Maybe a -&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; SqlExpr (Value Bool))
+-&gt; ((a -&gt; SqlExpr (Value Bool)) -&gt; Maybe a -&gt; SqlExpr (Value Bool))
+-&gt; Maybe a
+-&gt; (a -&gt; SqlExpr (Value Bool))
+-&gt; SqlExpr (Value Bool)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+-&gt; (a -&gt; SqlExpr (Value Bool)) -&gt; Maybe a -&gt; SqlExpr (Value Bool)
+forall b a. b -&gt; (a -&gt; b) -&gt; Maybe a -&gt; b
+</span><span class="hs-identifier hs-var">maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool -&gt; SqlExpr (Value Bool)
+forall typ. PersistField typ =&gt; typ -&gt; SqlExpr (Value typ)
+</span><span class="hs-identifier hs-var">val</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">False</span></span><span class="hs-special">)</span><span>
+</span><span id="line-42"></span><span>
+</span><span id="line-43"></span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#processResult"><span class="hs-identifier hs-type">processResult</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Maybe</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span>
+</span><span id="line-44"></span><span id="processResult"><span class="annot"><span class="annottext">processResult :: Maybe (Value Bool, Value Bool) -&gt; [Text]
+</span><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#processResult"><span class="hs-identifier hs-var hs-var">processResult</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Just</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span id="local-6989586621679289644"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679289644"><span class="hs-identifier hs-var">nameExists</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span> </span><span id="local-6989586621679289645"><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679289645"><span class="hs-identifier hs-var">mailExists</span></a></span></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">((Bool, Text) -&gt; Text) -&gt; [(Bool, Text)] -&gt; [Text]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">(Bool, Text) -&gt; Text
+forall a b. (a, b) -&gt; b
+</span><span class="hs-identifier hs-var">snd</span></span><span> </span><span class="annot"><span class="annottext">([(Bool, Text)] -&gt; [Text]) -&gt; [(Bool, Text)] -&gt; [Text]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">((Bool, Text) -&gt; Bool) -&gt; [(Bool, Text)] -&gt; [(Bool, Text)]
+forall a. (a -&gt; Bool) -&gt; [a] -&gt; [a]
+</span><span class="hs-identifier hs-var">filter</span></span><span> </span><span class="annot"><span class="annottext">(Bool, Text) -&gt; Bool
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="hs-special">[</span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679289644"><span class="hs-identifier hs-var">nameExists</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;username&quot;</span></span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679289645"><span class="hs-identifier hs-var">mailExists</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;email&quot;</span></span><span class="hs-special">)</span><span class="hs-special">]</span><span>
+</span><span id="line-45"></span><span class="annot"><a href="Conduit.Features.Account.Common.EnsureUserCredsUnique.html#processResult"><span class="hs-identifier hs-var">processResult</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe (Value Bool, Value Bool)
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">[</span><span class="hs-special">]</span><span>
+</span><span id="line-46"></span></pre></body></html>

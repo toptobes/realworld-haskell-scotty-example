@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Articles.FeedArticles</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Prelude</span></span><span> </span><span class="hs-keyword">hiding</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">on</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html"><span class="hs-identifier">Conduit.App.Monad</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier">AppM</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier">runService</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html"><span class="hs-identifier">Conduit.DB.Core</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier">MonadDB</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier">id2sqlKey</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier">mapDBResult</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindFollowersByID.html"><span class="hs-identifier">Conduit.Features.Account.Common.FindFollowersByID</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.FindFollowersByID.html#AquireFollowers"><span class="hs-identifier">AquireFollowers</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindFollowersByID.html#findFollowersByID"><span class="hs-identifier">findFollowersByID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.QueryAssociatedUser.html"><span class="hs-identifier">Conduit.Features.Account.Common.QueryAssociatedUser</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Common.QueryAssociatedUser.html#queryAssociatedUser"><span class="hs-identifier">queryAssociatedUser</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-10"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Common.QueryFavStats.html"><span class="hs-identifier">Conduit.Features.Articles.Common.QueryFavStats</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Common.QueryFavStats.html#queryFavStats"><span class="hs-identifier">queryFavStats</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.DB.html"><span class="hs-identifier">Conduit.Features.Articles.DB</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.DB.html#mkManyArticles"><span class="hs-identifier">mkManyArticles</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-13"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html"><span class="hs-identifier">Conduit.Features.Articles.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier">ArticleError</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html"><span class="hs-identifier">Conduit.Features.Articles.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier">ManyArticles</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html"><span class="hs-identifier">Conduit.Identity.Auth</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.Auth.html#%24sel%3AauthedUserID%3AAuthedUser"><span class="hs-identifier">authedUserID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier">withAuth</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-16"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#.-"><span class="hs-operator">(.-)</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.List</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">lookup</span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">groupBy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">in_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">limit</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">offset</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">orderBy</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">select</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">val</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">valList</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">where_</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(:&amp;)</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(==.)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-19"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Database.Esqueleto.Experimental</span></span><span> </span><span class="hs-keyword">qualified</span><span> </span><span class="hs-keyword">as</span><span> </span><span class="annot"><span class="hs-identifier">E</span></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Relude.Extra</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">bimapBoth</span></span><span class="hs-special">)</span><span>
+</span><span id="line-21"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-22"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ActionT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">ScottyT</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">captureParams</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">get</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">json</span></span><span class="hs-special">)</span><span>
+</span><span id="line-23"></span><span>
+</span><span id="line-24"></span><span class="hs-keyword">data</span><span> </span><span id="FilterOps"><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-var">FilterOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="FilterOps"><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-var">FilterOps</span></a></span></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AfilterLimit%3AFilterOps"><span class="annot"><span class="annottext">FilterOps -&gt; Int64
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#%24sel%3AfilterLimit%3AFilterOps"><span class="hs-identifier hs-var hs-var">filterLimit</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int64</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AfilterOffset%3AFilterOps"><span class="annot"><span class="annottext">FilterOps -&gt; Int64
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#%24sel%3AfilterOffset%3AFilterOps"><span class="hs-identifier hs-var hs-var">filterOffset</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int64</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-28"></span><span>
+</span><span id="line-29"></span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#handleFeedArticles"><span class="hs-identifier hs-type">handleFeedArticles</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ScottyT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="hs-special">)</span><span>
+</span><span id="line-30"></span><span id="handleFeedArticles"><span class="annot"><span class="annottext">handleFeedArticles :: ScottyT AppM ()
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#handleFeedArticles"><span class="hs-identifier hs-var hs-var">handleFeedArticles</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">RoutePattern -&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall (m :: * -&gt; *).
+MonadUnliftIO m =&gt;
+RoutePattern -&gt; ActionT m () -&gt; ScottyT m ()
+</span><span class="hs-identifier hs-var">get</span></span><span> </span><span class="annot"><span class="annottext">RoutePattern
+</span><span class="hs-string">&quot;/api/articles/feed&quot;</span></span><span> </span><span class="annot"><span class="annottext">(ActionT AppM () -&gt; ScottyT AppM ())
+-&gt; ActionT AppM () -&gt; ScottyT AppM ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">(AuthedUser -&gt; ActionT AppM ()) -&gt; ActionT AppM ()
+forall (m :: * -&gt; *) c.
+(MonadIO m, MonadReader c m, Has JWTInfo c m) =&gt;
+(AuthedUser -&gt; ActionT m ()) -&gt; ActionT m ()
+</span><a href="Conduit.Identity.Auth.html#withAuth"><span class="hs-identifier hs-var">withAuth</span></a></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289284"><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679289284"><span class="hs-identifier hs-var">user</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-31"></span><span>  </span><span id="local-6989586621679289285"><span class="annot"><span class="annottext">FilterOps
+</span><a href="#local-6989586621679289285"><span class="hs-identifier hs-var">filterOps</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ActionT AppM FilterOps
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#parseFilterOps"><span class="hs-identifier hs-var">parseFilterOps</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span id="local-6989586621679289287"><span class="annot"><span class="annottext">ManyArticles
+</span><a href="#local-6989586621679289287"><span class="hs-identifier hs-var">articles</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">AppM (Either ArticleError ManyArticles)
+-&gt; ActionT AppM ManyArticles
+forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var">runService</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either ArticleError ManyArticles)
+ -&gt; ActionT AppM ManyArticles)
+-&gt; AppM (Either ArticleError ManyArticles)
+-&gt; ActionT AppM ManyArticles
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; FilterOps -&gt; AppM (Either ArticleError ManyArticles)
+forall (m :: * -&gt; *).
+(AquireArticles m, AquireFollowers m) =&gt;
+UserID -&gt; FilterOps -&gt; m (Either ArticleError ManyArticles)
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#getFeedArticles"><span class="hs-identifier hs-var">getFeedArticles</span></a></span><span> </span><span class="annot"><span class="annottext">AuthedUser
+</span><a href="#local-6989586621679289284"><span class="hs-identifier hs-var">user</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">authedUserID</span><span> </span><span class="annot"><span class="annottext">FilterOps
+</span><a href="#local-6989586621679289285"><span class="hs-identifier hs-var">filterOps</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="annot"><span class="annottext">ManyArticles -&gt; ActionT AppM ()
+forall a (m :: * -&gt; *). (ToJSON a, MonadIO m) =&gt; a -&gt; ActionT m ()
+</span><span class="hs-identifier hs-var">json</span></span><span> </span><span class="annot"><span class="annottext">ManyArticles
+</span><a href="#local-6989586621679289287"><span class="hs-identifier hs-var">articles</span></a></span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span id="local-6989586621679289077"><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#getFeedArticles"><span class="hs-identifier hs-type">getFeedArticles</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#AquireArticles"><span class="hs-identifier hs-type">AquireArticles</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289077"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Common.FindFollowersByID.html#AquireFollowers"><span class="hs-identifier hs-type">AquireFollowers</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289077"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289077"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span><span class="hs-special">)</span></span><span>
+</span><span id="line-36"></span><span id="getFeedArticles"><span class="annot"><span class="annottext">getFeedArticles :: forall (m :: * -&gt; *).
+(AquireArticles m, AquireFollowers m) =&gt;
+UserID -&gt; FilterOps -&gt; m (Either ArticleError ManyArticles)
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#getFeedArticles"><span class="hs-identifier hs-var hs-var">getFeedArticles</span></a></span></span><span> </span><span id="local-6989586621679289299"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679289299"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span id="local-6989586621679289300"><span class="annot"><span class="annottext">FilterOps
+</span><a href="#local-6989586621679289300"><span class="hs-identifier hs-var">ops</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">ExceptT ArticleError m ManyArticles
+-&gt; m (Either ArticleError ManyArticles)
+forall e (m :: * -&gt; *) a. ExceptT e m a -&gt; m (Either e a)
+</span><span class="hs-identifier hs-var">runExceptT</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679289302"><span class="annot"><span class="annottext">[UserID]
+</span><a href="#local-6989586621679289302"><span class="hs-identifier hs-var">followers</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">m (Either ArticleError [UserID]) -&gt; ExceptT ArticleError m [UserID]
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError [UserID])
+ -&gt; ExceptT ArticleError m [UserID])
+-&gt; m (Either ArticleError [UserID])
+-&gt; ExceptT ArticleError m [UserID]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; m (Either ArticleError [UserID])
+forall e (m :: * -&gt; *).
+(FeatureErrorMapper AccountError e, AquireFollowers m) =&gt;
+UserID -&gt; m (Either e [UserID])
+</span><a href="Conduit.Features.Account.Common.FindFollowersByID.html#findFollowersByID"><span class="hs-identifier hs-var">findFollowersByID</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679289299"><span class="hs-identifier hs-var">userID</span></a></span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="annottext">m (Either ArticleError ManyArticles)
+-&gt; ExceptT ArticleError m ManyArticles
+forall e (m :: * -&gt; *) a. m (Either e a) -&gt; ExceptT e m a
+</span><span class="hs-identifier hs-var">ExceptT</span></span><span> </span><span class="annot"><span class="annottext">(m (Either ArticleError ManyArticles)
+ -&gt; ExceptT ArticleError m ManyArticles)
+-&gt; m (Either ArticleError ManyArticles)
+-&gt; ExceptT ArticleError m ManyArticles
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">UserID
+-&gt; [UserID] -&gt; FilterOps -&gt; m (Either ArticleError ManyArticles)
+forall (m :: * -&gt; *).
+AquireArticles m =&gt;
+UserID
+-&gt; [UserID] -&gt; FilterOps -&gt; m (Either ArticleError ManyArticles)
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#findArticles"><span class="hs-identifier hs-var">findArticles</span></a></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679289299"><span class="hs-identifier hs-var">userID</span></a></span><span> </span><span class="annot"><span class="annottext">[UserID]
+</span><a href="#local-6989586621679289302"><span class="hs-identifier hs-var">followers</span></a></span><span> </span><span class="annot"><span class="annottext">FilterOps
+</span><a href="#local-6989586621679289300"><span class="hs-identifier hs-var">ops</span></a></span><span>
+</span><span id="line-39"></span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#parseFilterOps"><span class="hs-identifier hs-type">parseFilterOps</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span>
+</span><span id="line-41"></span><span id="parseFilterOps"><span class="annot"><span class="annottext">parseFilterOps :: ActionT AppM FilterOps
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#parseFilterOps"><span class="hs-identifier hs-var hs-var">parseFilterOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-42"></span><span>  </span><span id="local-6989586621679289305"><span class="annot"><span class="annottext">[(Text, Text)]
+</span><a href="#local-6989586621679289305"><span class="hs-identifier hs-var">params</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">ActionT AppM [Param]
+forall (m :: * -&gt; *). Monad m =&gt; ActionT m [Param]
+</span><span class="hs-identifier hs-var">captureParams</span></span><span> </span><span class="annot"><span class="annottext">ActionT AppM [Param]
+-&gt; ([Param] -&gt; [(Text, Text)]) -&gt; ActionT AppM [(Text, Text)]
+forall (f :: * -&gt; *) a b. Functor f =&gt; f a -&gt; (a -&gt; b) -&gt; f b
+</span><span class="hs-operator hs-var">&lt;&amp;&gt;</span></span><span> </span><span class="annot"><span class="annottext">(Param -&gt; (Text, Text)) -&gt; [Param] -&gt; [(Text, Text)]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(Text -&gt; Text) -&gt; Param -&gt; (Text, Text)
+forall (f :: * -&gt; * -&gt; *) a b.
+Bifunctor f =&gt;
+(a -&gt; b) -&gt; f a a -&gt; f b b
+</span><span class="hs-identifier hs-var">bimapBoth</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Text
+forall l s. LazyStrict l s =&gt; l -&gt; s
+</span><span class="hs-identifier hs-var">toStrict</span></span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>
+</span><span id="line-44"></span><span>  </span><span class="annot"><span class="annottext">FilterOps -&gt; ActionT AppM FilterOps
+forall a. a -&gt; ActionT AppM a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="annot"><span class="annottext">(FilterOps -&gt; ActionT AppM FilterOps)
+-&gt; FilterOps -&gt; ActionT AppM FilterOps
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">$sel:filterLimit:FilterOps :: Int64
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#%24sel%3AfilterLimit%3AFilterOps"><span class="hs-identifier hs-var">filterLimit</span></a></span><span>  </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; [(Text, Text)] -&gt; Maybe Text
+forall a b. Eq a =&gt; a -&gt; [(a, b)] -&gt; Maybe b
+</span><span class="hs-identifier hs-var">lookup</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;limit&quot;</span></span><span>  </span><span class="annot"><span class="annottext">[(Text, Text)]
+</span><a href="#local-6989586621679289305"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Text -&gt; (Text -&gt; Maybe Int64) -&gt; Maybe Int64
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; String) -&gt; (String -&gt; Maybe Int64) -&gt; Text -&gt; Maybe Int64
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe Int64
+forall a. Read a =&gt; String -&gt; Maybe a
+</span><span class="hs-identifier hs-var">readMaybe</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Int64 -&gt; Int64 -&gt; Int64
+forall a. Maybe a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">?:</span></span><span> </span><span class="annot"><span class="annottext">Int64
+</span><span class="hs-number">20</span></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">$sel:filterOffset:FilterOps :: Int64
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#%24sel%3AfilterOffset%3AFilterOps"><span class="hs-identifier hs-var">filterOffset</span></a></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Text -&gt; [(Text, Text)] -&gt; Maybe Text
+forall a b. Eq a =&gt; a -&gt; [(a, b)] -&gt; Maybe b
+</span><span class="hs-identifier hs-var">lookup</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;offset&quot;</span></span><span> </span><span class="annot"><span class="annottext">[(Text, Text)]
+</span><a href="#local-6989586621679289305"><span class="hs-identifier hs-var">params</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe Text -&gt; (Text -&gt; Maybe Int64) -&gt; Maybe Int64
+forall a b. Maybe a -&gt; (a -&gt; Maybe b) -&gt; Maybe b
+forall (m :: * -&gt; *) a b. Monad m =&gt; m a -&gt; (a -&gt; m b) -&gt; m b
+</span><span class="hs-operator hs-var">&gt;&gt;=</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; String
+forall a. ToString a =&gt; a -&gt; String
+</span><span class="hs-identifier hs-var">toString</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; String) -&gt; (String -&gt; Maybe Int64) -&gt; Text -&gt; Maybe Int64
+forall a b c. (a -&gt; b) -&gt; (b -&gt; c) -&gt; a -&gt; c
+</span><a href="Conduit.Utils.html#.-"><span class="hs-operator hs-var">.-</span></a></span><span> </span><span class="annot"><span class="annottext">String -&gt; Maybe Int64
+forall a. Read a =&gt; String -&gt; Maybe a
+</span><span class="hs-identifier hs-var">readMaybe</span></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Maybe Int64 -&gt; Int64 -&gt; Int64
+forall a. Maybe a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">?:</span></span><span> </span><span class="annot"><span class="annottext">Int64
+</span><span class="hs-number">0</span></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">}</span><span>
+</span><span id="line-48"></span><span>
+</span><span id="line-49"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679289086"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="AquireArticles"><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#AquireArticles"><span class="hs-identifier hs-var">AquireArticles</span></a></span></span><span> </span><span id="local-6989586621679289086"><span class="annot"><a href="#local-6989586621679289086"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-50"></span><span>  </span><span id="findArticles"><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#findArticles"><span class="hs-identifier hs-type">findArticles</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289086"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>
+</span><span id="line-52"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679289066"><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679289066"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.DB.Core.html#MonadDB"><span class="hs-identifier hs-type">MonadDB</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289066"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadUnliftIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679289066"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#AquireArticles"><span class="hs-identifier hs-type">AquireArticles</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679289066"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#findArticles"><span class="hs-identifier hs-type">findArticles</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span class="hs-special">]</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679289066"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Errors.html#ArticleError"><span class="hs-identifier hs-type">ArticleError</span></a></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-54"></span><span>  </span><span id="local-6989586621679289397"><span class="annot"><span class="annottext">findArticles :: UserID
+-&gt; [UserID] -&gt; FilterOps -&gt; m (Either ArticleError ManyArticles)
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#findArticles"><span class="hs-identifier hs-var hs-var hs-var hs-var">findArticles</span></a></span></span><span> </span><span id="local-6989586621679289398"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679289398"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(UserID -&gt; UserId) -&gt; [UserID] -&gt; [UserId]
+forall a b. (a -&gt; b) -&gt; [a] -&gt; [b]
+</span><span class="hs-identifier hs-var">map</span></span><span> </span><span class="annot"><span class="annottext">UserID -&gt; UserId
+forall t id. SqlKey t id =&gt; id -&gt; Key t
+</span><a href="Conduit.DB.Core.html#id2sqlKey"><span class="hs-identifier hs-var">id2sqlKey</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span id="local-6989586621679289399"><span class="annot"><span class="annottext">[UserId]
+</span><a href="#local-6989586621679289399"><span class="hs-identifier hs-var">followeeIDs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Articles.FeedArticles.html#FilterOps"><span class="hs-identifier hs-type">FilterOps</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679289400"><span id="local-6989586621679289401"><span class="annot"><span class="annottext">Int64
+$sel:filterLimit:FilterOps :: FilterOps -&gt; Int64
+$sel:filterOffset:FilterOps :: FilterOps -&gt; Int64
+filterLimit :: Int64
+filterOffset :: Int64
+</span><a href="Conduit.Features.Articles.Articles.FeedArticles.html#%24sel%3AfilterLimit%3AFilterOps"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">([(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+ -&gt; ManyArticles)
+-&gt; Either
+     DBError
+     [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+-&gt; Either ArticleError ManyArticles
+forall e a b.
+FeatureError e =&gt;
+(a -&gt; b) -&gt; Either DBError a -&gt; Either e b
+</span><a href="Conduit.DB.Core.html#mapDBResult"><span class="hs-identifier hs-var">mapDBResult</span></a></span><span> </span><span class="annot"><span class="annottext">[(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+-&gt; ManyArticles
+</span><a href="Conduit.Features.Articles.DB.html#mkManyArticles"><span class="hs-identifier hs-var">mkManyArticles</span></a></span><span> </span><span class="annot"><span class="annottext">(Either
+   DBError
+   [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+ -&gt; Either ArticleError ManyArticles)
+-&gt; m (Either
+        DBError
+        [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)])
+-&gt; m (Either ArticleError ManyArticles)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">SqlPersistT
+  m
+  [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+-&gt; m (Either
+        DBError
+        [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)])
+forall a. SqlPersistT m a -&gt; m (Either DBError a)
+forall (m :: * -&gt; *) a.
+MonadDB m =&gt;
+SqlPersistT m a -&gt; m (Either DBError a)
+</span><a href="Conduit.DB.Core.html#runDB"><span class="hs-identifier hs-var">runDB</span></a></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-55"></span><span>    </span><span class="annot"><span class="annottext">SqlQuery
+  (SqlExpr (Entity Article), SqlExpr (Entity User),
+   SqlExpr (Value Bool), SqlExpr (Value Bool), SqlExpr (Value Int))
+-&gt; SqlPersistT
+     m
+     [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+forall a r (m :: * -&gt; *) backend.
+(SqlSelect a r, MonadIO m, SqlBackendCanRead backend) =&gt;
+SqlQuery a -&gt; ReaderT backend m [r]
+</span><span class="hs-identifier hs-var">select</span></span><span> </span><span class="annot"><span class="annottext">(SqlQuery
+   (SqlExpr (Entity Article), SqlExpr (Entity User),
+    SqlExpr (Value Bool), SqlExpr (Value Bool), SqlExpr (Value Int))
+ -&gt; SqlPersistT
+      m
+      [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)])
+-&gt; SqlQuery
+     (SqlExpr (Entity Article), SqlExpr (Entity User),
+      SqlExpr (Value Bool), SqlExpr (Value Bool), SqlExpr (Value Int))
+-&gt; SqlPersistT
+     m
+     [(Entity Article, Entity User, Value Bool, Value Bool, Value Int)]
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-56"></span><span>      </span><span class="hs-glyph">~</span><span class="hs-special">(</span><span id="local-6989586621679289404"><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289404"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span class="annot"><span class="hs-operator hs-type">:&amp;</span></span><span> </span><span id="local-6989586621679289406"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289406"><span class="hs-identifier hs-var">u</span></a></span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><span class="hs-identifier">_</span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Maybe UserID
+-&gt; (SqlExpr (Entity Article)
+    -&gt; SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery
+     (SqlExpr (Entity Article) :&amp; SqlExpr (Entity User),
+      SqlExpr (Value Bool))
+forall table.
+PersistEntity table =&gt;
+Maybe UserID
+-&gt; (SqlExpr (Entity table)
+    -&gt; SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery
+     (SqlExpr (Entity table) :&amp; SqlExpr (Entity User),
+      SqlExpr (Value Bool))
+</span><a href="Conduit.Features.Account.Common.QueryAssociatedUser.html#queryAssociatedUser"><span class="hs-identifier hs-var">queryAssociatedUser</span></a></span><span> </span><span class="annot"><span class="annottext">Maybe UserID
+forall a. Maybe a
+</span><span class="hs-identifier hs-var">Nothing</span></span><span> </span><span class="annot"><span class="annottext">((SqlExpr (Entity Article)
+  -&gt; SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+ -&gt; SqlQuery
+      (SqlExpr (Entity Article) :&amp; SqlExpr (Entity User),
+       SqlExpr (Value Bool)))
+-&gt; (SqlExpr (Entity Article)
+    -&gt; SqlExpr (Entity User) -&gt; SqlExpr (Value Bool))
+-&gt; SqlQuery
+     (SqlExpr (Entity Article) :&amp; SqlExpr (Entity User),
+      SqlExpr (Value Bool))
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679289407"><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289407"><span class="hs-identifier hs-var">a</span></a></span></span><span> </span><span id="local-6989586621679289408"><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289408"><span class="hs-identifier hs-var">u</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-57"></span><span>        </span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289407"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">author</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value UserId)
+-&gt; SqlExpr (Value UserId) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ) -&gt; SqlExpr (Value typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">==.</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289408"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span>
+</span><span id="line-58"></span><span>
+</span><span id="line-59"></span><span>      </span><span class="annot"><span class="annottext">(SqlExpr (Value UserId), SqlExpr (Value (Key Article)))
+-&gt; SqlQuery ()
+forall a. ToSomeValues a =&gt; a -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">groupBy</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289406"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289404"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>
+</span><span id="line-61"></span><span>      </span><span class="annot"><span class="annottext">SqlExpr (Value Bool) -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">where_</span></span><span> </span><span class="annot"><span class="annottext">(SqlExpr (Value Bool) -&gt; SqlQuery ())
+-&gt; SqlExpr (Value Bool) -&gt; SqlQuery ()
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289406"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">id</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value UserId)
+-&gt; SqlExpr (ValueList UserId) -&gt; SqlExpr (Value Bool)
+forall typ.
+PersistField typ =&gt;
+SqlExpr (Value typ)
+-&gt; SqlExpr (ValueList typ) -&gt; SqlExpr (Value Bool)
+</span><span class="hs-operator hs-var">`in_`</span></span><span> </span><span class="annot"><span class="annottext">[UserId] -&gt; SqlExpr (ValueList UserId)
+forall typ. PersistField typ =&gt; [typ] -&gt; SqlExpr (ValueList typ)
+</span><span class="hs-identifier hs-var">valList</span></span><span> </span><span class="annot"><span class="annottext">[UserId]
+</span><a href="#local-6989586621679289399"><span class="hs-identifier hs-var">followeeIDs</span></a></span><span>
+</span><span id="line-62"></span><span>
+</span><span id="line-63"></span><span>      </span><span class="annot"><span class="annottext">Int64 -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">limit</span></span><span>  </span><span class="annot"><span class="annottext">Int64
+</span><a href="#local-6989586621679289400"><span class="hs-identifier hs-var">filterLimit</span></a></span><span>
+</span><span id="line-64"></span><span>      </span><span class="annot"><span class="annottext">Int64 -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">offset</span></span><span> </span><span class="annot"><span class="annottext">Int64
+</span><a href="#local-6989586621679289401"><span class="hs-identifier hs-var">filterOffset</span></a></span><span>
+</span><span id="line-65"></span><span>
+</span><span id="line-66"></span><span>      </span><span class="hs-keyword">let</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679289409"><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289409"><span class="hs-identifier hs-var">favorited</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679289410"><span class="annot"><span class="annottext">SqlExpr (Value Int)
+</span><a href="#local-6989586621679289410"><span class="hs-identifier hs-var">numFavs</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Maybe UserID
+-&gt; SqlExpr (Entity Article)
+-&gt; (SqlExpr (Value Bool), SqlExpr (Value Int))
+</span><a href="Conduit.Features.Articles.Common.QueryFavStats.html#queryFavStats"><span class="hs-identifier hs-var">queryFavStats</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">UserID -&gt; Maybe UserID
+forall a. a -&gt; Maybe a
+</span><span class="hs-identifier hs-var">Just</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679289398"><span class="hs-identifier hs-var">userID</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289404"><span class="hs-identifier hs-var">a</span></a></span><span>
+</span><span id="line-67"></span><span>
+</span><span id="line-68"></span><span>      </span><span class="annot"><span class="annottext">[SqlExpr OrderBy] -&gt; SqlQuery ()
+</span><span class="hs-identifier hs-var">orderBy</span></span><span> </span><span class="hs-special">[</span><span class="annot"><span class="annottext">SqlExpr (Value UTCTime) -&gt; SqlExpr OrderBy
+forall a. PersistField a =&gt; SqlExpr (Value a) -&gt; SqlExpr OrderBy
+</span><span class="hs-identifier hs-var">E.desc</span></span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289404"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">created</span><span class="hs-special">]</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span>      </span><span class="annot"><span class="annottext">(SqlExpr (Entity Article), SqlExpr (Entity User),
+ SqlExpr (Value Bool), SqlExpr (Value Bool), SqlExpr (Value Int))
+-&gt; SqlQuery
+     (SqlExpr (Entity Article), SqlExpr (Entity User),
+      SqlExpr (Value Bool), SqlExpr (Value Bool), SqlExpr (Value Int))
+forall a. a -&gt; SqlQuery a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">SqlExpr (Entity Article)
+</span><a href="#local-6989586621679289404"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Entity User)
+</span><a href="#local-6989586621679289406"><span class="hs-identifier hs-var">u</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Bool -&gt; SqlExpr (Value Bool)
+forall typ. PersistField typ =&gt; typ -&gt; SqlExpr (Value typ)
+</span><span class="hs-identifier hs-var">val</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><span class="hs-identifier hs-var">True</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Bool)
+</span><a href="#local-6989586621679289409"><span class="hs-identifier hs-var">favorited</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">SqlExpr (Value Int)
+</span><a href="#local-6989586621679289410"><span class="hs-identifier hs-var">numFavs</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-71"></span></pre></body></html>

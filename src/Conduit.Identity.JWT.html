@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Identity.JWT</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier">UserID</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#%24sel%3AunID%3AUserID"><span class="hs-identifier">unID</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">FromJSON</span></span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">NominalDiffTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.JWT</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">EncodeSigner</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">JWTClaimsSet</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">VerifySigner</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">hmacSecret</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">numericDate</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">stringOrURI</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">toVerify</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span>
+</span><span id="line-8"></span><span class="annot"><span class="hs-comment">-- | A datatype enforcing units be in Seconds.</span></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">newtype</span><span> </span><span id="Seconds"><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-var">Seconds</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Seconds"><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-var">Seconds</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunSeconds%3ASeconds"><span class="annot"><span class="annottext">Seconds -&gt; Int
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AunSeconds%3ASeconds"><span class="hs-identifier hs-var hs-var">unSeconds</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679276804"><span id="local-6989586621679276810"><span id="local-6989586621679276814"><span class="annot"><span class="annottext">Int -&gt; Seconds -&gt; ShowS
+[Seconds] -&gt; ShowS
+Seconds -&gt; String
+(Int -&gt; Seconds -&gt; ShowS)
+-&gt; (Seconds -&gt; String) -&gt; ([Seconds] -&gt; ShowS) -&gt; Show Seconds
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; Seconds -&gt; ShowS
+showsPrec :: Int -&gt; Seconds -&gt; ShowS
+$cshow :: Seconds -&gt; String
+show :: Seconds -&gt; String
+$cshowList :: [Seconds] -&gt; ShowS
+showList :: [Seconds] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679276818"><span id="local-6989586621679276823"><span id="local-6989586621679276827"><span id="local-6989586621679276831"><span id="local-6989586621679276835"><span id="local-6989586621679276839"><span id="local-6989586621679276843"><span class="annot"><span class="annottext">Integer -&gt; Seconds
+Seconds -&gt; Seconds
+Seconds -&gt; Seconds -&gt; Seconds
+(Seconds -&gt; Seconds -&gt; Seconds)
+-&gt; (Seconds -&gt; Seconds -&gt; Seconds)
+-&gt; (Seconds -&gt; Seconds -&gt; Seconds)
+-&gt; (Seconds -&gt; Seconds)
+-&gt; (Seconds -&gt; Seconds)
+-&gt; (Seconds -&gt; Seconds)
+-&gt; (Integer -&gt; Seconds)
+-&gt; Num Seconds
+forall a.
+(a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (a -&gt; a)
+-&gt; (Integer -&gt; a)
+-&gt; Num a
+$c+ :: Seconds -&gt; Seconds -&gt; Seconds
++ :: Seconds -&gt; Seconds -&gt; Seconds
+$c- :: Seconds -&gt; Seconds -&gt; Seconds
+- :: Seconds -&gt; Seconds -&gt; Seconds
+$c* :: Seconds -&gt; Seconds -&gt; Seconds
+* :: Seconds -&gt; Seconds -&gt; Seconds
+$cnegate :: Seconds -&gt; Seconds
+negate :: Seconds -&gt; Seconds
+$cabs :: Seconds -&gt; Seconds
+abs :: Seconds -&gt; Seconds
+$csignum :: Seconds -&gt; Seconds
+signum :: Seconds -&gt; Seconds
+$cfromInteger :: Integer -&gt; Seconds
+fromInteger :: Integer -&gt; Seconds
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Num</span></span></span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679276849"><span id="local-6989586621679276854"><span id="local-6989586621679276858"><span class="annot"><span class="annottext">Maybe Seconds
+Value -&gt; Parser [Seconds]
+Value -&gt; Parser Seconds
+(Value -&gt; Parser Seconds)
+-&gt; (Value -&gt; Parser [Seconds]) -&gt; Maybe Seconds -&gt; FromJSON Seconds
+forall a.
+(Value -&gt; Parser a)
+-&gt; (Value -&gt; Parser [a]) -&gt; Maybe a -&gt; FromJSON a
+$cparseJSON :: Value -&gt; Parser Seconds
+parseJSON :: Value -&gt; Parser Seconds
+$cparseJSONList :: Value -&gt; Parser [Seconds]
+parseJSONList :: Value -&gt; Parser [Seconds]
+$comittedField :: Maybe Seconds
+omittedField :: Maybe Seconds
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">FromJSON</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-12"></span><span>
+</span><span id="line-13"></span><span class="annot"><span class="hs-comment">-- | Application JWT config state.</span></span><span>
+</span><span id="line-14"></span><span class="hs-keyword">data</span><span> </span><span id="JWTInfo"><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-var">JWTInfo</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="JWTInfo"><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-var">JWTInfo</span></a></span></span><span>
+</span><span id="line-15"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AjwtEncodeSigner%3AJWTInfo"><span class="annot"><span class="annottext">JWTInfo -&gt; EncodeSigner
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtEncodeSigner%3AJWTInfo"><span class="hs-identifier hs-var hs-var">jwtEncodeSigner</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">EncodeSigner</span></span><span>
+</span><span id="line-16"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AjwtVerifySigner%3AJWTInfo"><span class="annot"><span class="annottext">JWTInfo -&gt; VerifySigner
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtVerifySigner%3AJWTInfo"><span class="hs-identifier hs-var hs-var">jwtVerifySigner</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">VerifySigner</span></span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AjwtExpTime%3AJWTInfo"><span class="annot"><span class="annottext">JWTInfo -&gt; Seconds
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtExpTime%3AJWTInfo"><span class="hs-identifier hs-var hs-var">jwtExpTime</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-type">Seconds</span></a></span><span>
+</span><span id="line-18"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="annot"><span class="hs-comment">-- | Initial JWT config state @ application startup, converted to 'JWTInfo'.</span></span><span>
+</span><span id="line-21"></span><span class="hs-keyword">data</span><span> </span><span id="JWTOps"><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier hs-var">JWTOps</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="JWTOps"><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier hs-var">JWTOps</span></a></span></span><span>
+</span><span id="line-22"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AjwtOpsSecret%3AJWTOps"><span class="annot"><span class="annottext">JWTOps -&gt; Text
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtOpsSecret%3AJWTOps"><span class="hs-identifier hs-var hs-var">jwtOpsSecret</span></a></span></span><span>  </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AjwtOpsExpTime%3AJWTOps"><span class="annot"><span class="annottext">JWTOps -&gt; Seconds
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtOpsExpTime%3AJWTOps"><span class="hs-identifier hs-var hs-var">jwtOpsExpTime</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-glyph">!</span><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-type">Seconds</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-25"></span><span>
+</span><span id="line-26"></span><span class="annot"><span class="hs-comment">-- | Creates an 'JWTInfo' instance from 'JWTOps'.</span></span><span>
+</span><span id="line-27"></span><span class="annot"><a href="Conduit.Identity.JWT.html#mkJWTInfo"><span class="hs-identifier hs-type">mkJWTInfo</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier hs-type">JWTOps</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-type">JWTInfo</span></a></span><span>
+</span><span id="line-28"></span><span id="mkJWTInfo"><span class="annot"><span class="annottext">mkJWTInfo :: JWTOps -&gt; JWTInfo
+</span><a href="Conduit.Identity.JWT.html#mkJWTInfo"><span class="hs-identifier hs-var hs-var">mkJWTInfo</span></a></span></span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#JWTOps"><span class="hs-identifier hs-type">JWTOps</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679276871"><span id="local-6989586621679276872"><span class="annot"><span class="annottext">Text
+Seconds
+$sel:jwtOpsSecret:JWTOps :: JWTOps -&gt; Text
+$sel:jwtOpsExpTime:JWTOps :: JWTOps -&gt; Seconds
+jwtOpsSecret :: Text
+jwtOpsExpTime :: Seconds
+</span><a href="Conduit.Identity.JWT.html#%24sel%3AjwtOpsSecret%3AJWTOps"><span class="hs-glyph hs-var hs-var hs-var hs-var">..</span></a></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">EncodeSigner -&gt; VerifySigner -&gt; Seconds -&gt; JWTInfo
+</span><a href="Conduit.Identity.JWT.html#JWTInfo"><span class="hs-identifier hs-var">JWTInfo</span></a></span><span> </span><span class="annot"><span class="annottext">EncodeSigner
+</span><a href="#local-6989586621679276873"><span class="hs-identifier hs-var">signer</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">EncodeSigner -&gt; VerifySigner
+</span><span class="hs-identifier hs-var">toVerify</span></span><span> </span><span class="annot"><span class="annottext">EncodeSigner
+</span><a href="#local-6989586621679276873"><span class="hs-identifier hs-var">signer</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">Seconds
+</span><a href="#local-6989586621679276872"><span class="hs-identifier hs-var">jwtOpsExpTime</span></a></span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-keyword">where</span><span> </span><span id="local-6989586621679276873"><span class="annot"><span class="annottext">signer :: EncodeSigner
+</span><a href="#local-6989586621679276873"><span class="hs-identifier hs-var hs-var">signer</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; EncodeSigner
+</span><span class="hs-identifier hs-var">hmacSecret</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679276871"><span class="hs-identifier hs-var">jwtOpsSecret</span></a></span><span>
+</span><span id="line-30"></span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- | Populates the desired claims:</span><span>
+</span><span id="line-32"></span><span class="hs-comment">--</span><span>
+</span><span id="line-33"></span><span class="hs-comment">--   [iss] Issuer of the JWT</span><span>
+</span><span id="line-34"></span><span class="hs-comment">--</span><span>
+</span><span id="line-35"></span><span class="hs-comment">--   [aud] Audience for the JWT</span><span>
+</span><span id="line-36"></span><span class="hs-comment">--</span><span>
+</span><span id="line-37"></span><span class="hs-comment">--   [sub] Subject of the JWT; a UserID</span><span>
+</span><span id="line-38"></span><span class="hs-comment">--</span><span>
+</span><span id="line-39"></span><span class="hs-comment">--   [exp] Expiration time of the JWT</span><span>
+</span><span id="line-40"></span><span class="annot"><a href="Conduit.Identity.JWT.html#mkClaims"><span class="hs-identifier hs-type">mkClaims</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">NominalDiffTime</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-type">Seconds</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserID"><span class="hs-identifier hs-type">UserID</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">JWTClaimsSet</span></span><span>
+</span><span id="line-41"></span><span id="mkClaims"><span class="annot"><span class="annottext">mkClaims :: NominalDiffTime -&gt; Seconds -&gt; UserID -&gt; JWTClaimsSet
+</span><a href="Conduit.Identity.JWT.html#mkClaims"><span class="hs-identifier hs-var hs-var">mkClaims</span></a></span></span><span> </span><span id="local-6989586621679276875"><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679276875"><span class="hs-identifier hs-var">currTime</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Identity.JWT.html#Seconds"><span class="hs-identifier hs-type">Seconds</span></a></span><span> </span><span id="local-6989586621679276876"><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679276876"><span class="hs-identifier hs-var">ttl</span></a></span></span><span class="hs-special">)</span><span> </span><span id="local-6989586621679276877"><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679276877"><span class="hs-identifier hs-var">userID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">JWTClaimsSet
+forall a. Monoid a =&gt; a
+</span><span class="hs-identifier hs-var">mempty</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">{</span><span> </span><span class="annot"><span class="annottext">iss :: Maybe StringOrURI
+</span><span class="hs-identifier hs-var">iss</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe StringOrURI
+</span><span class="hs-identifier hs-var">stringOrURI</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;conduit-api&quot;</span></span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">aud :: Maybe (Either StringOrURI [StringOrURI])
+</span><span class="hs-identifier hs-var">aud</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">StringOrURI -&gt; Either StringOrURI [StringOrURI]
+forall a b. a -&gt; Either a b
+</span><span class="hs-identifier hs-var">Left</span></span><span> </span><span class="annot"><span class="annottext">(StringOrURI -&gt; Either StringOrURI [StringOrURI])
+-&gt; Maybe StringOrURI -&gt; Maybe (Either StringOrURI [StringOrURI])
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe StringOrURI
+</span><span class="hs-identifier hs-var">stringOrURI</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><span class="hs-string">&quot;conduit-client&quot;</span></span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">sub :: Maybe StringOrURI
+</span><span class="hs-identifier hs-var">sub</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Text -&gt; Maybe StringOrURI
+</span><span class="hs-identifier hs-var">stringOrURI</span></span><span> </span><span class="annot"><span class="annottext">(Text -&gt; Maybe StringOrURI) -&gt; Text -&gt; Maybe StringOrURI
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">Int64 -&gt; Text
+forall b a. (Show a, IsString b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">show</span></span><span> </span><span class="annot"><span class="annottext">UserID
+</span><a href="#local-6989586621679276877"><span class="hs-identifier hs-var">userID</span></a></span><span class="hs-operator">.</span><span class="hs-identifier">unID</span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">exp :: Maybe IntDate
+</span><span class="hs-identifier hs-var">exp</span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; Maybe IntDate
+</span><span class="hs-identifier hs-var">numericDate</span></span><span> </span><span class="annot"><span class="annottext">(NominalDiffTime -&gt; Maybe IntDate)
+-&gt; NominalDiffTime -&gt; Maybe IntDate
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime
+</span><a href="#local-6989586621679276875"><span class="hs-identifier hs-var">currTime</span></a></span><span> </span><span class="annot"><span class="annottext">NominalDiffTime -&gt; NominalDiffTime -&gt; NominalDiffTime
+forall a. Num a =&gt; a -&gt; a -&gt; a
+</span><span class="hs-operator hs-var">+</span></span><span> </span><span class="annot"><span class="annottext">Int -&gt; NominalDiffTime
+forall a b. (Integral a, Num b) =&gt; a -&gt; b
+</span><span class="hs-identifier hs-var">fromIntegral</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679276876"><span class="hs-identifier hs-var">ttl</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">}</span><span>
+</span><span id="line-47"></span></pre></body></html>

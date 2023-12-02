@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE FieldSelectors #-}</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.App.Monad</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-4"></span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.App.Env.html"><span class="hs-identifier">Conduit.App.Env</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.App.Env.html#Env"><span class="hs-identifier">Env</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">UnliftIO</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">MonadUnliftIO</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Web.Scotty.Trans</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ActionT</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Errors.html"><span class="hs-identifier">Conduit.Errors</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier">FeatureError</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="Conduit.Errors.html#handleFeatureErrors"><span class="hs-identifier">handleFeatureErrors</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="annot"><span class="hs-comment">-- | The app monad. woo.</span></span><span>
+</span><span id="line-11"></span><span class="hs-keyword">newtype</span><span> </span><span id="AppM"><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-var">AppM</span></a></span></span><span> </span><span id="local-6989586621679282534"><span class="annot"><a href="#local-6989586621679282534"><span class="hs-identifier hs-type">a</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AppM"><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-var">AppM</span></a></span></span><span>
+</span><span id="line-12"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3ArunAppM%3AAppM"><span class="annot"><span class="annottext">forall a. AppM a -&gt; ReaderT Env IO a
+</span><a href="Conduit.App.Monad.html#%24sel%3ArunAppM%3AAppM"><span class="hs-identifier hs-var hs-var">runAppM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ReaderT</span></span><span> </span><span class="annot"><a href="Conduit.App.Env.html#Env"><span class="hs-identifier hs-type">Env</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">IO</span></span><span> </span><span class="annot"><a href="#local-6989586621679282534"><span class="hs-identifier hs-type">a</span></a></span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679282640"><span id="local-6989586621679282646"><span class="annot"><span class="annottext">(forall a b. (a -&gt; b) -&gt; AppM a -&gt; AppM b)
+-&gt; (forall a b. a -&gt; AppM b -&gt; AppM a) -&gt; Functor AppM
+forall a b. a -&gt; AppM b -&gt; AppM a
+forall a b. (a -&gt; b) -&gt; AppM a -&gt; AppM b
+forall (f :: * -&gt; *).
+(forall a b. (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b. a -&gt; f b -&gt; f a) -&gt; Functor f
+$cfmap :: forall a b. (a -&gt; b) -&gt; AppM a -&gt; AppM b
+fmap :: forall a b. (a -&gt; b) -&gt; AppM a -&gt; AppM b
+$c&lt;$ :: forall a b. a -&gt; AppM b -&gt; AppM a
+&lt;$ :: forall a b. a -&gt; AppM b -&gt; AppM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Functor</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679282656"><span id="local-6989586621679282662"><span id="local-6989586621679282667"><span id="local-6989586621679282672"><span id="local-6989586621679282677"><span class="annot"><span class="annottext">Functor AppM
+Functor AppM
+-&gt; (forall a. a -&gt; AppM a)
+-&gt; (forall a b. AppM (a -&gt; b) -&gt; AppM a -&gt; AppM b)
+-&gt; (forall a b c. (a -&gt; b -&gt; c) -&gt; AppM a -&gt; AppM b -&gt; AppM c)
+-&gt; (forall a b. AppM a -&gt; AppM b -&gt; AppM b)
+-&gt; (forall a b. AppM a -&gt; AppM b -&gt; AppM a)
+-&gt; Applicative AppM
+forall a. a -&gt; AppM a
+forall a b. AppM a -&gt; AppM b -&gt; AppM a
+forall a b. AppM a -&gt; AppM b -&gt; AppM b
+forall a b. AppM (a -&gt; b) -&gt; AppM a -&gt; AppM b
+forall a b c. (a -&gt; b -&gt; c) -&gt; AppM a -&gt; AppM b -&gt; AppM c
+forall (f :: * -&gt; *).
+Functor f
+-&gt; (forall a. a -&gt; f a)
+-&gt; (forall a b. f (a -&gt; b) -&gt; f a -&gt; f b)
+-&gt; (forall a b c. (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c)
+-&gt; (forall a b. f a -&gt; f b -&gt; f b)
+-&gt; (forall a b. f a -&gt; f b -&gt; f a)
+-&gt; Applicative f
+$cpure :: forall a. a -&gt; AppM a
+pure :: forall a. a -&gt; AppM a
+$c&lt;*&gt; :: forall a b. AppM (a -&gt; b) -&gt; AppM a -&gt; AppM b
+&lt;*&gt; :: forall a b. AppM (a -&gt; b) -&gt; AppM a -&gt; AppM b
+$cliftA2 :: forall a b c. (a -&gt; b -&gt; c) -&gt; AppM a -&gt; AppM b -&gt; AppM c
+liftA2 :: forall a b c. (a -&gt; b -&gt; c) -&gt; AppM a -&gt; AppM b -&gt; AppM c
+$c*&gt; :: forall a b. AppM a -&gt; AppM b -&gt; AppM b
+*&gt; :: forall a b. AppM a -&gt; AppM b -&gt; AppM b
+$c&lt;* :: forall a b. AppM a -&gt; AppM b -&gt; AppM a
+&lt;* :: forall a b. AppM a -&gt; AppM b -&gt; AppM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Applicative</span></span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679282687"><span id="local-6989586621679282693"><span id="local-6989586621679282698"><span class="annot"><span class="annottext">Applicative AppM
+Applicative AppM
+-&gt; (forall a b. AppM a -&gt; (a -&gt; AppM b) -&gt; AppM b)
+-&gt; (forall a b. AppM a -&gt; AppM b -&gt; AppM b)
+-&gt; (forall a. a -&gt; AppM a)
+-&gt; Monad AppM
+forall a. a -&gt; AppM a
+forall a b. AppM a -&gt; AppM b -&gt; AppM b
+forall a b. AppM a -&gt; (a -&gt; AppM b) -&gt; AppM b
+forall (m :: * -&gt; *).
+Applicative m
+-&gt; (forall a b. m a -&gt; (a -&gt; m b) -&gt; m b)
+-&gt; (forall a b. m a -&gt; m b -&gt; m b)
+-&gt; (forall a. a -&gt; m a)
+-&gt; Monad m
+$c&gt;&gt;= :: forall a b. AppM a -&gt; (a -&gt; AppM b) -&gt; AppM b
+&gt;&gt;= :: forall a b. AppM a -&gt; (a -&gt; AppM b) -&gt; AppM b
+$c&gt;&gt; :: forall a b. AppM a -&gt; AppM b -&gt; AppM b
+&gt;&gt; :: forall a b. AppM a -&gt; AppM b -&gt; AppM b
+$creturn :: forall a. a -&gt; AppM a
+return :: forall a. a -&gt; AppM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Monad</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679282708"><span class="annot"><span class="annottext">Monad AppM
+Monad AppM -&gt; (forall a. IO a -&gt; AppM a) -&gt; MonadIO AppM
+forall a. IO a -&gt; AppM a
+forall (m :: * -&gt; *).
+Monad m -&gt; (forall a. IO a -&gt; m a) -&gt; MonadIO m
+$cliftIO :: forall a. IO a -&gt; AppM a
+liftIO :: forall a. IO a -&gt; AppM a
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadIO</span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679282719"><span id="local-6989586621679282725"><span id="local-6989586621679282730"><span class="annot"><span class="hs-identifier hs-type">MonadReader</span></span><span> </span><span class="annot"><a href="Conduit.App.Env.html#Env"><span class="hs-identifier hs-type">Env</span></a></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679282739"><span class="annot"><span class="annottext">MonadIO AppM
+MonadIO AppM
+-&gt; (forall b. ((forall a. AppM a -&gt; IO a) -&gt; IO b) -&gt; AppM b)
+-&gt; MonadUnliftIO AppM
+forall b. ((forall a. AppM a -&gt; IO a) -&gt; IO b) -&gt; AppM b
+forall (m :: * -&gt; *).
+MonadIO m
+-&gt; (forall b. ((forall a. m a -&gt; IO a) -&gt; IO b) -&gt; m b)
+-&gt; MonadUnliftIO m
+$cwithRunInIO :: forall b. ((forall a. AppM a -&gt; IO a) -&gt; IO b) -&gt; AppM b
+withRunInIO :: forall b. ((forall a. AppM a -&gt; IO a) -&gt; IO b) -&gt; AppM b
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var">MonadUnliftIO</span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- | Lifts computations to the app monad level. @(MonadApp m)@ shouldn't be used directly as a constraint;</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--   Rather, just use @liftApp@ and see 'Conduit.App.Has.Has'.</span><span>
+</span><span id="line-17"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Monad</span></span><span> </span><span class="annot"><a href="#local-6989586621679282608"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="MonadApp"><span class="annot"><a href="Conduit.App.Monad.html#MonadApp"><span class="hs-identifier hs-var">MonadApp</span></a></span></span><span> </span><span id="local-6989586621679282608"><span class="annot"><a href="#local-6989586621679282608"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-18"></span><span>  </span><span id="liftApp"><span class="annot"><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-type">liftApp</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679282610"><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282610"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679282608"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282610"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-19"></span><span>
+</span><span id="line-20"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#MonadApp"><span class="hs-identifier hs-type">MonadApp</span></a></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-21"></span><span>  </span><span class="annot"><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-type">liftApp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679282754"><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282754"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282754"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-22"></span><span>  </span><span id="local-6989586621679282755"><span class="annot"><span class="annottext">liftApp :: forall a. AppM a -&gt; AppM a
+</span><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftApp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AppM a -&gt; AppM a
+forall a. a -&gt; a
+</span><span class="hs-identifier hs-var">id</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#liftApp"><span class="hs-pragma hs-type">liftApp</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#MonadApp"><span class="hs-identifier hs-type">MonadApp</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-type">liftApp</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span id="local-6989586621679282763"><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282763"><span class="hs-identifier hs-type">a</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282763"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-27"></span><span>  </span><span id="local-6989586621679282767"><span class="annot"><span class="annottext">liftApp :: forall a. AppM a -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-var hs-var hs-var hs-var">liftApp</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AppM a -&gt; ActionT AppM a
+forall (m :: * -&gt; *) a. Monad m =&gt; m a -&gt; ActionT m a
+forall (t :: (* -&gt; *) -&gt; * -&gt; *) (m :: * -&gt; *) a.
+(MonadTrans t, Monad m) =&gt;
+m a -&gt; t m a
+</span><span class="hs-identifier hs-var">lift</span></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#liftApp"><span class="hs-pragma hs-type">liftApp</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-29"></span><span>
+</span><span id="line-30"></span><span class="hs-comment">-- | Runs a service in the App monad and converts its potentially failed result to the appropriate error if neccesary.</span><span>
+</span><span id="line-31"></span><span class="hs-comment">-- </span><span>
+</span><span id="line-32"></span><span class="hs-comment">-- &gt; data MyErr = Aw Text</span><span>
+</span><span id="line-33"></span><span class="hs-comment">-- &gt; data MyResult = Yay Text deriving (Generic, ToJSON)</span><span>
+</span><span id="line-34"></span><span class="hs-comment">-- &gt; </span><span>
+</span><span id="line-35"></span><span class="hs-comment">-- &gt; instance FeatureError MyErr where</span><span>
+</span><span id="line-36"></span><span class="hs-comment">-- &gt;   handleFeatureError (ResultErr msg) = do </span><span>
+</span><span id="line-37"></span><span class="hs-comment">-- &gt;     status status500</span><span>
+</span><span id="line-38"></span><span class="hs-comment">-- &gt;     text msg</span><span>
+</span><span id="line-39"></span><span class="hs-comment">-- &gt; </span><span>
+</span><span id="line-40"></span><span class="hs-comment">-- &gt; endpoint = get &quot;/&quot; $ do</span><span>
+</span><span id="line-41"></span><span class="hs-comment">-- &gt;   (result :: MyResult) &lt;- runService (someAppService :: AppM (Either MyErr MyResult))</span><span>
+</span><span id="line-42"></span><span class="hs-comment">-- &gt;   json result</span><span>
+</span><span id="line-43"></span><span id="local-6989586621679282620"><span id="local-6989586621679282622"><span class="annot"><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-type">runService</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Errors.html#FeatureError"><span class="hs-identifier hs-type">FeatureError</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282620"><span class="hs-identifier hs-type">e</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">Either</span></span><span> </span><span class="annot"><a href="#local-6989586621679282620"><span class="hs-identifier hs-type">e</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282622"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ActionT</span></span><span> </span><span class="annot"><a href="Conduit.App.Monad.html#AppM"><span class="hs-identifier hs-type">AppM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679282622"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-44"></span><span id="runService"><span class="annot"><span class="annottext">runService :: forall e a. FeatureError e =&gt; AppM (Either e a) -&gt; ActionT AppM a
+</span><a href="Conduit.App.Monad.html#runService"><span class="hs-identifier hs-var hs-var">runService</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">AppM (Either e a) -&gt; ActionT AppM (Either e a)
+forall a. AppM a -&gt; ActionT AppM a
+forall (m :: * -&gt; *) a. MonadApp m =&gt; AppM a -&gt; m a
+</span><a href="Conduit.App.Monad.html#liftApp"><span class="hs-identifier hs-var">liftApp</span></a></span><span> </span><span class="annot"><span class="annottext">(AppM (Either e a) -&gt; ActionT AppM (Either e a))
+-&gt; (Either e a -&gt; ActionT AppM a)
+-&gt; AppM (Either e a)
+-&gt; ActionT AppM a
+forall (m :: * -&gt; *) a b c.
+Monad m =&gt;
+(a -&gt; m b) -&gt; (b -&gt; m c) -&gt; a -&gt; m c
+</span><span class="hs-operator hs-var">&gt;=&gt;</span></span><span> </span><span class="annot"><span class="annottext">(e -&gt; ActionT AppM a)
+-&gt; (a -&gt; ActionT AppM a) -&gt; Either e a -&gt; ActionT AppM a
+forall a c b. (a -&gt; c) -&gt; (b -&gt; c) -&gt; Either a b -&gt; c
+</span><span class="hs-identifier hs-var">either</span></span><span> </span><span class="annot"><span class="annottext">e -&gt; ActionT AppM a
+forall (m :: * -&gt; *) e a.
+(MonadUnliftIO m, FeatureError e) =&gt;
+e -&gt; ActionT m a
+</span><a href="Conduit.Errors.html#handleFeatureErrors"><span class="hs-identifier hs-var">handleFeatureErrors</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; ActionT AppM a
+forall a. a -&gt; ActionT AppM a
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span>
+</span><span id="line-45"></span></pre></body></html>

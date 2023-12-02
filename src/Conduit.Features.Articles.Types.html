@@ -1,0 +1,580 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">Conduit.Features.Articles.Types</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-2"></span><span>
+</span><span id="line-3"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html"><span class="hs-identifier">Conduit.Features.Account.Types</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier">UserProfile</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-4"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="Conduit.Utils.html"><span class="hs-identifier">Conduit.Utils</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier">InObj</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">)</span><span>
+</span><span id="line-5"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">ToJSON</span></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier">object</span></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-operator">(.=)</span></span><span class="hs-special">)</span><span>
+</span><span id="line-6"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Aeson.Types</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">Value</span></span><span class="hs-special">)</span><span>
+</span><span id="line-7"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.Time</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier">UTCTime</span></span><span class="hs-special">)</span><span>
+</span><span id="line-8"></span><span>
+</span><span id="line-9"></span><span class="hs-keyword">newtype</span><span> </span><span id="ArticleID"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-var">ArticleID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ArticleID"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ArticleID"><span class="hs-identifier hs-var">ArticleID</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunID%3AArticleID"><span class="annot"><span class="annottext">ArticleID -&gt; Int64
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AunID%3AArticleID"><span class="hs-identifier hs-var hs-var">unID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int64</span></span><span> </span><span class="hs-special">}</span><span> </span><span>
+</span><span id="line-10"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277348"><span id="local-6989586621679277353"><span id="local-6989586621679277357"><span class="annot"><span class="annottext">Int -&gt; ArticleID -&gt; ShowS
+[ArticleID] -&gt; ShowS
+ArticleID -&gt; String
+(Int -&gt; ArticleID -&gt; ShowS)
+-&gt; (ArticleID -&gt; String)
+-&gt; ([ArticleID] -&gt; ShowS)
+-&gt; Show ArticleID
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; ArticleID -&gt; ShowS
+showsPrec :: Int -&gt; ArticleID -&gt; ShowS
+$cshow :: ArticleID -&gt; String
+show :: ArticleID -&gt; String
+$cshowList :: [ArticleID] -&gt; ShowS
+showList :: [ArticleID] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277363"><span id="local-6989586621679277368"><span id="local-6989586621679277372"><span id="local-6989586621679277376"><span class="annot"><span class="annottext">ReadPrec [ArticleID]
+ReadPrec ArticleID
+Int -&gt; ReadS ArticleID
+ReadS [ArticleID]
+(Int -&gt; ReadS ArticleID)
+-&gt; ReadS [ArticleID]
+-&gt; ReadPrec ArticleID
+-&gt; ReadPrec [ArticleID]
+-&gt; Read ArticleID
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS ArticleID
+readsPrec :: Int -&gt; ReadS ArticleID
+$creadList :: ReadS [ArticleID]
+readList :: ReadS [ArticleID]
+$creadPrec :: ReadPrec ArticleID
+readPrec :: ReadPrec ArticleID
+$creadListPrec :: ReadPrec [ArticleID]
+readListPrec :: ReadPrec [ArticleID]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277382"><span id="local-6989586621679277387"><span class="annot"><span class="annottext">ArticleID -&gt; ArticleID -&gt; Bool
+(ArticleID -&gt; ArticleID -&gt; Bool)
+-&gt; (ArticleID -&gt; ArticleID -&gt; Bool) -&gt; Eq ArticleID
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: ArticleID -&gt; ArticleID -&gt; Bool
+== :: ArticleID -&gt; ArticleID -&gt; Bool
+$c/= :: ArticleID -&gt; ArticleID -&gt; Bool
+/= :: ArticleID -&gt; ArticleID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277393"><span id="local-6989586621679277398"><span id="local-6989586621679277402"><span id="local-6989586621679277406"><span id="local-6989586621679277410"><span class="annot"><span class="annottext">[ArticleID] -&gt; Value
+[ArticleID] -&gt; Encoding
+ArticleID -&gt; Bool
+ArticleID -&gt; Value
+ArticleID -&gt; Encoding
+(ArticleID -&gt; Value)
+-&gt; (ArticleID -&gt; Encoding)
+-&gt; ([ArticleID] -&gt; Value)
+-&gt; ([ArticleID] -&gt; Encoding)
+-&gt; (ArticleID -&gt; Bool)
+-&gt; ToJSON ArticleID
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (a -&gt; Bool)
+-&gt; ToJSON a
+$ctoJSON :: ArticleID -&gt; Value
+toJSON :: ArticleID -&gt; Value
+$ctoEncoding :: ArticleID -&gt; Encoding
+toEncoding :: ArticleID -&gt; Encoding
+$ctoJSONList :: [ArticleID] -&gt; Value
+toJSONList :: [ArticleID] -&gt; Value
+$ctoEncodingList :: [ArticleID] -&gt; Encoding
+toEncodingList :: [ArticleID] -&gt; Encoding
+$comitField :: ArticleID -&gt; Bool
+omitField :: ArticleID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-11"></span><span>
+</span><span id="line-12"></span><span class="hs-keyword">newtype</span><span> </span><span id="Slug"><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="Slug"><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-var">Slug</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunSlug%3ASlug"><span class="annot"><span class="annottext">Slug -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AunSlug%3ASlug"><span class="hs-identifier hs-var hs-var">unSlug</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-13"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277418"><span id="local-6989586621679277424"><span id="local-6989586621679277428"><span class="annot"><span class="annottext">Int -&gt; Slug -&gt; ShowS
+[Slug] -&gt; ShowS
+Slug -&gt; String
+(Int -&gt; Slug -&gt; ShowS)
+-&gt; (Slug -&gt; String) -&gt; ([Slug] -&gt; ShowS) -&gt; Show Slug
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; Slug -&gt; ShowS
+showsPrec :: Int -&gt; Slug -&gt; ShowS
+$cshow :: Slug -&gt; String
+show :: Slug -&gt; String
+$cshowList :: [Slug] -&gt; ShowS
+showList :: [Slug] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277431"><span id="local-6989586621679277436"><span class="annot"><span class="annottext">Slug -&gt; Slug -&gt; Bool
+(Slug -&gt; Slug -&gt; Bool) -&gt; (Slug -&gt; Slug -&gt; Bool) -&gt; Eq Slug
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: Slug -&gt; Slug -&gt; Bool
+== :: Slug -&gt; Slug -&gt; Bool
+$c/= :: Slug -&gt; Slug -&gt; Bool
+/= :: Slug -&gt; Slug -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-14"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277441"><span id="local-6989586621679277446"><span id="local-6989586621679277450"><span id="local-6989586621679277454"><span id="local-6989586621679277458"><span class="annot"><span class="annottext">[Slug] -&gt; Value
+[Slug] -&gt; Encoding
+Slug -&gt; Bool
+Slug -&gt; Value
+Slug -&gt; Encoding
+(Slug -&gt; Value)
+-&gt; (Slug -&gt; Encoding)
+-&gt; ([Slug] -&gt; Value)
+-&gt; ([Slug] -&gt; Encoding)
+-&gt; (Slug -&gt; Bool)
+-&gt; ToJSON Slug
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (a -&gt; Bool)
+-&gt; ToJSON a
+$ctoJSON :: Slug -&gt; Value
+toJSON :: Slug -&gt; Value
+$ctoEncoding :: Slug -&gt; Encoding
+toEncoding :: Slug -&gt; Encoding
+$ctoJSONList :: [Slug] -&gt; Value
+toJSONList :: [Slug] -&gt; Value
+$ctoEncodingList :: [Slug] -&gt; Encoding
+toEncodingList :: [Slug] -&gt; Encoding
+$comitField :: Slug -&gt; Bool
+omitField :: Slug -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-15"></span><span>
+</span><span id="line-16"></span><span class="hs-keyword">newtype</span><span> </span><span id="NoIDSlug"><span class="annot"><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier hs-var">NoIDSlug</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="NoIDSlug"><span class="annot"><a href="Conduit.Features.Articles.Types.html#NoIDSlug"><span class="hs-identifier hs-var">NoIDSlug</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunSlug%3ANoIDSlug"><span class="annot"><span class="annottext">NoIDSlug -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AunSlug%3ANoIDSlug"><span class="hs-identifier hs-var hs-var">unSlug</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-17"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277465"><span id="local-6989586621679277469"><span id="local-6989586621679277473"><span class="annot"><span class="annottext">Int -&gt; NoIDSlug -&gt; ShowS
+[NoIDSlug] -&gt; ShowS
+NoIDSlug -&gt; String
+(Int -&gt; NoIDSlug -&gt; ShowS)
+-&gt; (NoIDSlug -&gt; String) -&gt; ([NoIDSlug] -&gt; ShowS) -&gt; Show NoIDSlug
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; NoIDSlug -&gt; ShowS
+showsPrec :: Int -&gt; NoIDSlug -&gt; ShowS
+$cshow :: NoIDSlug -&gt; String
+show :: NoIDSlug -&gt; String
+$cshowList :: [NoIDSlug] -&gt; ShowS
+showList :: [NoIDSlug] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277476"><span id="local-6989586621679277480"><span class="annot"><span class="annottext">NoIDSlug -&gt; NoIDSlug -&gt; Bool
+(NoIDSlug -&gt; NoIDSlug -&gt; Bool)
+-&gt; (NoIDSlug -&gt; NoIDSlug -&gt; Bool) -&gt; Eq NoIDSlug
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: NoIDSlug -&gt; NoIDSlug -&gt; Bool
+== :: NoIDSlug -&gt; NoIDSlug -&gt; Bool
+$c/= :: NoIDSlug -&gt; NoIDSlug -&gt; Bool
+/= :: NoIDSlug -&gt; NoIDSlug -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-18"></span><span>
+</span><span id="line-19"></span><span id="local-6989586621679277213"><span class="annot"><a href="Conduit.Features.Articles.Types.html#inAuthorObj"><span class="hs-identifier hs-type">inAuthorObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679277213"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277213"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-20"></span><span id="inAuthorObj"><span class="annot"><span class="annottext">inAuthorObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inAuthorObj"><span class="hs-identifier hs-var hs-var">inAuthorObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;author&quot;</span></span><span>
+</span><span id="line-21"></span><span>
+</span><span id="line-22"></span><span class="hs-keyword">data</span><span> </span><span id="OneArticle"><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-var">OneArticle</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OneArticle"><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-var">OneArticle</span></a></span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aauthor%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; UserProfile
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aauthor%3AOneArticle"><span class="hs-identifier hs-var hs-var">author</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span>
+</span><span id="line-24"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aslug%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Slug
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aslug%3AOneArticle"><span class="hs-identifier hs-var hs-var">slug</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#Slug"><span class="hs-identifier hs-type">Slug</span></a></span><span>
+</span><span id="line-25"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Atitle%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Atitle%3AOneArticle"><span class="hs-identifier hs-var hs-var">title</span></a></span></span><span>     </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Adesc%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Adesc%3AOneArticle"><span class="hs-identifier hs-var hs-var">desc</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-27"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Abody%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Abody%3AOneArticle"><span class="hs-identifier hs-var hs-var">body</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-28"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Atags%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; [Text]
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Atags%3AOneArticle"><span class="hs-identifier hs-var hs-var">tags</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span class="hs-special">]</span><span>
+</span><span id="line-29"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Afavorited%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Bool
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Afavorited%3AOneArticle"><span class="hs-identifier hs-var hs-var">favorited</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Bool</span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AnumFavs%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; Int
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AnumFavs%3AOneArticle"><span class="hs-identifier hs-var hs-var">numFavs</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Acreated%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Acreated%3AOneArticle"><span class="hs-identifier hs-var hs-var">created</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aupdated%3AOneArticle"><span class="annot"><span class="annottext">OneArticle -&gt; UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aupdated%3AOneArticle"><span class="hs-identifier hs-var hs-var">updated</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277500"><span id="local-6989586621679277518"><span id="local-6989586621679277522"><span class="annot"><span class="annottext">Int -&gt; OneArticle -&gt; ShowS
+[OneArticle] -&gt; ShowS
+OneArticle -&gt; String
+(Int -&gt; OneArticle -&gt; ShowS)
+-&gt; (OneArticle -&gt; String)
+-&gt; ([OneArticle] -&gt; ShowS)
+-&gt; Show OneArticle
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; OneArticle -&gt; ShowS
+showsPrec :: Int -&gt; OneArticle -&gt; ShowS
+$cshow :: OneArticle -&gt; String
+show :: OneArticle -&gt; String
+$cshowList :: [OneArticle] -&gt; ShowS
+showList :: [OneArticle] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>
+</span><span id="line-35"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679277526"><span id="local-6989586621679277530"><span id="local-6989586621679277533"><span id="local-6989586621679277536"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-type">OneArticle</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-36"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">toJSON</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-type">OneArticle</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span>
+</span><span id="line-37"></span><span>  </span><span id="local-6989586621679277577"><span class="annot"><span class="annottext">toJSON :: OneArticle -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-type">OneArticle</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679277578"><span id="local-6989586621679277579"><span id="local-6989586621679277580"><span id="local-6989586621679277581"><span id="local-6989586621679277582"><span id="local-6989586621679277583"><span id="local-6989586621679277584"><span id="local-6989586621679277585"><span id="local-6989586621679277586"><span id="local-6989586621679277587"><span class="annot"><span class="annottext">Bool
+Int
+[Text]
+Text
+UTCTime
+UserProfile
+Slug
+$sel:author:OneArticle :: OneArticle -&gt; UserProfile
+$sel:slug:OneArticle :: OneArticle -&gt; Slug
+$sel:title:OneArticle :: OneArticle -&gt; Text
+$sel:desc:OneArticle :: OneArticle -&gt; Text
+$sel:body:OneArticle :: OneArticle -&gt; Text
+$sel:tags:OneArticle :: OneArticle -&gt; [Text]
+$sel:favorited:OneArticle :: OneArticle -&gt; Bool
+$sel:numFavs:OneArticle :: OneArticle -&gt; Int
+$sel:created:OneArticle :: OneArticle -&gt; UTCTime
+$sel:updated:OneArticle :: OneArticle -&gt; UTCTime
+author :: UserProfile
+slug :: Slug
+title :: Text
+desc :: Text
+body :: Text
+tags :: [Text]
+favorited :: Bool
+numFavs :: Int
+created :: UTCTime
+updated :: UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aauthor%3AOneArticle"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Pair] -&gt; Value
+</span><span class="hs-identifier hs-var">object</span></span><span>
+</span><span id="line-38"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;slug&quot;</span></span><span>           </span><span class="annot"><span class="annottext">Key -&gt; Slug -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Slug
+</span><a href="#local-6989586621679277579"><span class="hs-identifier hs-var">slug</span></a></span><span>
+</span><span id="line-39"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;title&quot;</span></span><span>          </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277580"><span class="hs-identifier hs-var">title</span></a></span><span>
+</span><span id="line-40"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;description&quot;</span></span><span>    </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277581"><span class="hs-identifier hs-var">desc</span></a></span><span>
+</span><span id="line-41"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;body&quot;</span></span><span>           </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277582"><span class="hs-identifier hs-var">body</span></a></span><span>
+</span><span id="line-42"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;tagList&quot;</span></span><span>        </span><span class="annot"><span class="annottext">Key -&gt; [Text] -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">[Text]
+</span><a href="#local-6989586621679277583"><span class="hs-identifier hs-var">tags</span></a></span><span>
+</span><span id="line-43"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;createdAt&quot;</span></span><span>      </span><span class="annot"><span class="annottext">Key -&gt; UTCTime -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679277586"><span class="hs-identifier hs-var">created</span></a></span><span>
+</span><span id="line-44"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;updatedAt&quot;</span></span><span>      </span><span class="annot"><span class="annottext">Key -&gt; UTCTime -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679277587"><span class="hs-identifier hs-var">updated</span></a></span><span>
+</span><span id="line-45"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;favorited&quot;</span></span><span>      </span><span class="annot"><span class="annottext">Key -&gt; Bool -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Bool
+</span><a href="#local-6989586621679277584"><span class="hs-identifier hs-var">favorited</span></a></span><span>
+</span><span id="line-46"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;favoritesCount&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; Int -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679277585"><span class="hs-identifier hs-var">numFavs</span></a></span><span>
+</span><span id="line-47"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;author&quot;</span></span><span>         </span><span class="annot"><span class="annottext">Key -&gt; UserProfile -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679277578"><span class="hs-identifier hs-var">author</span></a></span><span>
+</span><span id="line-48"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-49"></span><span>
+</span><span id="line-50"></span><span id="local-6989586621679277588"><span class="annot"><a href="Conduit.Features.Articles.Types.html#inArticleObj"><span class="hs-identifier hs-type">inArticleObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679277588"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277588"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-51"></span><span id="inArticleObj"><span class="annot"><span class="annottext">inArticleObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inArticleObj"><span class="hs-identifier hs-var hs-var">inArticleObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;article&quot;</span></span><span>
+</span><span id="line-52"></span><span>
+</span><span id="line-53"></span><span class="hs-keyword">newtype</span><span> </span><span id="ManyArticles"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-var">ManyArticles</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ManyArticles"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-var">ManyArticles</span></a></span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aarticles%3AManyArticles"><span class="annot"><span class="annottext">ManyArticles -&gt; [OneArticle]
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aarticles%3AManyArticles"><span class="hs-identifier hs-var hs-var">articles</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneArticle"><span class="hs-identifier hs-type">OneArticle</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277594"><span id="local-6989586621679277599"><span id="local-6989586621679277603"><span class="annot"><span class="annottext">Int -&gt; ManyArticles -&gt; ShowS
+[ManyArticles] -&gt; ShowS
+ManyArticles -&gt; String
+(Int -&gt; ManyArticles -&gt; ShowS)
+-&gt; (ManyArticles -&gt; String)
+-&gt; ([ManyArticles] -&gt; ShowS)
+-&gt; Show ManyArticles
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; ManyArticles -&gt; ShowS
+showsPrec :: Int -&gt; ManyArticles -&gt; ShowS
+$cshow :: ManyArticles -&gt; String
+show :: ManyArticles -&gt; String
+$cshowList :: [ManyArticles] -&gt; ShowS
+showList :: [ManyArticles] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>
+</span><span id="line-57"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679277607"><span id="local-6989586621679277611"><span id="local-6989586621679277614"><span id="local-6989586621679277617"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-58"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">toJSON</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span>
+</span><span id="line-59"></span><span>  </span><span id="local-6989586621679277630"><span class="annot"><span class="annottext">toJSON :: ManyArticles -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyArticles"><span class="hs-identifier hs-type">ManyArticles</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679277631"><span class="annot"><span class="annottext">[OneArticle]
+$sel:articles:ManyArticles :: ManyArticles -&gt; [OneArticle]
+articles :: [OneArticle]
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aarticles%3AManyArticles"><span class="hs-glyph hs-var hs-var">..</span></a></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Pair] -&gt; Value
+</span><span class="hs-identifier hs-var">object</span></span><span>
+</span><span id="line-60"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;articles&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; [OneArticle] -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">[OneArticle]
+</span><a href="#local-6989586621679277631"><span class="hs-identifier hs-var">articles</span></a></span><span>
+</span><span id="line-61"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;articlesCount&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; Int -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">[OneArticle] -&gt; Int
+forall a. [a] -&gt; Int
+forall (t :: * -&gt; *) a. Foldable t =&gt; t a -&gt; Int
+</span><span class="hs-identifier hs-var">length</span></span><span> </span><span class="annot"><span class="annottext">[OneArticle]
+</span><a href="#local-6989586621679277631"><span class="hs-identifier hs-var">articles</span></a></span><span>
+</span><span id="line-62"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span class="hs-keyword">newtype</span><span> </span><span id="CommentID"><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier hs-var">CommentID</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="CommentID"><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier hs-var">CommentID</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="%24sel%3AunID%3ACommentID"><span class="annot"><span class="annottext">CommentID -&gt; Int64
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AunID%3ACommentID"><span class="hs-identifier hs-var hs-var">unID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int64</span></span><span> </span><span class="hs-special">}</span><span> </span><span>
+</span><span id="line-65"></span><span>  </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">newtype</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277636"><span id="local-6989586621679277640"><span id="local-6989586621679277644"><span class="annot"><span class="annottext">Int -&gt; CommentID -&gt; ShowS
+[CommentID] -&gt; ShowS
+CommentID -&gt; String
+(Int -&gt; CommentID -&gt; ShowS)
+-&gt; (CommentID -&gt; String)
+-&gt; ([CommentID] -&gt; ShowS)
+-&gt; Show CommentID
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; CommentID -&gt; ShowS
+showsPrec :: Int -&gt; CommentID -&gt; ShowS
+$cshow :: CommentID -&gt; String
+show :: CommentID -&gt; String
+$cshowList :: [CommentID] -&gt; ShowS
+showList :: [CommentID] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277649"><span id="local-6989586621679277653"><span id="local-6989586621679277657"><span id="local-6989586621679277661"><span class="annot"><span class="annottext">ReadPrec [CommentID]
+ReadPrec CommentID
+Int -&gt; ReadS CommentID
+ReadS [CommentID]
+(Int -&gt; ReadS CommentID)
+-&gt; ReadS [CommentID]
+-&gt; ReadPrec CommentID
+-&gt; ReadPrec [CommentID]
+-&gt; Read CommentID
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+$creadsPrec :: Int -&gt; ReadS CommentID
+readsPrec :: Int -&gt; ReadS CommentID
+$creadList :: ReadS [CommentID]
+readList :: ReadS [CommentID]
+$creadPrec :: ReadPrec CommentID
+readPrec :: ReadPrec CommentID
+$creadListPrec :: ReadPrec [CommentID]
+readListPrec :: ReadPrec [CommentID]
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277666"><span id="local-6989586621679277670"><span class="annot"><span class="annottext">CommentID -&gt; CommentID -&gt; Bool
+(CommentID -&gt; CommentID -&gt; Bool)
+-&gt; (CommentID -&gt; CommentID -&gt; Bool) -&gt; Eq CommentID
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+$c== :: CommentID -&gt; CommentID -&gt; Bool
+== :: CommentID -&gt; CommentID -&gt; Bool
+$c/= :: CommentID -&gt; CommentID -&gt; Bool
+/= :: CommentID -&gt; CommentID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277675"><span id="local-6989586621679277679"><span id="local-6989586621679277683"><span id="local-6989586621679277687"><span id="local-6989586621679277691"><span class="annot"><span class="annottext">[CommentID] -&gt; Value
+[CommentID] -&gt; Encoding
+CommentID -&gt; Bool
+CommentID -&gt; Value
+CommentID -&gt; Encoding
+(CommentID -&gt; Value)
+-&gt; (CommentID -&gt; Encoding)
+-&gt; ([CommentID] -&gt; Value)
+-&gt; ([CommentID] -&gt; Encoding)
+-&gt; (CommentID -&gt; Bool)
+-&gt; ToJSON CommentID
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (a -&gt; Bool)
+-&gt; ToJSON a
+$ctoJSON :: CommentID -&gt; Value
+toJSON :: CommentID -&gt; Value
+$ctoEncoding :: CommentID -&gt; Encoding
+toEncoding :: CommentID -&gt; Encoding
+$ctoJSONList :: [CommentID] -&gt; Value
+toJSONList :: [CommentID] -&gt; Value
+$ctoEncodingList :: [CommentID] -&gt; Encoding
+toEncodingList :: [CommentID] -&gt; Encoding
+$comitField :: CommentID -&gt; Bool
+omitField :: CommentID -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-66"></span><span>
+</span><span id="line-67"></span><span class="hs-keyword">data</span><span> </span><span id="OneComment"><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-var">OneComment</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="OneComment"><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-var">OneComment</span></a></span></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Aauthor%3AOneComment"><span class="annot"><span class="annottext">OneComment -&gt; UserProfile
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aauthor%3AOneComment"><span class="hs-identifier hs-var hs-var">author</span></a></span></span><span>    </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Account.Types.html#UserProfile"><span class="hs-identifier hs-type">UserProfile</span></a></span><span>
+</span><span id="line-69"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3AcommentID%3AOneComment"><span class="annot"><span class="annottext">OneComment -&gt; CommentID
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3AcommentID%3AOneComment"><span class="hs-identifier hs-var hs-var">commentID</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#CommentID"><span class="hs-identifier hs-type">CommentID</span></a></span><span>
+</span><span id="line-70"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Abody%3AOneComment"><span class="annot"><span class="annottext">OneComment -&gt; Text
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Abody%3AOneComment"><span class="hs-identifier hs-var hs-var">body</span></a></span></span><span>      </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Text</span></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Acreated%3AOneComment"><span class="annot"><span class="annottext">OneComment -&gt; UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Acreated%3AOneComment"><span class="hs-identifier hs-var hs-var">created</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-special">,</span><span> </span><span id="%24sel%3Aupdated%3AOneComment"><span class="annot"><span class="annottext">OneComment -&gt; UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aupdated%3AOneComment"><span class="hs-identifier hs-var hs-var">updated</span></a></span></span><span>   </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">UTCTime</span></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277702"><span id="local-6989586621679277710"><span id="local-6989586621679277714"><span class="annot"><span class="annottext">Int -&gt; OneComment -&gt; ShowS
+[OneComment] -&gt; ShowS
+OneComment -&gt; String
+(Int -&gt; OneComment -&gt; ShowS)
+-&gt; (OneComment -&gt; String)
+-&gt; ([OneComment] -&gt; ShowS)
+-&gt; Show OneComment
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; OneComment -&gt; ShowS
+showsPrec :: Int -&gt; OneComment -&gt; ShowS
+$cshow :: OneComment -&gt; String
+show :: OneComment -&gt; String
+$cshowList :: [OneComment] -&gt; ShowS
+showList :: [OneComment] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span class="hs-keyword">instance</span><span> </span><span id="local-6989586621679277718"><span id="local-6989586621679277722"><span id="local-6989586621679277725"><span id="local-6989586621679277728"><span class="annot"><span class="hs-identifier hs-type">ToJSON</span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-type">OneComment</span></a></span></span></span></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-76"></span><span>  </span><span class="annot"><span class="hs-identifier hs-type">toJSON</span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-type">OneComment</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Value</span></span><span>
+</span><span id="line-77"></span><span>  </span><span id="local-6989586621679277747"><span class="annot"><span class="annottext">toJSON :: OneComment -&gt; Value
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var">toJSON</span></span></span><span> </span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-type">OneComment</span></a></span><span> </span><span class="hs-special">{</span><span id="local-6989586621679277748"><span id="local-6989586621679277749"><span id="local-6989586621679277750"><span id="local-6989586621679277751"><span id="local-6989586621679277752"><span class="annot"><span class="annottext">Text
+UTCTime
+UserProfile
+CommentID
+$sel:author:OneComment :: OneComment -&gt; UserProfile
+$sel:commentID:OneComment :: OneComment -&gt; CommentID
+$sel:body:OneComment :: OneComment -&gt; Text
+$sel:created:OneComment :: OneComment -&gt; UTCTime
+$sel:updated:OneComment :: OneComment -&gt; UTCTime
+author :: UserProfile
+commentID :: CommentID
+body :: Text
+created :: UTCTime
+updated :: UTCTime
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Aauthor%3AOneComment"><span class="hs-glyph hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">..</span></a></span></span></span></span></span></span><span class="hs-special">}</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">[Pair] -&gt; Value
+</span><span class="hs-identifier hs-var">object</span></span><span>
+</span><span id="line-78"></span><span>    </span><span class="hs-special">[</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;id&quot;</span></span><span>        </span><span class="annot"><span class="annottext">Key -&gt; CommentID -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">CommentID
+</span><a href="#local-6989586621679277749"><span class="hs-identifier hs-var">commentID</span></a></span><span>
+</span><span id="line-79"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;body&quot;</span></span><span>      </span><span class="annot"><span class="annottext">Key -&gt; Text -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">Text
+</span><a href="#local-6989586621679277750"><span class="hs-identifier hs-var">body</span></a></span><span>
+</span><span id="line-80"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;createdAt&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; UTCTime -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679277751"><span class="hs-identifier hs-var">created</span></a></span><span>
+</span><span id="line-81"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;updatedAt&quot;</span></span><span> </span><span class="annot"><span class="annottext">Key -&gt; UTCTime -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UTCTime
+</span><a href="#local-6989586621679277752"><span class="hs-identifier hs-var">updated</span></a></span><span>
+</span><span id="line-82"></span><span>    </span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;author&quot;</span></span><span>    </span><span class="annot"><span class="annottext">Key -&gt; UserProfile -&gt; Pair
+forall v. ToJSON v =&gt; Key -&gt; v -&gt; Pair
+forall e kv v. (KeyValue e kv, ToJSON v) =&gt; Key -&gt; v -&gt; kv
+</span><span class="hs-operator hs-var">.=</span></span><span> </span><span class="annot"><span class="annottext">UserProfile
+</span><a href="#local-6989586621679277748"><span class="hs-identifier hs-var">author</span></a></span><span>
+</span><span id="line-83"></span><span>    </span><span class="hs-special">]</span><span>
+</span><span id="line-84"></span><span>
+</span><span id="line-85"></span><span id="local-6989586621679277753"><span class="annot"><a href="Conduit.Features.Articles.Types.html#inCommentObj"><span class="hs-identifier hs-type">inCommentObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679277753"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277753"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-86"></span><span id="inCommentObj"><span class="annot"><span class="annottext">inCommentObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inCommentObj"><span class="hs-identifier hs-var hs-var">inCommentObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;comment&quot;</span></span><span>
+</span><span id="line-87"></span><span>
+</span><span id="line-88"></span><span class="hs-keyword">newtype</span><span> </span><span id="ManyComments"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyComments"><span class="hs-identifier hs-var">ManyComments</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="ManyComments"><span class="annot"><a href="Conduit.Features.Articles.Types.html#ManyComments"><span class="hs-identifier hs-var">ManyComments</span></a></span></span><span>
+</span><span id="line-89"></span><span>  </span><span class="hs-special">{</span><span> </span><span id="%24sel%3Acomments%3AManyComments"><span class="annot"><span class="annottext">ManyComments -&gt; [OneComment]
+</span><a href="Conduit.Features.Articles.Types.html#%24sel%3Acomments%3AManyComments"><span class="hs-identifier hs-var hs-var">comments</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">[</span><span class="annot"><a href="Conduit.Features.Articles.Types.html#OneComment"><span class="hs-identifier hs-type">OneComment</span></a></span><span class="hs-special">]</span><span>
+</span><span id="line-90"></span><span>  </span><span class="hs-special">}</span><span> </span><span class="hs-keyword">deriving</span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277759"><span id="local-6989586621679277764"><span id="local-6989586621679277768"><span class="annot"><span class="annottext">Int -&gt; ManyComments -&gt; ShowS
+[ManyComments] -&gt; ShowS
+ManyComments -&gt; String
+(Int -&gt; ManyComments -&gt; ShowS)
+-&gt; (ManyComments -&gt; String)
+-&gt; ([ManyComments] -&gt; ShowS)
+-&gt; Show ManyComments
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+$cshowsPrec :: Int -&gt; ManyComments -&gt; ShowS
+showsPrec :: Int -&gt; ManyComments -&gt; ShowS
+$cshow :: ManyComments -&gt; String
+show :: ManyComments -&gt; String
+$cshowList :: [ManyComments] -&gt; ShowS
+showList :: [ManyComments] -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679277771"><span id="local-6989586621679277773"><span class="annot"><span class="annottext">(forall x. ManyComments -&gt; Rep ManyComments x)
+-&gt; (forall x. Rep ManyComments x -&gt; ManyComments)
+-&gt; Generic ManyComments
+forall x. Rep ManyComments x -&gt; ManyComments
+forall x. ManyComments -&gt; Rep ManyComments x
+forall a.
+(forall x. a -&gt; Rep a x) -&gt; (forall x. Rep a x -&gt; a) -&gt; Generic a
+$cfrom :: forall x. ManyComments -&gt; Rep ManyComments x
+from :: forall x. ManyComments -&gt; Rep ManyComments x
+$cto :: forall x. Rep ManyComments x -&gt; ManyComments
+to :: forall x. Rep ManyComments x -&gt; ManyComments
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Generic</span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-91"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">anyclass</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679277777"><span id="local-6989586621679277784"><span id="local-6989586621679277787"><span id="local-6989586621679277790"><span id="local-6989586621679277793"><span class="annot"><span class="annottext">[ManyComments] -&gt; Value
+[ManyComments] -&gt; Encoding
+ManyComments -&gt; Bool
+ManyComments -&gt; Value
+ManyComments -&gt; Encoding
+(ManyComments -&gt; Value)
+-&gt; (ManyComments -&gt; Encoding)
+-&gt; ([ManyComments] -&gt; Value)
+-&gt; ([ManyComments] -&gt; Encoding)
+-&gt; (ManyComments -&gt; Bool)
+-&gt; ToJSON ManyComments
+forall a.
+(a -&gt; Value)
+-&gt; (a -&gt; Encoding)
+-&gt; ([a] -&gt; Value)
+-&gt; ([a] -&gt; Encoding)
+-&gt; (a -&gt; Bool)
+-&gt; ToJSON a
+$ctoJSON :: ManyComments -&gt; Value
+toJSON :: ManyComments -&gt; Value
+$ctoEncoding :: ManyComments -&gt; Encoding
+toEncoding :: ManyComments -&gt; Encoding
+$ctoJSONList :: [ManyComments] -&gt; Value
+toJSONList :: [ManyComments] -&gt; Value
+$ctoEncodingList :: [ManyComments] -&gt; Encoding
+toEncodingList :: [ManyComments] -&gt; Encoding
+$comitField :: ManyComments -&gt; Bool
+omitField :: ManyComments -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">ToJSON</span></span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-92"></span><span>
+</span><span id="line-93"></span><span id="local-6989586621679277866"><span class="annot"><a href="Conduit.Features.Articles.Types.html#inTagsObj"><span class="hs-identifier hs-type">inTagsObj</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679277866"><span class="hs-identifier hs-type">obj</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-type">InObj</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679277866"><span class="hs-identifier hs-type">obj</span></a></span></span><span>
+</span><span id="line-94"></span><span id="inTagsObj"><span class="annot"><span class="annottext">inTagsObj :: forall obj. obj -&gt; InObj obj
+</span><a href="Conduit.Features.Articles.Types.html#inTagsObj"><span class="hs-identifier hs-var hs-var">inTagsObj</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Key -&gt; obj -&gt; InObj obj
+forall obj. Key -&gt; obj -&gt; InObj obj
+</span><a href="Conduit.Utils.html#InObj"><span class="hs-identifier hs-var">InObj</span></a></span><span> </span><span class="annot"><span class="annottext">Key
+</span><span class="hs-string">&quot;tags&quot;</span></span><span>
+</span><span id="line-95"></span></pre></body></html>
