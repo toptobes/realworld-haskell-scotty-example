@@ -14,7 +14,7 @@ import Conduit.Features.Articles.Handlers qualified as Articles
 import Conduit.Identity.JWT (JWTOps(..), mkJWTInfo)
 import Database.PostgreSQL.Simple (SqlError)
 import Network.HTTP.Types (status500)
-import Network.Wai.Middleware.RequestLogger
+import Network.Wai.Middleware.RequestLogger (logStdout, logStdoutDev)
 import Network.Wai.Middleware.Static (CachingStrategy(..), addBase, cacheContainer, hasPrefix, initCaching, staticPolicyWithOptions)
 import Network.Wai.Middleware.Static qualified as Static
 import Web.Scotty.Trans (Handler(..), defaultHandler, middleware, scottyT, status)

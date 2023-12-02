@@ -20,7 +20,7 @@ class (Monad m) => MonadDB m where
 
 instance (Monad m, MonadUnliftIO m, Has DBPool c m) => MonadDB m where
   runDB :: SqlPersistT m a -> m (Either DBError a)
-  runDB fn = grab @DBPool <&> unPool >>= runSqlPool fn .- catchSqlError
+  runDB fn = grab @DBPool <&> (.unPool) >>= runSqlPool fn .- catchSqlError
 
 -- | An abstraction to allow for easy conversion between Esqueleto entity Keys and Conduit's own ID datatypes.
 --   'deriveSqlKey' can automagically create instances for this class.

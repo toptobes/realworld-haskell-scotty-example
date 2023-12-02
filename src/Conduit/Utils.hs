@@ -4,17 +4,17 @@ import Data.Aeson (FromJSON(..), Key, ToJSON(..), Value, object, withObject, (.=
 import Data.Aeson.KeyMap (toAscList)
 import Data.Aeson.Types (Parser)
 
--- | A flipped (.) for L->R function composition
+-- | A flipped (.) for L->R function composition.
 (.-) :: (a -> b) -> (b -> c) -> (a -> c)
 f .- g = g . f
 {-# INLINE (.-) #-}
 
--- | Like 'uncurry', but for ternary functions
+-- | Like 'uncurry', but for ternary functions.
 uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
 uncurry3 fn (a, b, c) = fn a b c
 {-# INLINE uncurry3 #-}
 
--- | Like L->R Kleisli composition, but ignores result of first operation
+-- | Like L->R Kleisli composition, but ignores result of the first operation.
 --
 -- > panic :: Text -> IO a
 -- > -- panic msg = putTextLn msg >>= const exitFailure
@@ -32,8 +32,8 @@ a >-> b = a >=> const b
 -- 
 -- > { "key": 123 }
 data InObj obj = InObj
-  { objName   :: Key
-  , objItself :: obj
+  { objName   :: !Key
+  , objItself :: !obj
   } deriving (Show)
 
 instance (ToJSON obj) => ToJSON (InObj obj) where

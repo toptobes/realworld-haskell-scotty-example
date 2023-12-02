@@ -12,10 +12,6 @@ maintainer:         toptobes
 license:            MIT
 license-file:       LICENSE
 build-type:         Simple
-extra-source-files:
-      LICENSE
-      README.md
-      CODE_OF_CONDUCT.md
 
 library
     exposed-modules:
@@ -89,6 +85,7 @@ library
           TypeFamilies
           GADTs
           ViewPatterns
+          NoFieldSelectors
     ghc-options: -Wall -Wno-orphans -Wno-unrecognised-pragmas -O1
     build-depends:
           aeson

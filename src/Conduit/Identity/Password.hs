@@ -1,4 +1,4 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances, FieldSelectors #-}
 
 module Conduit.Identity.Password
   ( HashedPassword(..)
@@ -17,21 +17,7 @@ import Data.Aeson (FromJSON)
 import Data.ByteArray (Bytes, convert)
 import Data.ByteString.Base64 (decodeBase64, encodeBase64)
 import Data.Text (splitOn)
-import Relude.Unsafe as Unsafe
-
-{-
-I'm tempted to switch to an approach like so, but I'm sure all the other haskellers would frown upon me for not making illegal states
-as impossible as possible :(
-
-```
-  data Password
-    = HashedPassword Text
-    | UnsafePassword Text
-    
-  getHashed (HashedPassword hash) = hash
-  getHashed _ = error "Attempt to unwrap a hashed password" -- failfast since this should never happen in properly constructured system
-```
--}
+import Relude.Unsafe as Unsafe ((!!))
 
 -- | A properly hashed password
 newtype HashedPassword = HashedPassword { getHashed :: Text }

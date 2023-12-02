@@ -11,24 +11,7 @@ class FeatureError e where
   -- | Converts a DBError into some feature error
   handleDBError :: DBError -> e
 
--- | Converts a potentially failed service's result to either the appropriate error or successful request.
--- 
--- > data MyErr = Aw Text
--- > data MyResult = Yay Text deriving (Generic, ToJSON)
--- > 
--- > instance FeatureError MyErr where
--- >   handleFeatureError (ResultErr msg) = do 
--- >     status status500
--- >     text msg
--- > 
--- > endpoint = get "/" $ do
--- >   (result :: Either MyErr MyResult) <- someService
--- >   withFeatureErrorsHandled result $ \res ->
--- >     json res
-withFeatureErrorsHandled :: (MonadIO m, FeatureError e) => Either e a -> (a -> ActionT m ()) -> ActionT m ()
-withFeatureErrorsHandled (Left  e) _ = handleFeatureError e
-withFeatureErrorsHandled (Right e) action = action e
-
+-- | Converts a feature error to its appropriate error response. See 'Conduit.App.Monad.runService'.
 handleFeatureErrors :: (MonadUnliftIO m, FeatureError e) => e -> ActionT m a
 handleFeatureErrors = handleFeatureError >-> finish
 

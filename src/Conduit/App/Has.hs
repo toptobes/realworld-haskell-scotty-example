@@ -1,6 +1,10 @@
 module Conduit.App.Has where
 
 -- | Enables more semantic typing & allows for stronger free theorems. sm0rt. See 'grab'.
+--   Unfortunately can't do the following without enabling ImpredicativeTypes which I
+--   believe isn't entirely supported, but I may be wrong there. Lmk!
+--
+-- > type Has f m = (∀ c. MonadReader c m, ∀ c. Has' f c) :: Constraint
 type Has f c m = (MonadReader c m, Has' f c)
 
 -- | row polymorphism my beloved

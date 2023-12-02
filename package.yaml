@@ -3,10 +3,6 @@ version: 0.1.0.0
 synopsis: Scotty impl of https://github.com/gothinkster/realworld
 license: MIT
 author: toptobes
-extra-source-files:
-  - LICENSE
-  - README.md
-  - CODE_OF_CONDUCT.md
 
 language: GHC2021
 
@@ -67,19 +63,24 @@ dependencies:
 
 library:
   source-dirs: src
+  default-extensions:
+    - NoFieldSelectors
 
 executables:
   app:
     main: Main.hs
     source-dirs: app
     dependencies: realworld-hs
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
 
 tests:
   spec:
     main: Spec.hs
     source-dirs: test
-    ghc-options: 
-      - -threaded 
+    ghc-options:
       - -O0
     dependencies:
       - hspec

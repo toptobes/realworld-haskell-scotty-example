@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Conduit.Features.Account.DB where
 
@@ -28,8 +29,8 @@ $(deriveSqlKey ''User ''UserID)
 
 mkProfile :: Entity User -> Value Bool -> UserProfile
 mkProfile (Entity _ user) (Value followed) = UserProfile
-  { userName  = user.userUsername
-  , userBio   = user.userBio
-  , userImage = user.userImage
-  , userFollowed = followed
+  { name  = user.userUsername
+  , bio   = user.userBio
+  , image = user.userImage
+  , followed = followed
   }

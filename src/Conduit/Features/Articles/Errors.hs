@@ -11,8 +11,7 @@ import Network.HTTP.Types.Status (status422)
 import Web.Scotty.Trans (ActionT, json, status)
 
 data ArticleError
-  = UserNotFoundEx
-  | ResourceNotFoundEx -- General exception for simplicity's sake since tests don't need specific 404 error msgs
+  = ResourceNotFoundEx -- General exception for simplicity's sake since spec doesn't need specific 404 error msgs
   | UserUnauthorizedEx
   | IllegalArticleDelEx
   | IllegalCommentDelEx
@@ -26,7 +25,6 @@ instance FeatureError ArticleError where
   handleDBError = handleDBErr'
 
 handleFeatureError' :: (MonadIO m) => ArticleError -> ActionT m ()
-handleFeatureError' UserNotFoundEx      = status status404
 handleFeatureError' ResourceNotFoundEx  = status status404
 handleFeatureError' InvalidSlugEx       = status status404
 handleFeatureError' UserUnauthorizedEx  = status status403
@@ -46,6 +44,6 @@ instance FeatureErrorMapper AccountError ArticleError where
   mapFeatureError = accountErr2articleErr
   
 accountErr2articleErr :: AccountError -> ArticleError
-accountErr2articleErr Account.UserNotFoundEx = UserNotFoundEx
 accountErr2articleErr (Account.SomeDBEx err) = SomeDBEx err
+accountErr2articleErr Account.UserNotFoundEx = ResourceNotFoundEx
 accountErr2articleErr _ = error "shouldn't need other maps; just fail-fast until I add proper logging lol"

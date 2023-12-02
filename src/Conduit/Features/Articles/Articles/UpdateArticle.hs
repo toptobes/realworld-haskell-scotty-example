@@ -13,7 +13,7 @@ import Conduit.Features.Articles.Errors (ArticleError (..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug, mkNoIDSlug, mkSlug)
 import Conduit.Features.Articles.Types (ArticleID(..), OneArticle, Slug(..), inArticleObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Validation (NotBlank(..), fromJsonObj, (<?!<))
+import Conduit.Validation (NotBlank(..), parseJsonBody, (<?!<))
 import Data.Aeson (FromJSON(..), (.:?), withObject)
 import Database.Esqueleto.Experimental (set, updateCount, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
@@ -33,7 +33,7 @@ instance FromJSON UpdateArticleAction where
 
 handleArticleUpdate :: ScottyT AppM ()
 handleArticleUpdate = put "/api/articles/:slug" $ withAuth \user -> do
-  action <- fromJsonObj
+  action <- parseJsonBody
   slug <- captureParam "slug" <&> Slug
   article <- runService $ updateArticle action slug user.authedUserID
   json $ inArticleObj article

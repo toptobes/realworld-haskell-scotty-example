@@ -19,8 +19,8 @@ data JWTInfo = JWTInfo
 
 -- | Initial JWT config state @ application startup, converted to 'JWTInfo'.
 data JWTOps = JWTOps
-  { jwtOpsSecret  :: Text
-  , jwtOpsExpTime :: Seconds
+  { jwtOpsSecret  :: !Text
+  , jwtOpsExpTime :: !Seconds
   }
 
 -- | Creates an 'JWTInfo' instance from 'JWTOps'.

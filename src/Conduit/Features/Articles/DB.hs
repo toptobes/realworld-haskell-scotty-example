@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes, TemplateHaskell, UndecidableInstances, AllowAmbiguousTypes #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Conduit.Features.Articles.DB
   ( migrateArticleTables
@@ -11,8 +12,7 @@ module Conduit.Features.Articles.DB
   , Comment(..)
   ) where
 
-import Conduit.DB.Core (authorizationSqlError, resourceNotFoundSqlError)
-import Conduit.DB.Core (SqlKey(..), deriveSqlKey)
+import Conduit.DB.Core (SqlKey(..), authorizationSqlError, deriveSqlKey, resourceNotFoundSqlError)
 import Conduit.DB.Utils (suchThat)
 import Conduit.Features.Account.DB (User, UserId, mkProfile)
 import Conduit.Features.Account.Types (UserID)
@@ -51,7 +51,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateArticleTables"] [persistLowerCas
 
 createArticleFunctions :: (MonadIO m) => SqlPersistT m ()
 createArticleFunctions = rawExecute fns [] where
-  fns = decodeUtf8 $ fold 
+  fns = decodeUtf8 $ fold
     [ $(embedFile "sqlbits/articles/slug_id_prepender.sql")
     , $(embedFile "sqlbits/articles/set_timestamps.sql")
     ]

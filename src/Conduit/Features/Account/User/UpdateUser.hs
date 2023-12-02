@@ -9,10 +9,10 @@ import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureU
 import Conduit.Features.Account.DB (User)
 import Conduit.Features.Account.Errors (AccountError (..))
 import Conduit.Features.Account.Types (UserAuth (..), UserID (..), inUserObj)
-import Conduit.Features.Account.User.GetUser (AcquireUser, tryGetUser)
+import Conduit.Features.Account.User.GetUser (AcquireUser, getUser)
 import Conduit.Identity.Auth (AuthTokenGen (..), AuthedUser (..), withAuth)
 import Conduit.Identity.Password (HashedPassword (..), PasswordGen (..), UnsafePassword (..))
-import Conduit.Validation (NotBlank (..), fromJsonObj, (<?!<))
+import Conduit.Validation (NotBlank (..), parseJsonBody, (<?!<))
 import Data.Aeson (FromJSON (..), withObject, (.:?))
 import Database.Esqueleto.Experimental (set, update, val, valkey, where_, (=.), (==.))
 import UnliftIO (MonadUnliftIO)
@@ -36,7 +36,7 @@ instance FromJSON UpdateUserAction where
 
 handleUpdateUser :: ScottyT AppM ()
 handleUpdateUser = put "/api/user" $ withAuth \user -> do
-  action <- fromJsonObj
+  action <- parseJsonBody
   userAuth <- runService $ updateUser user action
   json $ inUserObj userAuth
 
@@ -45,7 +45,7 @@ updateUser user@AuthedUser {..} action@UpdateUserAction {..} = runExceptT do
   ExceptT $ ensureUserCredsUnique username email
   maybeNewPW <- mapM (lift . hashPassword) password
   ExceptT $ updateUserByID authedUserID $ mkToUpdate action maybeNewPW
-  ExceptT $ tryGetUser user
+  ExceptT $ getUser user
 
 mkToUpdate :: UpdateUserAction -> Maybe HashedPassword -> ToUpdate
 mkToUpdate UpdateUserAction {..} hashed = ToUpdate username hashed email bio image

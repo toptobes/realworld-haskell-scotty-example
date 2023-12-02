@@ -12,7 +12,7 @@ import Conduit.Features.Articles.Errors (ArticleError(..))
 import Conduit.Features.Articles.Slugs (extractIDFromSlug)
 import Conduit.Features.Articles.Types (ArticleID, CommentID, ManyComments(..), OneComment(..), Slug(..), inCommentObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Validation (NotBlank(..), (<!<), fromJsonObj)
+import Conduit.Validation (NotBlank(..), (<!<), parseJsonBody)
 import Data.Aeson (FromJSON(..), (.:), withObject)
 import Database.Esqueleto.Experimental (insert)
 import UnliftIO (MonadUnliftIO)
@@ -28,7 +28,7 @@ instance FromJSON CreateCommentAction where
 
 handleCommentCreation :: ScottyT AppM ()
 handleCommentCreation = post "/api/articles/:slug/comments" $ withAuth \user -> do
-  body <- fromJsonObj
+  body <- parseJsonBody
   slug <- captureParam "slug" <&> Slug
   comment <- runService $ createComment body slug user.authedUserID
   json $ inCommentObj comment

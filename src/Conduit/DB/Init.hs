@@ -18,11 +18,11 @@ data PGConnOps = PGConnOps
   } deriving (Read)
 
 mkPoolConfig :: PGConnOps -> PostgresConf
-mkPoolConfig PGConnOps {..} = PostgresConf
-  { pgConnStr         = fromString $ toString connStr
-  , pgPoolSize        = connSize
-  , pgPoolIdleTimeout = fromIntegral connTimeout
-  , pgPoolStripes     = connStripes
+mkPoolConfig ops = PostgresConf
+  { pgConnStr         = fromString $ toString ops.connStr
+  , pgPoolSize        = ops.connSize
+  , pgPoolIdleTimeout = fromIntegral ops.connTimeout
+  , pgPoolStripes     = ops.connStripes
   }
 
 mkDBPool :: (MonadIO m) => PGConnOps -> m DBPool

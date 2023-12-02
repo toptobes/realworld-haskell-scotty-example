@@ -10,7 +10,7 @@ import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID, inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen (mkAuthToken))
 import Conduit.Identity.Password (HashedPassword(..), UnsafePassword(..), testPassword)
-import Conduit.Validation (NotBlank(..), fromJsonObj, (<!<))
+import Conduit.Validation (NotBlank(..), parseJsonBody, (<!<))
 import Data.Aeson (FromJSON(..), withObject, (.:))
 import Database.Esqueleto.Experimental (Entity(..), from, selectOne, val, (==.))
 import Database.Esqueleto.Experimental.From (table)
@@ -29,7 +29,7 @@ instance FromJSON LoginUserAction where
 
 handleUserLogin :: ScottyT AppM ()
 handleUserLogin = post "/api/users/login" do
-  action <- fromJsonObj
+  action <- parseJsonBody
   userAuth <- runService $ tryLoginUser action
   json $ inUserObj userAuth
 
@@ -37,7 +37,7 @@ tryLoginUser :: (MonadIO m, AcquireUser m, AuthTokenGen m) => LoginUserAction ->
 tryLoginUser LoginUserAction {..} = runExceptT do
   user <- ExceptT $ findUserByEmail email
 
-  let isValidPassword = testPassword password user.userPass
+  let isValidPassword = testPassword password user.pass
 
   either' <- lift $ if isValidPassword
     then Right <$> createUserAuth user
@@ -50,11 +50,11 @@ createUserAuth userInfo = do
   token <- mkAuthToken userInfo.userID
 
   pure UserAuth
-    { userToken = token
-    , userEmail = userInfo.userEmail
-    , userName  = userInfo.userName
-    , userBio   = userInfo.userBio
-    , userImage = userInfo.userImage
+    { token = token
+    , email = userInfo.email
+    , name  = userInfo.name
+    , bio   = userInfo.bio
+    , image = userInfo.image
     }
 
 class (Monad m) => AcquireUser m where
@@ -62,11 +62,11 @@ class (Monad m) => AcquireUser m where
 
 data UserInfo = UserInfo
   { userID    :: !UserID
-  , userName  :: !Text
-  , userEmail :: !Text
-  , userPass  :: !HashedPassword
-  , userBio   :: !(Maybe Text)
-  , userImage :: !Text
+  , name  :: !Text
+  , email :: !Text
+  , pass  :: !HashedPassword
+  , bio   :: !(Maybe Text)
+  , image :: !Text
   }
 
 instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
@@ -79,9 +79,9 @@ instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
 mkUserInfo :: Entity User -> UserInfo
 mkUserInfo (Entity userID user) = UserInfo
   { userID = sqlKey2ID userID
-  , userName  = user.userUsername
-  , userPass  = user.userPassword & HashedPassword
-  , userEmail = user.userEmail
-  , userBio   = user.userBio
-  , userImage = user.userImage
+  , name  = user.userUsername
+  , pass  = user.userPassword & HashedPassword
+  , email = user.userEmail
+  , bio   = user.userBio
+  , image = user.userImage
   }

@@ -8,40 +8,40 @@ newtype UserID = UserID { unID :: Int64 }
   deriving newtype (Show, Read, Eq, ToJSON)
 
 data UserAuth = UserAuth
-  { userEmail :: Text
-  , userName  :: Text
-  , userToken :: Text
-  , userBio   :: Maybe Text
-  , userImage :: Text
+  { email :: Text
+  , name  :: Text
+  , token :: Text
+  , bio   :: Maybe Text
+  , image :: Text
   } deriving (Show)
 
 instance ToJSON UserAuth where
   toJSON :: UserAuth -> Value
   toJSON UserAuth {..} = object
-    [ "username" .= userName
-    , "email"    .= userEmail
-    , "token"    .= userToken
-    , "bio"      .= userBio
-    , "image"    .= userImage
+    [ "username" .= name
+    , "email"    .= email
+    , "token"    .= token
+    , "bio"      .= bio
+    , "image"    .= image
     ]
 
 inUserObj :: obj -> InObj obj
 inUserObj = InObj "user"
 
 data UserProfile = UserProfile
-  { userName     :: Text
-  , userBio      :: Maybe Text
-  , userImage    :: Text
-  , userFollowed :: Bool
+  { name     :: Text
+  , bio      :: Maybe Text
+  , image    :: Text
+  , followed :: Bool
   } deriving (Show)
 
 instance ToJSON UserProfile where
   toJSON :: UserProfile -> Value
   toJSON UserProfile {..} = object
-    [ "username"  .= userName
-    , "image"     .= userImage
-    , "bio"       .= userBio
-    , "following" .= userFollowed
+    [ "username"  .= name
+    , "image"     .= image
+    , "bio"       .= bio
+    , "following" .= followed
     ]
 
 inProfileObj :: obj -> InObj obj

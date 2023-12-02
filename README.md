@@ -23,7 +23,17 @@ Feel free to let me know your thoughts, or open an issue!
 
 View more fine-grained documentation [here](https://toptobes.github.io/realworld-scotty-hs/).
 
-## File-structure overview
+## Noteworthy dependencies
+(Not including common dependencies such as `mtl` and `aeson`)
+ - [`scotty`](https://github.com/scotty-web/scotty) — The minimal web "framework" which makes this all possible
+ - [`relude`](https://github.com/kowainik/relude) — A nicer/safer Prelude alternative
+ - [`esqueleto`](https://github.com/bitemyapp/esqueleto) — A type-safe SQL eDSL wrapping [`persistent`](https://www.yesodweb.com/book/persistent)
+ - [`jwt`](https://hackage.haskell.org/package/jwt) — Library for working w/ JWTs
+ - [`cryptonite`](https://hackage.haskell.org/package/cryptonite) — Low-level cryptography library
+ - [`wai-middleware-static`](https://hackage.haskell.org/package/wai-middleware-static) — Used to easily serve static files
+ - [`file-embed`](https://hackage.haskell.org/package/file-embed) — Used to embed the sqlbits directly into haskell code
+
+## Basic file-structure overview
 ```ruby
 app/                      # The entrypoint into the application.
   Main.hs                 # Very thin, just deals with configuration.
@@ -47,7 +57,9 @@ src/                      # The actual source code for Conduit.
                           # Also holds feature-related DB/error logic.
 
   Conduit/Identity/       # Holds the code for the JWT-based auth.
-                          # uses argon2 for pw hashing.
+
+  Errors.hs               # Some code for handling and translating
+                          # feature-specific errors
 
   Validation.hs           # Some utilities for basic validation
                           # of incoming data.
@@ -70,19 +82,16 @@ conduit.json              # The schema file for your convenience.
 ```
 
 ## Misc
-
 **On ExceptT vs Exceptions:** yeah uh, besides the lack of structural typing, from my non-expert opinion, one of my biggest issues with Haskell
 is the lack of truly idiomatic error handling; ask 10 different people, get 11 different answers. I ended up going with ExceptT because it seemed like
 the simplest method while maintaining sufficient cleanliness and typechecking.
 
-## Noteworthy dependencies
-(Not including common dependencies such as `mtl` and `aeson`)
- - [`scotty`](https://github.com/scotty-web/scotty) — The minimal web "framework" which makes this all possible
- - [`relude`](https://github.com/kowainik/relude) — A nicer/safe Prelude alternative
- - [`esqueleto`](https://github.com/bitemyapp/esqueleto) — A type-safe SQL eDSL wrapping [`persistent`](https://www.yesodweb.com/book/persistent)
- - [`jwt`](https://hackage.haskell.org/package/jwt) — Library for working w/ JWTs
- - [`cryptonite`](https://hackage.haskell.org/package/cryptonite) — Low-level cryptography library
- - [`wai-middleware-static`](https://hackage.haskell.org/package/wai-middleware-static) — Used to easily serve static files
+**On not just writing into the AppM monad:** I easily could've used `(AppM m)` as a constraint directly, everywhere. And some people would argue that I
+should've, on an app on this scale—which is totally fair: it's much simpler and lightweight, compared to the (somewhat?) three-layer-style I opted for.
+However, I do find semantic meaning in seeing some context such as `(PasswordGen m, AuthTokenGen m, CreateUser m, ReadUsers m)` where it's immediately
+clear what the function needs access to. It's also arguably better for testing, but I didn't really test the services here (due to the tests provided
+by gothinkster), so I won't go into that here. It's arguable that such contexts are merely implementation details, but I'd say that it's more than
+a detail; it's a purpose, the essence of that function. But that's just me, do whatever you want lol.
 
 # Getting started
 
@@ -115,7 +124,7 @@ If you plan to make any modifications involving creating new files or adding new
 **Access the documentation site @ [https://toptobes.github.io/realworld-scotty-hs/].**
 Nearly everything except for the features are decently documented, and I'll work on adding more soon.
 
-You can build the documentation site locally using `cabal haddock`, and then serve it w/ `npx serve` or whatever
+You can also build the documentation site locally using `cabal haddock`, and then serve it w/ `npx serve` or whatever
 else you fancy.
 
 Or just read through the code manually if you prefer, whatever you want lol.

@@ -16,17 +16,17 @@ import Web.Scotty.Trans (ScottyT, captureParam, json, post)
 handleUserFollow :: ScottyT AppM ()
 handleUserFollow = post "/api/profiles/:username/follow" $ withAuth \follower -> do
   followed <- captureParam "username"
-  profile <- runService (tryFollowUser follower.authedUserID followed)
+  profile <- runService $ followUser follower.authedUserID followed
   json $ inProfileObj profile
 
-tryFollowUser :: (AcquireProfile m, CreateFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
-tryFollowUser followerID followedName = runExceptT do
+followUser :: (AcquireProfile m, CreateFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
+followUser followerID followedName = runExceptT do
   (followedID, followedProfile) <- ExceptT $ findUserByName followedName (Just followerID)
 
   ExceptT $ addFollow followerID followedID
 
   pure followedProfile
-    { userFollowed = True
+    { followed = True
     }
 
 class (Monad m) => CreateFollow m where

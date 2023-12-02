@@ -17,17 +17,17 @@ import Web.Scotty.Trans qualified as Scotty
 handleUserUnfollow :: ScottyT AppM ()
 handleUserUnfollow = Scotty.delete "/api/profiles/:username/follow" $ withAuth \follower -> do
   followed <- captureParam "username"
-  profile <- runService (tryUnfollowUser follower.authedUserID followed)
+  profile <- runService $ unfollowUser follower.authedUserID followed
   json $ inProfileObj profile
 
-tryUnfollowUser :: (AcquireProfile m, DeleteFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
-tryUnfollowUser followerID followedName = runExceptT do
+unfollowUser :: (AcquireProfile m, DeleteFollow m) => UserID -> Text -> m (Either AccountError UserProfile)
+unfollowUser followerID followedName = runExceptT do
   (followedID, followedProfile) <- ExceptT $ findUserByName followedName (Just followerID)
 
   ExceptT $ deleteFollow followerID followedID
 
   pure followedProfile
-    { userFollowed = False
+    { followed = False
     }
 
 class (Monad m) => DeleteFollow m where

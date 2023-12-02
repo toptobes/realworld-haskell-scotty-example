@@ -18,15 +18,15 @@ data Env = Env
 
 instance Has' DBPool Env where
   obtain :: Env -> DBPool
-  obtain = envDBPool
+  obtain = (.envDBPool)
   {-# INLINE obtain #-}
 
 instance Has' JWTInfo Env where
   obtain :: Env -> JWTInfo
-  obtain = envJWTInfo
+  obtain = (.envJWTInfo)
   {-# INLINE obtain #-}
 
 instance Has' EnvType Env where
   obtain :: Env -> EnvType
-  obtain = envType
+  obtain = (.envType)
   {-# INLINE obtain #-}

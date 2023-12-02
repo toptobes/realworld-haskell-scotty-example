@@ -14,7 +14,7 @@ import Conduit.Features.Articles.Errors (ArticleError)
 import Conduit.Features.Articles.Slugs (mkNoIDSlug, mkSlug)
 import Conduit.Features.Articles.Types (ArticleID, NoIDSlug(..), OneArticle, inArticleObj)
 import Conduit.Identity.Auth (authedUserID, withAuth)
-import Conduit.Validation (NotBlank(..), (<!<), fromJsonObj)
+import Conduit.Validation (NotBlank(..), (<!<), parseJsonBody)
 import Data.Aeson (FromJSON(..), withObject, (.:))
 import Database.Esqueleto.Experimental (insert)
 import Network.HTTP.Types (status201)
@@ -37,7 +37,7 @@ instance FromJSON CreateArticleAction where
 
 handleArticleCreation :: ScottyT AppM ()
 handleArticleCreation = post "/api/articles" $ withAuth \user -> do
-  action <- fromJsonObj
+  action <- parseJsonBody
   article <- runService $ createArticle action user.authedUserID
   status status201
   json $ inArticleObj article

@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FieldSelectors #-}
 
 module Conduit.App.Monad where
 
@@ -27,5 +27,18 @@ instance MonadApp (ActionT AppM) where
   liftApp = lift
   {-# INLINE liftApp #-}
 
+-- | Runs a service in the App monad and converts its potentially failed result to the appropriate error if neccesary.
+-- 
+-- > data MyErr = Aw Text
+-- > data MyResult = Yay Text deriving (Generic, ToJSON)
+-- > 
+-- > instance FeatureError MyErr where
+-- >   handleFeatureError (ResultErr msg) = do 
+-- >     status status500
+-- >     text msg
+-- > 
+-- > endpoint = get "/" $ do
+-- >   (result :: MyResult) <- runService (someAppService :: AppM (Either MyErr MyResult))
+-- >   json result
 runService :: (FeatureError e) => AppM (Either e a) -> ActionT AppM a
 runService = liftApp >=> either handleFeatureErrors pure

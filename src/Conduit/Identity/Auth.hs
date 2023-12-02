@@ -1,4 +1,4 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances, FieldSelectors #-}
 
 module Conduit.Identity.Auth where
 
@@ -6,8 +6,8 @@ import Conduit.App.Has (Has, grab)
 import Conduit.Features.Account.Types (UserID)
 import Conduit.Identity.JWT (JWTInfo(..), jwtExpTime, mkClaims)
 import Conduit.Utils ((.-))
-import Data.Map.Strict as M
-import Data.Text
+import Data.Map.Strict as M (fromList)
+import Data.Text (splitOn)
 import Data.Time.Clock.POSIX (POSIXTime, getPOSIXTime)
 import Network.HTTP.Types (status401)
 import Relude.Extra (dup)

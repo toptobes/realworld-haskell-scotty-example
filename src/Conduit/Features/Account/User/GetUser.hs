@@ -16,31 +16,31 @@ import Web.Scotty.Trans (ScottyT, get, json)
 
 handleGetUser :: ScottyT AppM ()
 handleGetUser = get "/api/user" $ withAuth \user -> do
-  userAuth <- runService $ tryGetUser user
+  userAuth <- runService $ getUser user
   json $ inUserObj userAuth
 
-tryGetUser :: (AcquireUser m) => AuthedUser -> m (Either AccountError UserAuth)
-tryGetUser AuthedUser {..} = do
+getUser :: (AcquireUser m) => AuthedUser -> m (Either AccountError UserAuth)
+getUser AuthedUser {..} = do
   maybeUserInfo <- findUserById authedUserID
   pure $ mkUser authedToken <$> maybeUserInfo
 
 mkUser :: Text -> UserInfo -> UserAuth
 mkUser token user = UserAuth
-  { userToken = token
-  , userName  = user.userName
-  , userEmail = user.userEmail
-  , userBio   = user.userBio
-  , userImage = user.userImage
+  { token = token
+  , name  = user.name
+  , email = user.email
+  , bio   = user.bio
+  , image = user.image
   }
 
 class (Monad m) => AcquireUser m where
   findUserById :: UserID -> m (Either AccountError UserInfo)
 
 data UserInfo = UserInfo
-  { userName  :: !Text
-  , userEmail :: !Text
-  , userBio   :: !(Maybe Text)
-  , userImage :: Text
+  { name  :: Text
+  , email :: Text
+  , bio   :: Maybe Text
+  , image :: Text
   } deriving (Generic, ToJSON)
 
 instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
@@ -53,8 +53,8 @@ instance (Monad m, MonadUnliftIO m, MonadDB m) => AcquireUser m where
 
 mkUserInfo :: Entity User -> UserInfo
 mkUserInfo (Entity _ user) = UserInfo
-  { userName  = user.userUsername
-  , userEmail = user.userEmail
-  , userBio   = user.userBio
-  , userImage = user.userImage
+  { name  = user.userUsername
+  , email = user.userEmail
+  , bio   = user.userBio
+  , image = user.userImage
   }

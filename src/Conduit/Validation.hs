@@ -1,10 +1,10 @@
-{-# LANGUAGE AllowAmbiguousTypes, UndecidableInstances #-}
+{-# LANGUAGE AllowAmbiguousTypes, UndecidableInstances, FieldSelectors #-}
 
 module Conduit.Validation
   ( Validation(..)
   , NotBlank(..)
   , ValErrs(..)
-  , fromJsonObj
+  , parseJsonBody
   , inErrMsgObj
   , (<?!<)
   , (<!<)
@@ -23,19 +23,25 @@ import Web.Scotty.Trans (ActionT, body, finish, json, status)
 newtype Assurance property a = Assurance { getAssured :: a}
   deriving Show
 
+instance (Validation prop on, FromJSON on) => FromJSON (Assurance prop on) where
+  parseJSON v = do
+    val <- parseJSON v
+    if validate @prop val
+      then pure $ Assurance val 
+      else fail $ errMsg @prop @on
+
 -- | A simple validation class using typeclass-metaprogramming (TMP) to help catch and generate Conduit-spec-abiding validation errors
 --   Intended for use on Aeson Parsers (in manual FromJSON instances)
 --   See also: 'NotBlank' (example), '(<!<)', and '(<?!<)'
 -- 
 -- > data IsRed = IsRed
---
+-- >
 -- > instance Validation IsRed Text where
 -- >   validate = (== "red")
 -- >   errMsg = "must be red"
---
+-- 
 -- > newtype Test = Test Text
--- >   deriving (Show)
---
+-- >
 -- > instance FromJSON Test where
 -- >   parseJSON = withObject "Test" $ \v -> Test
 -- >     <$> v .: "test" <!< IsRed <!< NotBlank -- assurances are evaluated R->L
@@ -49,33 +55,27 @@ class Validation property on where
   validate :: on -> Bool
   errMsg :: String
 
--- | The instance that recursively evaluates assurances to allow multi-assurance validation
-instance (Validation prop on, FromJSON on) => FromJSON (Assurance prop on) where
-  parseJSON v = do
-    val <- parseJSON v
-    if validate @prop val
-      then pure $ Assurance val 
-      else fail $ errMsg @prop @on
-
--- | Validates an optional json field *if it exists*
+-- | Validates an optional json field *if it exists*.
 (<?!<) :: Parser (Maybe (Assurance prop on)) -> prop -> Parser (Maybe on)
 p <?!< _ = fmap getAssured <$> p
 
--- | Validates a json field
+-- | Validates a json field.
 (<!<) :: Parser (Assurance prop on) -> prop -> Parser on
 p <!< _ = getAssured <$> p
 
--- | A property ensuing that the given json field isn't blank (intended for String/Text-like objects)
+-- | A property ensuing that the given json field isn't blank (intended for String/Text-like objects).
 data NotBlank = NotBlank
 
 instance Validation NotBlank Text where
   validate = not . T.null
   errMsg = "can't be blank"
 
+-- | The instance that recursively evaluates assurances to allow multi-assurance validation.
 instance (Validation prop on) => Validation prop (Assurance other on) where
   validate = getAssured .- validate @prop
   errMsg = errMsg @prop @on
 
+-- | Represents errors as the [spec describes](https://realworld-docs.netlify.app/docs/specs/backend-specs/error-handling).
 newtype ValErrs = ValErrs [(Text, Text)]
   deriving newtype (Show)
 
@@ -84,8 +84,21 @@ instance ToJSON ValErrs where
   toJSON (ValErrs errs) = 
     object ["errors" .= fromAscList (second (:[]) <$> errs)]
 
-fromJsonObj :: ∀ a m. (MonadUnliftIO m, FromJSON a) => ActionT m a
-fromJsonObj = body <&> eitherDecode >>= \case
+-- | Extracts and decodes an expected json body, intended for use with 'Validation's.
+--   Returns the appropriate unprocessable errors the Conduit spec expects.
+--   
+-- > newtype Test = Test Text
+-- >   deriving (Show)
+-- >
+-- > instance FromJSON Test where
+-- >   parseJSON = withObject "Test" $ \v -> Test
+-- >     <$> v .: "test" <!< NotBlank
+-- >
+-- > endpoint = post "/" $ do
+-- >   result <- parseJsonBody @Test
+-- >   print text
+parseJsonBody :: ∀ a m. (MonadUnliftIO m, FromJSON a) => ActionT m a
+parseJsonBody = body <&> eitherDecode >>= \case
   Left msg -> do
     status status422
     json $ msg2err msg

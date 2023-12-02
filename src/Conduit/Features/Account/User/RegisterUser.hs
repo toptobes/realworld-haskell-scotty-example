@@ -2,6 +2,7 @@
 
 module Conduit.Features.Account.User.RegisterUser where
 
+import Prelude hiding (pass)
 import Conduit.App.Monad (AppM, runService)
 import Conduit.DB.Core (MonadDB(..), mapDBResult, sqlKey2ID)
 import Conduit.Features.Account.Common.EnsureUserCredsUnique (ReadUsers, ensureUserCredsUnique)
@@ -10,7 +11,7 @@ import Conduit.Features.Account.Errors (AccountError(..))
 import Conduit.Features.Account.Types (UserAuth(..), UserID(..), inUserObj)
 import Conduit.Identity.Auth (AuthTokenGen(..))
 import Conduit.Identity.Password (HashedPassword(..), PasswordGen(..), UnsafePassword(..))
-import Conduit.Validation (NotBlank(..), fromJsonObj, (<!<))
+import Conduit.Validation (NotBlank(..), parseJsonBody, (<!<))
 import Data.Aeson (FromJSON(..), withObject, (.:))
 import Database.Esqueleto.Experimental (insert)
 import Network.HTTP.Types (status201)
@@ -31,7 +32,7 @@ instance FromJSON RegisterUserAction where
 
 handleUserRegistration :: ScottyT AppM ()
 handleUserRegistration = post "/api/users" do
-  action <- fromJsonObj
+  action <- parseJsonBody
   user <- runService $ registerUser action
   status status201
   json $ inUserObj user
@@ -39,38 +40,38 @@ handleUserRegistration = post "/api/users" do
 defaultImage :: Text
 defaultImage = "https://api.realworld.io/images/smiley-cyrus.jpeg"
 
-registerUser :: (PasswordGen m, CreateUser m, ReadUsers m, AuthTokenGen m) => RegisterUserAction -> m (Either AccountError UserAuth)
+registerUser :: (PasswordGen m, AuthTokenGen m, CreateUser m, ReadUsers m) => RegisterUserAction -> m (Either AccountError UserAuth)
 registerUser RegisterUserAction {..} = runExceptT do
   ExceptT $ ensureUserCredsUnique (Just username) (Just email)
 
   hashedPass <- lift $ hashPassword password
 
   userID <- ExceptT $ insertUser UserInfo
-    { userName  = username
-    , userPass  = hashedPass
-    , userEmail = email
+    { name  = username
+    , pass  = hashedPass
+    , email = email
     }
 
   token <- lift $ mkAuthToken userID
 
   pure UserAuth
-    { userToken = token
-    , userName  = username
-    , userEmail = email
-    , userBio   = Nothing
-    , userImage = defaultImage
+    { token = token
+    , name  = username
+    , email = email
+    , bio   = Nothing
+    , image = defaultImage
     }
 
 class (Monad m) => CreateUser m where
   insertUser :: UserInfo -> m (Either AccountError UserID)
 
 data UserInfo = UserInfo
-  { userName  :: !Text
-  , userPass  :: !HashedPassword
-  , userEmail :: !Text
+  { name  :: !Text
+  , pass  :: !HashedPassword
+  , email :: !Text
   }
 
 instance (Monad m, MonadDB m, MonadUnliftIO m) => CreateUser m where
   insertUser :: UserInfo -> m (Either AccountError UserID)
   insertUser UserInfo {..} = mapDBResult sqlKey2ID <$> runDB do
-    insert (User userName userPass.getHashed userEmail mempty defaultImage)
+    insert (User name pass.getHashed email mempty defaultImage)
