@@ -121,7 +121,7 @@ If you plan to make any modifications involving creating new files or adding new
 
 ## Further documentation
 
-**Access the documentation site @ [https://toptobes.github.io/realworld-scotty-hs/].**
+**Access the documentation site @ [https://toptobes.github.io/realworld-haskell-scotty-example].**
 Nearly everything except for the features are decently documented, and I'll work on adding more soon.
 
 You can also build the documentation site locally using `cabal haddock`, and then serve it w/ `npx serve` or whatever
